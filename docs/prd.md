@@ -906,7 +906,7 @@ Pill button, Primary CTA (accent, with arrow tile), Dark dock, Segmented control
 
 ## 12. Android architecture
 
-Greenfield project [V: no code]. Decisions [D-24]: Kotlin, Jetpack Compose, single Activity, MVVM with unidirectional state (`StateFlow<UiState>`), coroutines/Flow, Hilt DI, Room (cache + pending order), DataStore (settings) and EncryptedSharedPreferences/Keystore (token), Retrofit + OkHttp + kotlinx.serialization, Coil (images), WorkManager (periodic sync), Navigation Compose.
+Greenfield project [V: no code]. Decisions [D-24]: Kotlin, Jetpack Compose, single Activity, MVVM with unidirectional state (`StateFlow<UiState>`), coroutines/Flow, Hilt DI, Room (cache + pending order), DataStore (settings) and Secure DataStore (token: DataStore encrypted with Tink AEAD, keyset wrapped by an Android Keystore key), Retrofit + OkHttp + kotlinx.serialization, Coil (images), WorkManager (periodic sync), Navigation Compose.
 
 ### 12.1 Modules
 Sized for one developer. Features live as packages inside `:app` rather than separate modules, which avoids build overhead while keeping the boundaries that matter testable.

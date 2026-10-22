@@ -153,7 +153,7 @@ A fresh kiosk goes from first launch to "bound to a merchant". The device identi
 - [ ] **DEV-013** SCR-02 Sign in UI per `Login.dc.html`. Busy state "Signing in…" with spinner, single-flight tap, error panel variants (not registered with SN shown, disabled, network), and "Need help?" text (FR-003).
   - *Verify:* UI tests for each state with fake responses.
 - [ ] **DEV-014** `ActivationRepository` (FR-003, NFR-005).
-  - Calls E1 and persists `deviceToken` in Keystore-backed EncryptedSharedPreferences, and `deviceId`/`kioskCode`/`kioskName` in DataStore.
+  - Calls E1 and persists `deviceToken` in the Secure DataStore (Tink AEAD + Android Keystore, architecture §6), and `deviceId`/`kioskCode`/`kioskName` in DataStore.
   - A 401 interceptor clears activation and routes to SCR-02.
   - *Verify:* unit and integration tests (MockWebServer): success, 404 `DEVICE_NOT_REGISTERED`, `DEVICE_DISABLED`, timeout, and 401 later.
 
