@@ -46,7 +46,7 @@ A feature package contains only `XxxRoute.kt`, `XxxScreen.kt`, `XxxViewModel.kt`
 ## 4. Domain rules
 
 - **Money is `Long` IDR** (`typealias Rupiah = Long` or a `@JvmInline value class Rupiah(val value: Long)`). Never use `Double`/`Float` for money. Format only via `IdrFormatter` (BR-01).
-- **Time**: business times are `kotlinx.datetime.Instant` from the server. UI timers use the injected `Clock`. Never call `System.currentTimeMillis()` in domain or ViewModels.
+- **Time**: business times are `kotlin.time.Instant` (standard library; kotlinx-datetime 0.7+ removed its own `Instant`) from the server. UI timers use the injected `Clock`. Never call `System.currentTimeMillis()` in domain or ViewModels.
 - **Errors**: return `Outcome<T>` (success or `DomainError`). Throw only for programmer errors. Never let `IOException`/`HttpException` escape `:core:data`.
 - **Immutability**: domain models are `data class`es with `val`s and immutable collections. State machines expose `StateFlow` and change state only inside their own methods.
 - Public domain APIs have KDoc that cites the requirement they implement (`/** FR-013 … */`) (NFR-011).
@@ -68,19 +68,19 @@ A feature package contains only `XxxRoute.kt`, `XxxScreen.kt`, `XxxViewModel.kt`
 
 ## 7. Dependencies
 
-- Versions live only in `gradle/libs.versions.toml`.
+- Versions live only in `gradle/libs.versions.toml`, and every library is listed with its purpose in [`technology-stack.md`](technology-stack.md). Only stable releases.
 - Every new library needs a line in the PR description saying why. Analytics, crash reporting or ad SDKs are never allowed [D-23].
 - Every new external system or hardware access goes behind a domain interface with a scriptable fake in `:core:testing` (NFR-012).
 
 ## 8. Debug vs release
 
-- Developer tools (Developer options, simulate bar, fake switching) live only in `src/debug/`. Release must not reference them (CI `apkanalyzer` check, FR-019 AC3).
+- Developer tools (Developer options, simulate bar, fake switching) live only in `src/debug/`. Release must not reference them (`apkanalyzer` check in `./gradlew verify`, FR-019 AC3).
 - Logging goes through `KioskLog`, never `println`/`Log.*` directly. No PIN, full payment refs or customer data in logs (NFR-006).
-- Secrets (signing keystore, pins) never get committed. They come from CI secrets or `local.properties`.
+- Secrets (signing keystore, pins) never get committed. They come from environment variables or `local.properties`.
 
 ## 9. Git workflow
 
-- `main` is always releasable to an emulator: green CI, installable debug APK.
+- `main` is always releasable to an emulator: `./gradlew verify` green, instrumented tests green on the local emulators, installable debug APK. There is no CI in 1.0 (D-31).
 - Branches: `feat/DEV-0xx-short-name`, `fix/TC-xxx-short-name` or `fix/short-name`, `docs/…`, `chore/…`.
 - Commits follow [Conventional Commits](https://www.conventionalcommits.org/), matching the existing history: `feat(checkout): poll payment status every 2 s (DEV-047)`. Scope = module or feature package. Reference the DEV/FR/TC ID.
 - One DEV task per PR where practical. Squash-merge.

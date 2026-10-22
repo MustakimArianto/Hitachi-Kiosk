@@ -3,7 +3,8 @@
 | | |
 |---|---|
 | Document version | 1.1 (2026-10-22) — updated to the final "Linen & Paprika" design, English-only UI, Budget Plan |
-| Requirements | [`prd.md`](prd.md) (FR-xxx, NFR-xxx, D-xx, A-xx, OQ-xx) |
+| Requirements | [`product-requirement.md`](product-requirement.md) (FR-xxx, NFR-xxx, D-xx, A-xx, OQ-xx), [`technical-requirement.md`](technical-requirement.md) (TR-) |
+| Implementation | [`technical-design.md`](technical-design.md), [`technology-stack.md`](technology-stack.md) (versions for DEV-001) |
 | Tests | [`testing-plan.md`](testing-plan.md) (TC-xxx) |
 | Team | One Android developer (with AI coding agents) [D-25] |
 | Horizon | ~14.25 weeks to `1.0.0` (includes Budget Plan, D-26; English-only UI, D-29) |
@@ -67,7 +68,7 @@ If the date is fixed, the first cuts (with PO approval) are:
 Create a buildable, testable Android project with the architecture, design system foundation, API contract and fakes that every later milestone builds on. Nothing customer-facing ships yet, but the empty app launches into a navigation skeleton showing every screen as a labelled placeholder.
 
 ### Scope
-**Included:** Gradle project, module structure (PRD §12.1), version catalog, CI, static analysis, design tokens, `DesignUnit` scaling, typography with bundled Schibsted Grotesk, motion spec constants, reduced-motion plumbing, navigation skeleton, API contract (OpenAPI) with a mock server, fake implementations of every external interface, debug developer menu shell.
+**Included:** Gradle project, module structure (PRD §12.1), version catalog, local verification gate (no CI, D-31), static analysis, design tokens, `DesignUnit` scaling, typography with bundled Schibsted Grotesk, motion spec constants, reduced-motion plumbing, navigation skeleton, API contract (OpenAPI) with a mock server, fake implementations of every external interface, debug developer menu shell.
 **Excluded:** Any real screen UI beyond placeholders, networking against a real server, hardware drivers.
 
 ### TODO checklist
@@ -80,11 +81,11 @@ Create a buildable, testable Android project with the architecture, design syste
   - *Verify:* `./gradlew assembleDebug` succeeds, and the APK installs on an API 30 and an API 35 emulator.
 - [ ] **DEV-002** Create modules `:core:designsystem`, `:core:domain` (pure Kotlin/JVM), `:core:data`, `:core:hardware`, `:core:testing` with the dependency rules in PRD §12.1. Add Hilt to `:app`, `:core:data` and `:core:hardware`.
   - *Verify:* `:core:domain` has no Android dependency (a Gradle JVM module), and a module dependency check (Gradle `dependencies` report) matches §12.1.
-- [ ] **DEV-008** CI pipeline (GitHub Actions or the team's CI) (NFR-011).
-  - Runs `lint`, `ktlint`/`detekt`, unit tests and `assembleDebug` on every push.
-  - Runs instrumented tests on an API 30 and an API 34 emulator nightly or on PRs to `main`.
-  - Publishes the test reports and debug APK as artifacts.
-  - *Verify:* a deliberately failing test fails CI.
+- [ ] **DEV-008** Local verification gate (NFR-011, D-31: no CI in 1.0; technical-design §2.6).
+  - A root `./gradlew verify` task runs `lint`, `detekt`, `ktlintCheck`, unit tests, `verifyRoborazziDebug`, `koverVerify`, `buildHealth`, `assembleRelease` + `scripts/check-release-apk.sh`, and `scripts/check-openapi.sh`.
+  - Instrumented tests run with `connectedDebugAndroidTest` on the Kiosk-30 and Kiosk-34 emulators before every merge to `main`.
+  - An optional `scripts/git-hooks/pre-push` hook runs `verify`. The README explains how to install it.
+  - *Verify:* a deliberately failing test fails `verify`.
 
 **Design system foundation**
 - [ ] **DEV-003** `DesignUnit`: the `Int.dpx` / `Int.spx` extensions computing `screenWidthDp / 1080`, with a large-text multiplier CompositionLocal (NFR-002, PRD §11.2).
@@ -94,10 +95,10 @@ Create a buildable, testable Android project with the architecture, design syste
   - *Verify:* a token unit test asserts the hex values. A reduce-motion test asserts specs return `snap()`.
 
 **Contract & fakes**
-- [ ] **DEV-006** Keep the API contract in sync and wire it into CI. `docs/api/api-spec.md` and the generated `docs/api/openapi.yaml` (via `docs/api/tools/gen_openapi.py`) already exist as of 2026-10-22. The yaml lints valid and has been run under Prism.
+- [ ] **DEV-006** Keep the API contract in sync and wire it into the `verify` gate. `docs/api/api-spec.md` and the generated `docs/api/openapi.yaml` (via `docs/api/tools/gen_openapi.py`) already exist as of 2026-10-22. The yaml lints valid and has been run under Prism.
   - Reconcile any difference found while building the mock, updating `api-spec.md` first, then regenerating.
-  - Add a CI step that regenerates the yaml and fails on a diff, and one that runs `redocly lint`.
-  - *Verify:* CI lint is green; the app's MockWebServer fixtures equal the spec's examples.
+  - Add `scripts/check-openapi.sh` (run by `verify`) that regenerates the yaml and fails on a diff, then runs `redocly lint`.
+  - *Verify:* the OpenAPI check in `verify` is green; the app's MockWebServer fixtures equal the spec's examples.
 - [ ] **DEV-007** Networking skeleton in `:core:data` (NFR-010).
   - Retrofit + OkHttp + kotlinx.serialization, error envelope parsing, auth interceptor, timeouts 10 s/15 s, network security config with cleartext disabled.
   - The base URL comes from build config `dev|staging|prod`.
@@ -106,7 +107,7 @@ Create a buildable, testable Android project with the architecture, design syste
   - *Verify:* fakes compile against the interfaces, and a sample test drives each fake outcome.
 - [ ] **DEV-009** A debug-only "Developer options" screen (behind 5 taps on the splash mark, `debug` source set only).
   - Choose fake vs real backend, select fake scenarios, and show the build info.
-  - *Verify:* the release APK has no reference to the class (`apkanalyzer` check, scripted in CI).
+  - *Verify:* the release APK has no reference to the class (`apkanalyzer` check in `scripts/check-release-apk.sh`, run by `verify`).
 
 **Navigation skeleton**
 - [ ] **DEV-010a** A Navigation Compose graph with routes for SCR-01…SCR-19 (PRD §4). Each route shows a placeholder with the screen ID, and all edges in PRD §5.1 are wired as debug buttons.
@@ -119,7 +120,7 @@ Create a buildable, testable Android project with the architecture, design syste
 - AC-0.1-1: A clean checkout builds debug and release (release unsigned locally) with zero lint errors.
 - AC-0.1-2: The app launches on API 30 and API 35 emulators and every placeholder route is reachable.
 - AC-0.1-3: `openapi.yaml` covers E1–E14, lints clean, and matches `api-spec.md`. The app runs its first screens against the PO's mock server or the in-app fakes.
-- AC-0.1-4: CI runs green with unit and instrumented test stages.
+- AC-0.1-4: `./gradlew verify` and the instrumented suite run green locally.
 
 ### Testing requirements
 - Unit: DesignUnit conversion, token values, reduce-motion specs, network error parsing (TC-140, TC-141, TC-154 partial, TC-155, TC-156).
@@ -127,10 +128,10 @@ Create a buildable, testable Android project with the architecture, design syste
 - Manual: install on an emulator at 1080×1920.
 
 ### Deliverables
-Buildable multi-module project; CI; design-system foundation; `docs/api/openapi.yaml`; fakes; README; ADR-0001.
+Buildable multi-module project; local `verify` gate; design-system foundation; `docs/api/openapi.yaml`; fakes; README; ADR-0001.
 
 ### Exit criteria
-All AC-0.1 pass in CI. The contract has been shared with the backend team (DEP-1) and the share date is noted in the README. There are no open P1/P2 defects.
+All AC-0.1 pass in `verify` and the instrumented suite. The contract has been shared with the backend team (DEP-1) and the share date is noted in the README. There are no open P1/P2 defects.
 
 ---
 
@@ -334,7 +335,7 @@ Complete the ordering half of the journey:
   - Input: budget, adults, children, menu, config. Output: `under` and `over` plans (each a list of cart lines grouped per person + shared) plus the edge-case outcome.
   - Algorithm:
     1. Build per-person slot candidates per BR-13/BR-14 (adult: main + drink or a combo; child: kid-friendly main + drink, falling back to the cheapest main).
-    2. Run a bounded best-first search with pruning on the running final total via `PricingEngine`.
+    2. Compute the reachable subtotals with dynamic programming over price units, then price each one with `PricingEngine` to get its final total (technical-design §8.3, TD-06).
     3. Add optional side/dessert (max 1 per person) only while it moves the total toward the target.
     4. Apply the ranking/tie-breaks from FR-032, and cap the over plan by `overCapPercent`.
     5. **Exact match:** if some plan's final total equals the budget, return it as the single result (no under/over pair). The search may vary mains and drinks and add or remove at most one side/dessert per person to find one.
@@ -383,7 +384,7 @@ Implement the full order and payment lifecycle, including every failure, retry, 
 
 ### TODO checklist
 - [ ] **DEV-045** `OrderRepository.create()` (FR-016).
-  - E7 with a UUID `Idempotency-Key` per checkout attempt, and retries with 1/2/4 s backoff on network errors only.
+  - E7 with a UUID `Idempotency-Key` per checkout attempt (a new key when the body changes or after "Back to order", technical-design §5.3), and retries with 1/2/4 s backoff on network errors, 5xx and 429 (TC-070).
   - Persists the pending order/payment IDs in Room for recovery. Cancel uses E8.
   - *Verify:* TC-068–TC-070.
 - [ ] **DEV-046** Mismatch handling (FR-016): `PRICE_CHANGED` → refresh catalog, re-price, back to SCR-10 with the message; `ITEM_UNAVAILABLE` → flag the lines and block Pay until they are removed.
@@ -396,7 +397,7 @@ Implement the full order and payment lifecycle, including every failure, retry, 
 - [ ] **DEV-048** QR rendering from `qrString` (ZXing core, ECC ≥ M) in the design frame: a centered QR card with the logo mark and the expiry ring "Code expires in m:ss". **There is no scan line, no 1-2-3 instruction list and no "Step 3 of 3" indicator** (removed from the design).
   - *Verify:* TC-079 (decode the rendered bitmap equals the input).
 - [ ] **DEV-049** `CardTerminal` interface (`startSale(amount, ref)`, `cancel()`, result flow), `FakeCardTerminal`, and the card UI per Checkout (terminal illustration, card-tap loop). Add the 90 s timeout [A-16]; success only on backend `PAID` [A-15].
-  - *Verify:* TC-080–TC-083.
+  - *Verify:* TC-080–TC-083, TC-181.
 - [ ] **DEV-050** Processing and Failed states (FR-019).
   - Reason copy mapping; the "not charged" note only on terminal non-paid states; the Unknown state polling for 60 s; "Try again" with a fresh payment (shows "Creating your payment…" first); "Pay by X instead" only if enabled; "Cancel order" → Idle.
   - Visual specs: `S_Checkout_creating`, `S_Checkout_expired`, `S_Checkout_cancelled`, `S_Checkout_declined`, `S_Checkout_terminalTimeout` and `S_Checkout_offline` (Try again disabled and labelled "Reconnecting…"). "Checking your payment…" is the `checking` scenario (no board).
@@ -557,8 +558,8 @@ Audit and finish the cross-cutting qualities so the app is ready for a real-worl
   - *Verify:* TC-142–TC-144 and TC-168, with results in `docs/perf/0.8.0.md`.
 - [ ] **DEV-083** Motion fidelity audit (NFR-009): screen-by-screen comparison against PRD §11.4 (screen recordings next to the design prototype), and confirm reduce motion collapses everything.
   - *Verify:* TC-153 checklist signed.
-- [ ] **DEV-084** Complete the screenshot test suite (Paparazzi or Roborazzi; pick the one that runs on JVM CI) for every screen and state in PRD §7 at 1080×1920, in English and with larger text. The matrix is the 20 screen artboards plus the 33 `S_*` state boards plus the `scenario`-only states listed in §1.
-  - *Verify:* CI screenshot job green, references reviewed against the design, TC-180.
+- [ ] **DEV-084** Complete the screenshot test suite (Roborazzi, per testing-plan §1.3) for every screen and state in PRD §7 at 1080×1920, in English and with larger text. The matrix is the 20 screen artboards plus the 33 `S_*` state boards plus the `scenario`-only states listed in §1.
+  - *Verify:* `verifyRoborazziDebug` green in `verify`, references reviewed against the design, TC-180.
 - [ ] **DEV-085** Larger-text layout fixes (FR-026 AC3).
   - *Verify:* TC-116.
 
@@ -595,14 +596,14 @@ Replace the fakes with the real backend, company payment gateway and EDC termina
 - [ ] **DEV-090** QRIS against the gateway sandbox (FR-017): real `qrString`, status updates (polling or push as provided), cancel and expiry. Run the full TC-074–TC-079 set against the sandbox with real e-wallet test apps where the sandbox allows.
 - [ ] **DEV-091** EDC adapter implementing `CardTerminal` per ADR-0003 (USB/LAN/cloud per OQ-03): sale, cancel, timeout, result relay (E12 if required), TID display, and the Test terminal action.
   - *Verify:* TC-080–TC-083 with test cards on the real terminal.
-- [ ] **DEV-092** Device compatibility matrix (NFR-016) per testing-plan §2.3: emulators API 30/33/34/35/36 and the iMin target, plus 2 USB and 2 Bluetooth printer models.
+- [ ] **DEV-092** Device compatibility matrix (NFR-016) per testing-plan §2.3: emulators API 30/33/34/35/36/37 and the iMin target, plus 2 USB and 2 Bluetooth printer models.
   - *Verify:* TC-159.
 - [ ] **DEV-093** A 72 h soak on the iMin device with a scripted journey via UI Automator every 3 min, against staging. Collect memory, crashes, ANRs, temperature and log size (NFR-004, NFR-015).
   - *Verify:* TC-145.
 - [ ] **DEV-094** Security & privacy review (NFR-005, NFR-006).
   - Checklist in testing-plan §6.12: token storage, TLS/pinning (confirm A-36 with infra), exported components, R8, no debug tools in release, log redaction, permissions, and a dependency audit with no analytics SDKs.
   - *Verify:* TC-146–TC-149.
-- [ ] **DEV-095** Release build: signing config from secure env vars/CI secrets (keystore never committed), `versionCode` scheme, R8 rules, and a release variant pointed at `prod`. Upgrade-install test from 0.8.0 preserves activation and settings (NFR-014).
+- [ ] **DEV-095** Release build: signing config from environment variables or `local.properties` (keystore never committed), `versionCode` scheme, R8 rules, and a release variant pointed at `prod`. Upgrade-install test from 0.8.0 preserves activation and settings (NFR-014).
   - *Verify:* TC-158.
 - [ ] **DEV-096** Pilot at one merchant (≥ 5 trading days): provision per `docs/provisioning.md`, observe OBJ-1/OBJ-2, and record issues. Pilot report in `docs/pilot-report.md`.
 - [ ] **DEV-098** Bug-fix buffer: fix all P1/P2 defects found in the pilot and soak. Re-run the affected TCs.

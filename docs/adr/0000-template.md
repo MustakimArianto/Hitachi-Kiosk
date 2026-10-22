@@ -4,7 +4,7 @@
 |---|---|
 | Status | Proposed \| Accepted \| Superseded by ADR-XXXX |
 | Date | YYYY-MM-DD |
-| Related | FR-/NFR-/D-/OQ-/DEV- IDs from [`prd.md`](../prd.md) and [`dev-plan.md`](../dev-plan.md) |
+| Related | FR-/NFR-/D-/OQ-/DEV- IDs from [`product-requirement.md`](../product-requirement.md) and [`dev-plan.md`](../dev-plan.md) |
 
 ## Context
 What forces the decision: the requirement, constraint or unknown, and what we learned (spike results, vendor docs, device findings). Facts, not opinions.

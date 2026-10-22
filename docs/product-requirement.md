@@ -3,9 +3,9 @@
 | | |
 |---|---|
 | Product | Hitachi Kiosk (Android self-ordering kiosk app) |
-| Document version | 1.1 (2026-10-22), see the [revision history](#revision-history) |
+| Document version | 1.2 (2026-10-22), see the [revision history](#revision-history) |
 | Target release | `1.0.0` |
-| Companion documents | [`dev-plan.md`](dev-plan.md), [`testing-plan.md`](testing-plan.md) |
+| Companion documents | [`technical-requirement.md`](technical-requirement.md), [`technical-design.md`](technical-design.md), [`technology-stack.md`](technology-stack.md), [`architecture.md`](architecture.md), [`dev-plan.md`](dev-plan.md), [`testing-plan.md`](testing-plan.md) |
 | Design source of truth | [`ui-design/`](ui-design/) — the final light design "Linen & Paprika": 20 screen artboards, 33 state boards (`S_<Screen>_<scenario>`), the `Photo` component, `canvas.json` and `README.md`. It is mirrored from https://claude.ai/artifact/Lv6W9bttmG8fH4ho4CkWMg |
 
 ## Revision history
@@ -13,6 +13,7 @@
 |---|---|---|
 | 1.0 | 2026-10-22 | First complete PRD. |
 | 1.1 | 2026-10-22 | Aligned with the final "Linen & Paprika" design: English-only UI in 1.0 [D-29] (FR-008 deferred); Budget Pas renamed **Budget Plan**, with SCR-19 now designed as a 2-step flow plus a Customize sheet, exact-match handling and in-1.0 swap rebalancing (FR-032, OQ-14 closed); Menu promo carousel and the Checkout scan line, step list and "Step 3 of 3" indicator removed [D-30]; OrderType has no photos; Item, Combo, Payment, Checkout, Complete and Idle states documented from the 33 state boards; SCR-09, SCR-13 and the new SCR-20 (Change PIN) are now designed; "At counter" is no longer drawn on Payment or Checkout. |
+| 1.2 | 2026-10-22 | File renamed from `prd.md` to `product-requirement.md`. Added the companion technical documents. No CI in 1.0 [D-31]: NFR-011 static analysis and coverage are enforced by the local `./gradlew verify` gate. |
 
 ## 0. How to read this document
 
@@ -852,7 +853,7 @@ Complete per-screen motion inventory: §11.4.
 | **NFR-008** | Localization | The UI is English-only in 1.0 [D-29]. All UI strings still live in `values/strings.xml`, with no hard-coded user-visible strings (lint `HardcodedText` / Compose check), so a language can be added later. Plurals use `plurals` resources. Currency formatting uses the custom IDR formatter (BR-01), not the locale default. | Lint passes. Pseudo-locale run shows no clipped text. |
 | **NFR-009** | Motion fidelity | Durations, delays and easing curves match §11.4 within ± 10 %. Reduced motion collapses all of them. | Motion review checklist per screen (testing-plan §6.9). |
 | **NFR-010** | Network | Timeouts: connect 10 s, read 15 s. Polling every 2 s. Retries with exponential backoff for idempotent calls only. All network calls off the main thread. Behaviour under offline as in FR-028. | Fault-injection tests (MockWebServer). |
-| **NFR-011** | Maintainability | Module structure per §12. Domain logic (pricing, cart, order state machines) is pure Kotlin with ≥ 90 % line coverage. Data layer ≥ 70 %. Static analysis (Android Lint, ktlint/detekt) with zero errors on CI. Public interfaces are documented. | CI report per milestone. |
+| **NFR-011** | Maintainability | Module structure per §12. Domain logic (pricing, cart, order state machines) is pure Kotlin with ≥ 90 % line coverage. Data layer ≥ 70 %. Static analysis (Android Lint, ktlint/detekt) with zero errors in the `./gradlew verify` gate (no CI in 1.0, D-31). Public interfaces are documented. | `verify` report per milestone (`docs/test-reports/`). |
 | **NFR-012** | Testability | Every external dependency sits behind an interface with a fake: backend API, payment gateway, card terminal, printers, device identity, clock, connectivity. A debug "Developer options" menu (debug builds only) lets testers switch fakes and force outcomes. | All J1–J8 runnable on an emulator with fakes. |
 | **NFR-013** | Images | Images load asynchronously with memory and disk cache. Placeholder = the design's tone color for the category/slot [V Photo component]. A decode failure shows the placeholder. Max image cache 200 MB [A-37]. | Offline cold start shows cached images. |
 | **NFR-014** | Distribution | Signed release APK (v2+v3 signature) installed via MDM/sideload [D-22]. `versionCode = MAJOR*10000 + MINOR*100 + PATCH`. In-place upgrade preserves activation, binding and settings. | Upgrade test from the previous milestone build. |
@@ -1051,6 +1052,7 @@ Sized for one developer. Features live as packages inside `:app` rather than sep
 | D-28 | Children's meals use only kid-tagged items, falling back to the cheapest main when none exist. |
 | D-29 | The UI is English-only in 1.0.0. Runtime language switching and Bahasa Indonesia are deferred post-1.0. Strings stay externalised so a language can be added later. Supersedes the localization part of D-09. (Product owner, design review, 2026-10-22.) |
 | D-30 | Design simplifications in the final "Linen & Paprika" design: the Menu promo carousel is removed, Order type has no photos, Checkout has no scan-line animation, no instruction steps and no "Step 3 of 3" indicator, and Budget Plan starts simple (budget and people) with advanced options behind "Customize". Budget Plan also gains an exact-match result. (Product owner, design review, 2026-10-22.) |
+| D-31 | No CI service in 1.0. Every check a CI job would run is in one local Gradle task, `./gradlew verify`, which must pass before merging to `main` and at each milestone exit. Instrumented tests run on local emulators at the same points. CI can be added later by running the same task. (Product owner, 2026-10-22.) |
 
 ## 15. Assumptions (unconfirmed)
 
@@ -1140,7 +1142,7 @@ Development tasks: `dev-plan.md`. Test cases: `testing-plan.md`. The full matrix
 | FR-015 | 0.4.0 | DEV-038 | TC-065–TC-067 |
 | FR-016 | 0.5.0 | DEV-045, DEV-046, DEV-052 | TC-068–TC-073 |
 | FR-017 | 0.5.0, 0.9.0 | DEV-047, DEV-048, DEV-090 | TC-074–TC-079 |
-| FR-018 | 0.5.0, 0.9.0 | DEV-049, DEV-091 | TC-080–TC-083 |
+| FR-018 | 0.5.0, 0.9.0 | DEV-049, DEV-091 | TC-080–TC-083, TC-181 |
 | FR-019 | 0.5.0 | DEV-050 | TC-084–TC-087 |
 | FR-020 | 0.6.0 | DEV-059, DEV-060 | TC-088–TC-090 |
 | FR-021 | 0.6.0 | DEV-057, DEV-058, DEV-059 | TC-091–TC-095 |

@@ -3,9 +3,10 @@
 | | |
 |---|---|
 | Document version | 1.1 (2026-10-22) — updated to the final "Linen & Paprika" design, English-only UI (D-29), Budget Plan |
-| Requirements | [`prd.md`](prd.md) |
+| Requirements | [`product-requirement.md`](product-requirement.md) |
 | Development roadmap | [`dev-plan.md`](dev-plan.md) |
 | API contract | [`api/api-spec.md`](api/api-spec.md) |
+| Technical requirements | [`technical-requirement.md`](technical-requirement.md) (TR-), with the TC that verifies each |
 
 A feature is **not** done because it compiles or looks right. It is done when its PRD acceptance criteria pass, through the test cases mapped below, with the evidence listed for its milestone.
 
@@ -18,7 +19,7 @@ A feature is **not** done because it compiles or looks right. It is done when it
 2. Guarantee money correctness: pricing, order creation and payment state, with zero tolerance for wrong charges.
 3. Prove kiosk robustness: lifecycle, process death, connectivity loss, hardware faults, 72 h unattended operation.
 4. Prove fidelity to the approved light design (layout, copy, motion, and every state board) and to accessibility and string-externalisation rules. The UI is English only in 1.0 (D-29).
-5. Catch regressions on every change through automation in CI.
+5. Catch regressions on every change through automation in the local `./gradlew verify` gate (no CI in 1.0, D-31).
 
 ### 1.2 Scope
 **In:** The Android app (all modules), its behaviour against the API contract (mock, staging, prod), its integration with the iMin device, printers and the EDC terminal.
@@ -28,11 +29,11 @@ A feature is **not** done because it compiles or looks right. It is done when it
 
 | Level | What | Tools (justification) | Where it runs | Owner |
 |---|---|---|---|---|
-| Unit | `:core:domain` pricing, cart, state machines, formatters; ViewModels; repositories with fakes | JUnit 4, kotlinx-coroutines-test, Turbine (Flow assertions), Truth | JVM, CI every push | Developer |
-| Integration (data) | Retrofit + serialization against recorded API examples; Room DAOs; DataStore; WorkManager | MockWebServer (contract fixtures copied from `api-spec.md`), Room in-memory, `WorkManagerTestInitHelper` | JVM/Robolectric or emulator, CI | Developer |
-| Contract | App fixtures vs `openapi.yaml`, and the app's client against the real staging backend | Generated contract test suite (0.9.0) | CI + staging | Developer + backend team |
-| UI (component/screen) | Compose screens per state, navigation, input handling | `androidx.compose.ui.test` with fakes via Hilt test modules | Emulator, CI | Developer |
-| Screenshot | Visual regression of every screen and state (the 20 screen artboards and the 33 `S_*` state boards in `docs/ui-design/`), larger text | Roborazzi (JVM, fast enough for a solo dev's CI; Paparazzi acceptable) | JVM, CI | Developer |
+| Unit | `:core:domain` pricing, cart, state machines, formatters; ViewModels; repositories with fakes | JUnit 4, kotlinx-coroutines-test, Turbine (Flow assertions), Truth, kotest-property (property tests TC-061 and FR-032 AC8, used inside JUnit 4) | JVM, `verify` before every merge | Developer |
+| Integration (data) | Retrofit + serialization against recorded API examples; Room DAOs; DataStore; WorkManager | MockWebServer (contract fixtures copied from `api-spec.md`), Room in-memory, `WorkManagerTestInitHelper` | JVM/Robolectric or emulator, `verify` | Developer |
+| Contract | App fixtures vs `openapi.yaml`, and the app's client against the real staging backend | Generated contract test suite (0.9.0) | `verify` + staging | Developer + backend team |
+| UI (component/screen) | Compose screens per state, navigation, input handling | `androidx.compose.ui.test` with fakes via Hilt test modules | Local emulator, before every merge | Developer |
+| Screenshot | Visual regression of every screen and state (the 20 screen artboards and the 33 `S_*` state boards in `docs/ui-design/`), larger text | Roborazzi (JVM, fast enough to run in every `verify`; Paparazzi acceptable) | JVM, `verify` | Developer |
 | End-to-end | Journeys J1–J8 across screens with fakes or the mock server | Compose UI test + UI Automator (system dialogs, lock task, kill process) | Emulator nightly; device per milestone | Developer |
 | Hardware | SN, printers (built-in/USB/BT), EDC terminal, lock task, boot | Manual scripts with photo/video evidence; UI Automator where possible | iMin device | Developer / tester |
 | Performance | Startup, jank, memory | Macrobenchmark, JankStats, Android Studio profiler, `dumpsys meminfo` | iMin device (authoritative), emulator (trend) | Developer |
@@ -44,7 +45,7 @@ No new test dependency may be added beyond those listed without noting the reaso
 ### 1.4 Manual vs automated
 - **Automate:** everything deterministic. That covers domain logic, data, UI states, navigation, screenshots, and the fake-driven payment and failure paths.
 - **Manual (scripted, with evidence):** physical printing, real EDC and card handling, real QRIS scans with e-wallets, lock-task escape attempts, reboot behaviour, motion feel versus design, PO copy review, and the pilot.
-- **Target:** ≥ 80 % of the TCs below run automatically in CI by 0.8.0.
+- **Target:** ≥ 80 % of the TCs below run automatically (in `verify` or the local instrumented suite) by 0.8.0.
 
 ### 1.5 Fakes and debug tooling
 Every external dependency has a scriptable fake (dev-plan DEV-005). The debug-only Developer options (DEV-009) switch between fake and mock-server modes and select scenarios. The mock server supports the scenarios in `api-spec.md` §4 (`X-Mock-Scenario`). The debug-only Checkout "simulate" bar (FR-019) forces payment outcomes. Release builds contain none of these (TC-148).
@@ -71,9 +72,9 @@ Every external dependency has a scriptable fake (dev-plan DEV-005). The debug-on
 ### 2.3 Device and OS matrix
 | Target | API | Display | Used for | From |
 |---|---|---|---|---|
-| Emulator "Kiosk-30" | 30 | 1080×1920, 320 dpi | minSdk floor, CI instrumented | 0.1.0 |
-| Emulator "Kiosk-34" | 34 | 1080×1920, 240 dpi | CI instrumented | 0.1.0 |
-| Emulator "Kiosk-35/36" | 35, 36 | 1080×1920, 160 dpi | Compatibility, latest target | 0.3.0 |
+| Emulator "Kiosk-30" | 30 | 1080×1920, 320 dpi | minSdk floor, instrumented suite | 0.1.0 |
+| Emulator "Kiosk-34" | 34 | 1080×1920, 240 dpi | Instrumented suite | 0.1.0 |
+| Emulator "Kiosk-35/36/37" | 35, 36, 37 (37 = `targetSdk`, TR-PLT-04) | 1080×1920, 160 dpi | Compatibility, latest target | 0.3.0 |
 | **iMin target kiosk** (model per OQ-01) | device (≈ 34+) | device native | Hardware, performance, soak, pilot: **authoritative** | 0.2.0 (SN spike) |
 | Printers | — | — | iMin built-in; 2 USB ESC/POS (58 mm + 80 mm); 2 Bluetooth ESC/POS | 0.6.0 |
 | EDC terminal | — | — | Model per OQ-03 | 0.9.0 |
@@ -100,7 +101,7 @@ Every defect records: build, device, steps, expected/actual, evidence (screensho
 - IDs `TC-001…TC-180` are stable. New cases append after TC-180 and are never renumbered. A retired case keeps its row, marked *Retired*, so references stay valid.
 - **Type:** U = unit, I = integration, C = contract, UI = Compose UI test, S = screenshot, E2E, M = manual, D = manual on the iMin device/hardware, B = benchmark.
 - **Pri:** H / M / L (test priority, distinct from defect severity).
-- **Auto:** Y = automated in CI; P = partly automated; N = manual.
+- **Auto:** Y = automated (`verify` or the local instrumented suite); P = partly automated; N = manual.
 - "Fakes" means the in-app fakes with the given scenario. "Mock" means the mock server scenario from `api-spec.md` §4.
 
 ---
@@ -186,7 +187,7 @@ Every defect records: build, device, steps, expected/actual, evidence (screensho
 | TC-058 | FR-013 | Rounding steps | Total 172.700 | Steps 0/100/500 | 172.700 / 172.700 / 173.000 with "Rounding Rp 300" | U | H | Y |
 | TC-059 | FR-013 | IDR formatting | 0, 8.000, 1.234.567 | Format | "Rp 0", "Rp 8.000", "Rp 1.234.567" | U | H | Y |
 | TC-060 | FR-013 | Pricing table | `docs/pricing-cases.md` (≥ 20 carts) | Run parametrised test | All expected values match | U | H | Y |
-| TC-061 | FR-013 | Properties | Random carts | Property test (1,000 runs) | Total ≥ 0; total non-decreasing as qty increases; integer only | U | M | Y |
+| TC-061 | FR-013 | Properties | Random carts | Property test (1,000 runs, kotest-property) | Total ≥ 0; integer only; total ≥ subtotal − discount; with a rounding step > 0, total is a multiple of the step and 0 ≤ rounding < step; tax follows the half-up rule. (The total is not monotonic in quantity: crossing the promo threshold can lower it.) | U | M | Y |
 | TC-062 | FR-014 | Upsell off | Toggle off | View order | SCR-10 directly | UI | M | Y |
 | TC-063 | FR-014 | Upsell once per order | Toggle on, cart without sides/desserts | View order → No thanks → Add more → View order | Upsell (2 × 2 suggestions, "No thanks", "Continue · Rp X") shown the first time only | UI | H | Y |
 | TC-064 | FR-014 | Upsell quick add | Toggle on | Add "Caramel Sundae" from upsell, Continue | Sundae line in cart with defaults; items already in cart not suggested | UI | M | Y |
@@ -227,11 +228,12 @@ Test data: the tagged sample menu from `api-spec.md` §4 (kid-friendly mains b1,
 | TC-076 | FR-017 | QRIS cancelled in app | Mock `qris_cancelled` | Wait | Failed: "The payment was cancelled in your app…"; "not charged" note | E2E | H | Y |
 | TC-077 | FR-017 | QRIS expiry | Mock `qris_expire_fast` | Wait 20 s | E11 sent; Failed with expired copy; Try again → new paymentId and new QR | E2E | H | Y |
 | TC-078 | FR-017 | Idle suspended during QR | Idle timeout 30 s | Leave Checkout untouched 60 s | No "Still there?" overlay | UI | H | Y |
-| TC-079 | FR-017 | QR correctness | `qrString` sample | Render, decode bitmap (ZXing) | Decoded text equals `qrString` | U | H | Y |
+| TC-079 | FR-017 | QR correctness | `qrString` sample | Render the QR composable with the merchant centre mark, decode the bitmap (ZXing) | Decoded text equals `qrString` | U | H | Y |
 | TC-080 | FR-018 | Card approved | Fake terminal approve | Choose Card, Pay | Terminal receives the order total (172.700 or the rounded total) + ref; Processing → Complete only after backend PAID | E2E | H | Y |
 | TC-081 | FR-018 | Card declined | Mock `card_declined` / fake decline | Pay | Failed "Your bank declined the card…" | E2E | H | Y |
 | TC-082 | FR-018 | Terminal timeout | Fake no response | Wait 90 s (test clock) | Cancel sent to terminal; failure "The card terminal didn't respond…" | U/UI | H | Y |
 | TC-083 | FR-018 | Real EDC | Sandbox test cards, real terminal | Approve, decline, cancel mid-tap | Results match; no card data in app logs | D | H | N |
+| TC-181 | FR-018 | Card cancelled from "Back to order" | Fake terminal waiting for a card | Tap "Back to order" | `cancel()` sent to the terminal, then E11 + E8; SCR-10 with the cart intact (FR-018 AC3) | E2E | H | Y |
 | TC-084 | FR-019 | Switch method | Failed (card) | Tap "Pay by QRIS instead" | Card payment cancelled; QRIS payment created for the **same** orderId | E2E | H | Y |
 | TC-085 | FR-019 | Unknown status | Network drop right after PAID at gateway | Pay; kill network 10 s; restore | "Checking your payment…" (no "not charged"); resolves to Complete | E2E | H | P |
 | TC-086 | FR-019 | Back to order | Pending QR | Tap "Back to order" | E11 + E8 sent; SCR-10 with cart intact; next Pay creates a new order (new key) | E2E | H | Y |
@@ -313,7 +315,7 @@ Test data: the tagged sample menu from `api-spec.md` §4 (kid-friendly mains b1,
 
 | ID | Req | Scenario | Preconditions / data | Steps | Expected | Type | Pri | Auto |
 |---|---|---|---|---|---|---|---|---|
-| TC-140 | NFR-001 | API floor/target | Emulators 30, 34, 35, 36 | Run instrumented suite | All pass | UI | H | Y |
+| TC-140 | NFR-001 | API floor/target | Emulators 30, 34, 35, 36, 37; target iMin device (from 0.2.0) | Run instrumented suite | All pass | UI | H | Y |
 | TC-141 | NFR-002 | Density scaling + letterbox | 1080×1920 at 160/240/320 dpi; one 1200×1920 and one 1080×2340 | Screenshot Idle, Menu, Your order | Identical layout across densities; supported range fills; other ratio letterboxed | S | H | Y |
 | TC-142 | NFR-003 | Startup | iMin device | Macrobenchmark cold start ×10 | First frame ≤ 1.0 s (median); Idle ≤ 5.0 s | B | H | Y |
 | TC-143 | NFR-003 | Jank | iMin device | Scripted J1 with JankStats | ≤ 1 % janky frames; P90 ≤ 16 ms | B | H | Y |
@@ -328,7 +330,7 @@ Test data: the tagged sample menu from `api-spec.md` §4 (kid-friendly mains b1,
 | TC-152 | NFR-008 | String integrity | — | Lint; pseudo-locale (en-XA) screenshots; PO copy review | 0 hardcoded strings; no clipping when text grows 30 %; English copy reviewed | U/S/M | H | P |
 | TC-153 | NFR-009 | Motion fidelity | Screen recordings vs design prototype | Compare per PRD §11.4 checklist | All timings within ± 10 %; reduce motion collapses all | M | M | N |
 | TC-154 | NFR-010 | Network fault injection | MockWebServer | Timeouts, 5xx, malformed JSON, slow body | Correct timeouts (10/15 s); retries only on idempotent calls; errors mapped; no crash | I | H | Y |
-| TC-155 | NFR-011 | Static analysis & coverage | CI | Run lint, detekt/ktlint, Kover | 0 errors; `:core:domain` ≥ 90 %, `:core:data` ≥ 70 % | U | M | Y |
+| TC-155 | NFR-011 | Static analysis & coverage | `./gradlew verify` | Run lint, detekt/ktlint, Kover | 0 errors; `:core:domain` ≥ 90 %, `:core:data` ≥ 70 % | U | M | Y |
 | TC-156 | NFR-012 | Fakes complete | — | Run J1–J8 on emulator with fakes only | All pass without network | E2E | M | Y |
 | TC-157 | NFR-013 | Image placeholders & cache | Broken image URL; cache 200 MB cap | Load menu; fill cache | Tone placeholder on failure; cache never > 200 MB | I | M | Y |
 | TC-158 | NFR-014 | Upgrade install | Previous milestone APK installed + activated | Install new signed APK over it | Activation, binding, printers, settings preserved; `versionCode` per scheme | D | H | N |
@@ -349,7 +351,7 @@ Each case below uses the state board named in the Scenario column as its visual 
 | TC-177 | FR-012, FR-015, FR-016, FR-028 | Review blocking states (`S_Payment_priceChanged`, `S_Payment_itemUnavailable`, `S_Payment_offline`, `S_Payment_noMethods`, `S_Payment_emptyTray`, `S_Payment_promoNudge`) | Fakes / mock scenarios | Trigger each state | Each shows its banner or panel as designed; Pay is disabled with the reason in every blocking state; "Review" and "Remove" clear price-changed and unavailable; the promo nudge shows "Add Rp X more to get Rp 10.000 off" with a progress bar and does not block Pay | UI/S | H | Y |
 | TC-178 | FR-019 | Checkout failure states (`S_Checkout_creating`, `S_Checkout_expired`, `S_Checkout_cancelled`, `S_Checkout_declined`, `S_Checkout_terminalTimeout`, `S_Checkout_offline`) | Mock / fakes | Reach each state; tap "Try again", the other-method button and "Cancel order" | "Creating your payment…" shows before the QR; each failure shows its own title and copy and the three actions; "Try again" creates a fresh payment; "Cancel order" → Idle; offline disables Try again and labels it "Reconnecting…"; no "Pay at the counter" button | UI/S | H | Y |
 | TC-179 | FR-003, FR-004 | Sign-in and merchant states (`S_Login_notRegistered`, `S_Login_networkTimeout`, `S_Merchants_skeleton`, `S_Merchants_empty`, `S_Merchants_bindFailed`, `S_Merchants_closed`) | Mock scenarios | Trigger each state | Login errors show the designed copy with "Try again" (serial number shown when not registered; Log in disabled while busy or when the SN is unreadable); Merchants shows "Loading restaurants…" skeletons, "No restaurants yet", a bind failure with Retry (Retry shows the skeleton, then the list), and a closed card "Closed · opens 10:00" that is not tappable | UI/S | H | Y |
-| TC-180 | NFR-002, NFR-009 | State-board screenshot matrix | CI screenshot job | Render every `S_*` board (33) and every screen artboard (20) at 1080×1920 in the app and compare with the design | Every board has a reference image reviewed against `docs/ui-design/`; any board without a screenshot test fails the check; larger-text variants exist for the money screens | S | H | Y |
+| TC-180 | NFR-002, NFR-009 | State-board screenshot matrix | `verifyRoborazziDebug` in `verify` | Render every `S_*` board (33) and every screen artboard (20) at 1080×1920 in the app and compare with the design | Every board has a reference image reviewed against `docs/ui-design/`; any board without a screenshot test fails the check; larger-text variants exist for the money screens | S | H | Y |
 
 ---
 
@@ -401,15 +403,15 @@ SN (TC-005/006), printers (TC-091–TC-100), EDC (TC-083), lock task and boot (T
 
 ## 7. Version-specific testing
 
-Each milestone runs: (a) its new TCs, (b) the full automated regression of all earlier milestones, (c) its manual/device checks. Evidence goes in `docs/test-reports/<version>.md` (CI links, screenshots, device photos/videos, benchmark numbers).
+Each milestone runs: (a) its new TCs, (b) the full automated regression of all earlier milestones, (c) its manual/device checks. Evidence goes in `docs/test-reports/<version>.md` (`verify` and instrumented-test reports, screenshots, device photos/videos, benchmark numbers).
 
 | Version | Features to validate | Required TCs (new) | Regression | Blocking defects | Required evidence | Exit |
 |---|---|---|---|---|---|---|
-| **0.1.0** | Build, modules, design units/tokens, navigation skeleton, network skeleton, fakes | TC-140, TC-141 (skeleton screen), TC-154 (partial), TC-155, TC-156 (fakes compile) + navigation edge walk | — | Build/CI failure; scaling wrong | CI run link; emulator screenshots of placeholders | dev-plan 0.1.0 exit |
-| **0.2.0** | Splash, routing, SN, activation, merchants | TC-001–TC-019, TC-146, TC-179 | 0.1.0 | Wrong routing; duplicate activation; token in plain text | CI; SN spike notes (ADR-0002) with device photo; J5/J6 recordings | All pass; SN source decided |
+| **0.1.0** | Build, modules, design units/tokens, navigation skeleton, network skeleton, fakes | TC-140, TC-141 (skeleton screen), TC-154 (partial), TC-155, TC-156 (fakes compile) + navigation edge walk | — | Build or `verify` failure; scaling wrong | `verify` report; emulator screenshots of placeholders | dev-plan 0.1.0 exit |
+| **0.2.0** | Splash, routing, SN, activation, merchants | TC-001–TC-019, TC-146, TC-179 | 0.1.0 | Wrong routing; duplicate activation; token in plain text | `verify` report; SN spike notes (ADR-0002) with device photo; J5/J6 recordings | All pass; SN source decided |
 | **0.3.0** | Idle, order type, menu, item, combo, sync/cache, images, perf baseline | TC-020–TC-049 (TC-029–TC-031 and TC-036 retired), TC-174–TC-176, TC-121, TC-124, TC-125, TC-142 (baseline), TC-157 | 0.1–0.2 | Wrong item/combo price; crash in browse; menu not cached | Screenshot diffs vs design; `docs/perf/baseline-0.3.0.md` | All pass; baseline recorded |
 | **0.4.0** | Cart, pricing, Budget Plan, review, methods, upsell, inactivity | TC-050–TC-067, TC-101–TC-104, TC-135, TC-139, TC-161–TC-167, TC-169–TC-173, TC-177 | 0.1–0.3 | Any pricing mismatch; overlay during payment; a Budget Plan plan above budget shown as "under" or as an exact match, or a person left without a meal | `docs/pricing-cases.md`; `docs/budget-plan-cases.md`; coverage report (domain ≥ 90 %) | All pass |
-| **0.5.0** | Order creation, QRIS, card (fake), failures, offline gate, recovery, clock skew | TC-068–TC-087 (TC-083 deferred to 0.9.0), TC-122, TC-123, TC-132–TC-134, TC-137, TC-138, TC-154, TC-160, TC-178 | 0.1–0.4 | Duplicate order; "not charged" shown on unknown status; paid without PAID | Recordings of J1–J3 with fakes; mock-scenario run log | All pass; gateway/EDC spec status recorded |
+| **0.5.0** | Order creation, QRIS, card (fake), failures, offline gate, recovery, clock skew | TC-068–TC-087 (TC-083 deferred to 0.9.0), TC-122, TC-123, TC-132–TC-134, TC-137, TC-138, TC-154, TC-160, TC-178, TC-181 | 0.1–0.4 | Duplicate order; "not charged" shown on unknown status; paid without PAID | Recordings of J1–J3 with fakes; mock-scenario run log | All pass; gateway/EDC spec status recorded |
 | **0.6.0** | Complete, printing, printer management | TC-088–TC-100, TC-159 (printers subset) | 0.1–0.5 + J1 with print | No print on paid order; print failure blocks Complete | Photos of 58/80 mm receipts and kitchen tickets for each connection type | All pass on real printers |
 | **0.7.0** | PIN, settings, lock task, sound, logging | TC-105–TC-131, TC-136 | 0.1–0.6 + J1–J8 | Lock-task escape; PIN bypass; lockout not persisted | Device videos of escape attempts and reboot; provisioning run log | All pass on iMin device |
 | **0.8.0** | String lint, a11y, motion, performance, larger text, screenshots | TC-032, TC-116, TC-142–TC-144, TC-150–TC-153, TC-168, TC-180 | Full suite | Hardcoded strings on customer screens; perf below NFR-003; a11y errors; a state board without a screenshot test | Perf report; a11y report; PO copy sign-off; motion checklist | Targets met or accepted |
@@ -439,7 +441,7 @@ Each milestone runs: (a) its new TCs, (b) the full automated regression of all e
 | FR-015 | DEV-037a, DEV-038 | TC-065–TC-067, TC-173, TC-177 | 0.4.0 |
 | FR-016 | DEV-045, DEV-046, DEV-052 | TC-068–TC-073 | 0.5.0 |
 | FR-017 | DEV-047, DEV-048, DEV-090 | TC-074–TC-079 | 0.5.0 / 0.9.0 |
-| FR-018 | DEV-049, DEV-091 | TC-080–TC-083 | 0.5.0 / 0.9.0 |
+| FR-018 | DEV-049, DEV-091 | TC-080–TC-083, TC-181 | 0.5.0 / 0.9.0 |
 | FR-019 | DEV-050 | TC-084–TC-087, TC-178 | 0.5.0 |
 | FR-020 | DEV-059, DEV-060 | TC-088–TC-090 | 0.6.0 |
 | FR-021 | DEV-057, DEV-058, DEV-059 | TC-091–TC-095 | 0.6.0 |
@@ -487,7 +489,7 @@ Journeys J1–J8 are covered by TC-132–TC-137 plus TC-008/TC-009 (J5/J6). Ever
 6. Security checklist (§6.12) incomplete.
 
 ### 9.2 Regression requirements
-- All automated TCs green on the release commit (CI link recorded).
+- All automated TCs green on the release commit (`verify` and instrumented-test reports recorded).
 - All priority-H manual/device TCs executed on the signed APK on the iMin device within 48 h before release.
 - J1–J3 executed against **prod** with real low-value transactions, then refunded (DEV-102).
 

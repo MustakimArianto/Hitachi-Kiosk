@@ -3,7 +3,8 @@
 | | |
 |---|---|
 | Document version | 1.0 (2026-10-22) |
-| Requirements | [`prd.md`](prd.md): this document explains *how*; the PRD decides *what*. Where they disagree, the PRD wins. |
+| Requirements | [`product-requirement.md`](product-requirement.md): this document explains *how*; the PRD decides *what*. Where they disagree, the PRD wins. Measurable technical requirements: [`technical-requirement.md`](technical-requirement.md). |
+| Implementation | [`technical-design.md`](technical-design.md) adds the implementation detail (build, schemas, algorithms, configuration) under this structure. [`technology-stack.md`](technology-stack.md) pins the libraries and versions. |
 | Contract | [`api/api-spec.md`](api/api-spec.md) (E1–E14) |
 | Plan / tests | [`dev-plan.md`](dev-plan.md), [`testing-plan.md`](testing-plan.md) |
 | Decisions | [`adr/`](adr/): ADR-0001 records the stack and module choice |
@@ -207,6 +208,7 @@ Everything else in a customer session is deliberately lost on process death [A-1
 |---|---|---|
 | Device token | Secure DataStore `secure.pb` behind `TokenStore`: Tink AEAD (AES-256-GCM) serializer, keyset wrapped by an Android Keystore key (NFR-005, ADR-0001) | Cleared on 401 or Log out. If the Keystore key is lost (e.g. device restore), decryption fails → treat as not activated (FR-001) |
 | deviceId, merchant binding, kiosk name/code | DataStore `device.preferences_pb` | Not secret |
+| Serial number cache (FR-002) | DataStore `identity.preferences_pb`, owned by `:core:hardware` | Keeps `:core:hardware` independent of `:core:data` (§3) |
 | Device settings (order types, timeout, printers + roles, toggles, QR expiry, rounding) | DataStore `settings.preferences_pb` | Exposed as `Flow<KioskSettings>` |
 | Merchant config (E5) + ETag | Room `config` | Includes the staff PIN hash (`staffPin`, verified offline, FR-024) |
 | Menu (E6) + ETag + `menuVersion` | Room `category`, `product`, `modifier_group`, `option`, `combo`, … | Replaced in one transaction (DEV-021) |
@@ -230,7 +232,7 @@ Upgrades (NFR-014): Room uses explicit `Migration`s from 1.0.0 onward, with `exp
 
 ## 8. Sync and offline
 
-- `CatalogSyncRepository.sync()` fetches E5 then E6 and writes both atomically. It runs on binding, on startup (non-blocking after the 10 s splash cap), on "Sync now", on reconnect, and every 15 min through a `CoroutineWorker` with a `CONNECTED` constraint (DEV-022/023).
+- `CatalogSyncRepository.sync()` fetches E5 then E6 and writes both atomically. It runs on binding, on startup (in the background; the splash never waits for it, FR-001), on "Sync now", on reconnect, and every 15 min through a `CoroutineWorker` with a `CONNECTED` constraint (DEV-022/023).
 - After a sync, product images are pre-fetched into the Coil disk cache.
 - `ConnectivityMonitor` (DEV-051) combines `ConnectivityManager` validated-network callbacks with an E14 health probe into `StateFlow<Connectivity>`. The checkout gate and the offline banner both read only this flow (FR-028).
 
@@ -249,7 +251,7 @@ All interfaces live in `:core:domain`. Real implementations live in `:core:hardw
 
 The receipt renderer produces a device-independent command list, and each driver only transports bytes. That way receipts can be checked in unit tests without hardware.
 
-**Real vs fake selection**: Hilt modules in `:app` bind real implementations. In the `debug` source set, a `DebugBindingsModule` replaces them with switchable wrappers (`SwitchableCardTerminal` etc.) that delegate to either the real implementation or the fake, based on the Developer options choice (DEV-009). Release builds contain neither the wrappers nor the fakes (checked with `apkanalyzer` in CI).
+**Real vs fake selection**: Hilt modules in `:app` bind real implementations. In the `debug` source set, a `DebugBindingsModule` replaces them with switchable wrappers (`SwitchableCardTerminal` etc.) that delegate to either the real implementation or the fake, based on the Developer options choice (DEV-009). Release builds contain neither the wrappers nor the fakes (checked with `apkanalyzer` by `scripts/check-release-apk.sh`, part of `./gradlew verify`).
 
 ## 10. Dependency injection
 
@@ -270,7 +272,7 @@ Tests: unit tests construct classes by hand with fakes. Instrumented tests use `
 - The customer flow is a nested graph. Leaving it (Complete auto-return, timeout, cancel) pops to Idle and resets the session.
 - Staff settings are a nested graph entered only through the PIN gate (SCR-14), with their own 120 s timeout [A-22].
 - System Back is disabled on customer screens except where the design shows a Back control.
-- The inactivity timer (`InactivityController`) runs on Menu, Combo, Item, Upsell, Payment and Budget Plan, and shows the overlay after the configured idle time. Splash, Checkout, Complete and staff settings are excluded, and Complete returns to Idle on its own after 20 s.
+- The inactivity timer (`InactivityController`) runs on Order type, Menu, Combo, Item, Upsell, Payment and Budget Plan (FR-023: SCR-05…SCR-10, SCR-19), and shows the overlay after the configured idle time. On Order type with an empty cart it returns straight to Idle without the overlay [A-23]. Splash, Checkout, Complete and staff settings are excluded, and Complete returns to Idle on its own after 20 s.
 
 ## 12. Design system
 
@@ -291,7 +293,7 @@ Tests: unit tests construct classes by hand with fakes. Instrumented tests use `
 - Money formatting goes through `IdrFormatter` (BR-01), not `NumberFormat` locale defaults.
 
 ### 13.2 Logging and privacy
-- `KioskLog` facade → rotating file sink (FR-031) + Logcat in debug. No third-party crash or analytics SDK [D-23].
+- `KioskLog` facade (pure Kotlin, in `:core:domain`, so every module can use it) → Timber sink installed by `:app` → rotating file sink (FR-031) + Logcat in debug. No third-party crash or analytics SDK [D-23].
 - Redaction is applied in the facade: PIN never logged, payment references truncated to the last 4 characters, no customer data (NFR-006).
 
 ### 13.3 Errors
@@ -320,7 +322,7 @@ Summary only. [`testing-plan.md`](testing-plan.md) is authoritative.
 | Performance | `:benchmark` | Macrobenchmark, baseline profile, JankStats | NFR-003 |
 | Hardware / soak | target iMin device | manual + UI Automator script | NFR-004, NFR-016 |
 
-Contract tests: MockWebServer fixtures are loaded from the examples in `api-spec.md`, so a spec change that breaks parsing fails CI (DEV-006).
+Contract tests: MockWebServer fixtures are loaded from the examples in `api-spec.md`, so a spec change that breaks parsing fails `./gradlew verify` (DEV-006). There is no CI in 1.0 (D-31).
 
 ## 16. Open architectural questions
 

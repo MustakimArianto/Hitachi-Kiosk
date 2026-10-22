@@ -3,12 +3,14 @@
 Android self-order kiosk app (Kotlin, Jetpack Compose, `minSdk 30`, portrait 1080 × 1920) for iMin kiosks. Customers order and pay by QRIS or card (EDC). Staff configure printers, payment and kiosk behavior. It runs in lock-task mode as device owner. Built by one developer with AI agents, milestone by milestone (`0.1.0` → `1.0.0`).
 
 ## Sources of truth (higher wins on conflict)
-1. [`docs/prd.md`](docs/prd.md): requirements (FR-/NFR-/BR-), decisions (D-), assumptions (A-), open questions (OQ-)
+1. [`docs/product-requirement.md`](docs/product-requirement.md): requirements (FR-/NFR-/BR-), decisions (D-), assumptions (A-), open questions (OQ-)
 2. [`docs/api/api-spec.md`](docs/api/api-spec.md): backend contract E1–E14. `openapi.yaml` is generated from it.
-3. [`docs/architecture.md`](docs/architecture.md) and [`docs/adr/`](docs/adr/): how the app is structured
-4. [`docs/conventions.md`](docs/conventions.md): naming, patterns, git, definition of done
-5. [`docs/dev-plan.md`](docs/dev-plan.md) (DEV- tasks) and [`docs/testing-plan.md`](docs/testing-plan.md) (TC- cases)
-6. [`docs/ui-design/*.dc.html`](docs/ui-design/): the final "Linen & Paprika" design, the visual source of truth for layout, copy and motion (D-02). `S_<Screen>_<scenario>.dc.html` are the state boards (errors, offline, empty, blocked) and are the visual spec for every non-default state. Start with [`docs/ui-design/README.md`](docs/ui-design/README.md).
+3. [`docs/technical-requirement.md`](docs/technical-requirement.md): measurable technical requirements (TR-) derived from the PRD
+4. [`docs/architecture.md`](docs/architecture.md) and [`docs/adr/`](docs/adr/): how the app is structured; [`docs/technical-design.md`](docs/technical-design.md): how it is implemented (TD- decisions). Architecture and ADRs win over the technical design.
+5. [`docs/technology-stack.md`](docs/technology-stack.md): libraries, tools and pinned versions (until `gradle/libs.versions.toml` exists, then both are kept in sync)
+6. [`docs/conventions.md`](docs/conventions.md): naming, patterns, git, definition of done
+7. [`docs/dev-plan.md`](docs/dev-plan.md) (DEV- tasks) and [`docs/testing-plan.md`](docs/testing-plan.md) (TC- cases)
+8. [`docs/ui-design/*.dc.html`](docs/ui-design/): the final "Linen & Paprika" design, the visual source of truth for layout, copy and motion (D-02). `S_<Screen>_<scenario>.dc.html` are the state boards (errors, offline, empty, blocked) and are the visual spec for every non-default state. Start with [`docs/ui-design/README.md`](docs/ui-design/README.md).
 
 If the docs conflict, or a requirement is ambiguous, stop and ask. Don't guess. Never invent requirements. When an open question (OQ-) blocks you, build against the interface and fake, and say so.
 
@@ -24,9 +26,9 @@ If the docs conflict, or a requirement is ambiguous, stop and ask. Don't guess. 
 - **API changes**: edit `docs/api/api-spec.md` first, then regenerate the yaml (command below). Never hand-edit `openapi.yaml`.
 
 ## Workflow per DEV task
-1. Read the DEV task in `dev-plan.md`, its FRs in `prd.md` and its TCs in `testing-plan.md`.
+1. Read the DEV task in `dev-plan.md`, its FRs in `product-requirement.md` and its TCs in `testing-plan.md`.
 2. Write the tests first for domain/data logic, then implement.
-3. Run the checks below until they're green.
+3. Run the checks below until they're green. There is no CI in 1.0 (D-31): `./gradlew verify` is the gate before every merge to `main`.
 4. Meet the definition of done in `conventions.md` §11, including ticking the DEV checkbox. Record any decision as an ADR (`docs/adr/0000-template.md`).
 5. Commit with Conventional Commits, scope = module/feature, and cite the ID: `feat(cart): merge identical lines (DEV-036)`.
 
@@ -45,6 +47,7 @@ npx @stoplight/prism-cli mock docs/api/openapi.yaml --port 4010
 ./gradlew verifyRoborazziDebug        # screenshot tests
 ./gradlew connectedDebugAndroidTest   # instrumented, needs an emulator
 ./gradlew koverHtmlReport
+./gradlew verify                      # the full local gate (lint, tests, coverage, screenshots, release APK check, OpenAPI check)
 ```
 
 ## Repo state

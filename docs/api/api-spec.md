@@ -4,7 +4,7 @@
 |---|---|
 | Version | v1 draft (2026-10-22) |
 | Consumer | Hitachi Kiosk Android app |
-| Requirements | [`../prd.md`](../prd.md) §10 (endpoints E1–E14) |
+| Requirements | [`../product-requirement.md`](../product-requirement.md) §10 (endpoints E1–E14) |
 | Status | **Proposed.** Build the mock server from this document. The real backend implements the same contract (PRD D-06). |
 
 The sample data is taken from the approved design (`../ui-design/`): merchant "Urban Grill", its menu, prices, combos and promo. A mock returning exactly these examples makes the app look like the design.
