@@ -1,0 +1,2779 @@
+# GENERATED from docs/api/api-spec.md by docs/api/tools/gen_openapi.py — edit the spec, then regenerate.
+
+openapi: "3.0.3"
+info:
+  title: "Hitachi Kiosk Backend API"
+  version: "1.0.0-draft"
+  description: |-
+    Contract between the Hitachi Kiosk Android app and its backend.
+    Generated from docs/api/api-spec.md (the human-readable source of truth). Change that file first, then regenerate.
+
+    ## Run as a mock with Prism
+        npx @stoplight/prism-cli mock docs/api/openapi.yaml --port 4010
+
+    From the Android emulator use base URL http://10.0.2.2:4010/ .
+    Authenticated calls need any `Authorization: Bearer <token>` header (Prism checks presence only).
+
+    ## Simulating scenarios with Prism (Prefer header)
+    | api-spec §4 scenario | Request | Prefer header |
+    |---|---|---|
+    | activate_unregistered | E1 | code=404 |
+    | activate_disabled | E1 | code=403 |
+    | order_price_changed | E7 | code=409, example=priceChanged |
+    | order_item_unavailable | E7 | code=409, example=itemUnavailable |
+    | server_error_once | E7 | code=503 |
+    | card payment | E9 | example=card |
+    | qris_paid_after_5s | E10 | example=paid |
+    | qris_cancelled | E10 | example=cancelledByPayer |
+    | qris expired | E10 | example=expired |
+    | card_declined | E10 | example=declined |
+    | card_timeout | E10 | example=terminalTimeout |
+    | gateway_down | E14 | example=gatewayDown |
+
+    Prism serves static examples, so time-based scenarios (paid after 5 s, fast expiry, slow network)
+    need either the Prefer header switched by the app's debug Developer options or a custom mock server.
+servers:
+  - url: "http://127.0.0.1:4010"
+    description: "Prism mock (host)"
+  - url: "http://10.0.2.2:4010"
+    description: "Prism mock (from Android emulator)"
+  - url: "https://dev-api.hitachikiosk.example"
+    description: "dev"
+  - url: "https://staging-api.hitachikiosk.example"
+    description: "staging"
+  - url: "https://api.hitachikiosk.example"
+    description: "prod"
+tags:
+  - name: "Device"
+  - name: "Catalog"
+  - name: "Orders"
+  - name: "Payments"
+  - name: "System"
+security:
+  - deviceToken: []
+paths:
+  "/v1/devices/activate":
+    post:
+      operationId: "activateDevice"
+      summary: "E1 — Activate kiosk by serial number"
+      tags:
+        - "Device"
+      parameters:
+        - "$ref": "#/components/parameters/XAppVersion"
+        - "$ref": "#/components/parameters/AcceptLanguage"
+        - "$ref": "#/components/parameters/XMockScenario"
+      responses:
+        "200":
+          description: "Activated."
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/ActivateResponse"
+              examples:
+                default:
+                  summary: "Registered SN"
+                  value:
+                    deviceId: "dev_0003"
+                    deviceToken: "dvt_9f2c4a7e1b8d4f0aa3c6e2b17d5f9e01"
+                    tokenExpiresAt: null
+                    kioskCode: "KSK-0003"
+                    kioskName: "Kiosk 3"
+                    boundMerchantId: null
+                    merchants:
+                      - id: "mer_urbangrill"
+                        name: "Urban Grill"
+                        cuisine:
+                          en: "Burgers & grill"
+                          id: "Burger & panggangan"
+                        logoUrl: "https://cdn.example/mer_urbangrill/logo.png"
+                        photoUrl: "https://cdn.example/mer_urbangrill/cover.jpg"
+                        status: "live"
+                        isOpen: true
+        "400":
+          description: "Invalid body."
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/Error"
+              examples:
+                validation:
+                  summary: "Validation error"
+                  value:
+                    code: "VALIDATION_ERROR"
+                    message: "serialNumber is required."
+                    details: {}
+        "403":
+          description: "Device disabled."
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/Error"
+              examples:
+                disabled:
+                  summary: "Disabled in dashboard"
+                  value:
+                    code: "DEVICE_DISABLED"
+                    message: "This kiosk has been disabled."
+                    details: {}
+        "404":
+          description: "SN not registered."
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/Error"
+              examples:
+                unregistered:
+                  summary: "SN not registered"
+                  value:
+                    code: "DEVICE_NOT_REGISTERED"
+                    message: "Serial number is not registered."
+                    details:
+                      serialNumber: "IMN24K0003118"
+        "500":
+          "$ref": "#/components/responses/ServerError"
+      requestBody:
+        required: true
+        content:
+          "application/json":
+            schema:
+              "$ref": "#/components/schemas/ActivateRequest"
+            examples:
+              default:
+                summary: "Activation"
+                value:
+                  serialNumber: "IMN24K0003118"
+                  model: "iMin Swan 2"
+                  osVersion: "14"
+                  appVersion: "0.2.0"
+      security: []
+  "/v1/devices/{deviceId}/merchants":
+    get:
+      operationId: "listMerchants"
+      summary: "E2 — Merchants this kiosk may serve"
+      tags:
+        - "Device"
+      parameters:
+        - "$ref": "#/components/parameters/DeviceId"
+        - "$ref": "#/components/parameters/XAppVersion"
+        - "$ref": "#/components/parameters/AcceptLanguage"
+        - "$ref": "#/components/parameters/XMockScenario"
+        - "$ref": "#/components/parameters/XDeviceId"
+      responses:
+        "200":
+          description: "Merchant list."
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/MerchantList"
+              examples:
+                default:
+                  summary: "Urban Grill live, four coming soon"
+                  value:
+                    merchants:
+                      - id: "mer_urbangrill"
+                        name: "Urban Grill"
+                        cuisine:
+                          en: "Burgers & grill"
+                          id: "Burger & panggangan"
+                        logoUrl: "https://cdn.example/mer_urbangrill/logo.png"
+                        photoUrl: "https://cdn.example/mer_urbangrill/cover.jpg"
+                        status: "live"
+                        isOpen: true
+                      - id: "mer_bellapasta"
+                        name: "Bella Pasta"
+                        cuisine:
+                          en: "Italian kitchen"
+                          id: "Dapur Italia"
+                        logoUrl: null
+                        photoUrl: null
+                        status: "coming_soon"
+                        isOpen: false
+                      - id: "mer_sakura"
+                        name: "Sakura Ramen"
+                        cuisine:
+                          en: "Japanese noodles"
+                          id: "Mi Jepang"
+                        logoUrl: null
+                        photoUrl: null
+                        status: "coming_soon"
+                        isOpen: false
+                      - id: "mer_tacoloco"
+                        name: "Taco Loco"
+                        cuisine:
+                          en: "Mexican street food"
+                          id: "Jajanan Meksiko"
+                        logoUrl: null
+                        photoUrl: null
+                        status: "coming_soon"
+                        isOpen: false
+                      - id: "mer_freshbowl"
+                        name: "Fresh Bowl"
+                        cuisine:
+                          en: "Salads & healthy bowls"
+                          id: "Salad & mangkuk sehat"
+                        logoUrl: null
+                        photoUrl: null
+                        status: "coming_soon"
+                        isOpen: false
+                empty:
+                  summary: "No merchants yet"
+                  value:
+                    merchants: []
+        "401":
+          "$ref": "#/components/responses/Unauthorized"
+        "500":
+          "$ref": "#/components/responses/ServerError"
+  "/v1/devices/{deviceId}/binding":
+    put:
+      operationId: "bindMerchant"
+      summary: "E3 — Bind kiosk to a merchant"
+      tags:
+        - "Device"
+      parameters:
+        - "$ref": "#/components/parameters/DeviceId"
+        - "$ref": "#/components/parameters/IdempotencyKeyOptional"
+        - "$ref": "#/components/parameters/XAppVersion"
+        - "$ref": "#/components/parameters/AcceptLanguage"
+        - "$ref": "#/components/parameters/XMockScenario"
+        - "$ref": "#/components/parameters/XDeviceId"
+      responses:
+        "200":
+          description: "Bound."
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/BindingResponse"
+              examples:
+                default:
+                  summary: "Bound to Urban Grill"
+                  value:
+                    deviceId: "dev_0003"
+                    merchantId: "mer_urbangrill"
+                    kioskName: "Kiosk 3"
+                    boundAt: "2026-10-22T07:00:00Z"
+        "401":
+          "$ref": "#/components/responses/Unauthorized"
+        "404":
+          description: "Unknown merchant."
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/Error"
+              examples:
+                notFound:
+                  summary: "Unknown merchant"
+                  value:
+                    code: "NOT_FOUND"
+                    message: "Merchant not found."
+                    details: {}
+        "409":
+          description: "Merchant not live."
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/Error"
+              examples:
+                comingSoon:
+                  summary: "Merchant is coming soon"
+                  value:
+                    code: "VALIDATION_ERROR"
+                    message: "Merchant is not live yet."
+                    details: {}
+        "500":
+          "$ref": "#/components/responses/ServerError"
+      requestBody:
+        required: true
+        content:
+          "application/json":
+            schema:
+              "$ref": "#/components/schemas/BindingRequest"
+            examples:
+              default:
+                summary: "Urban Grill"
+                value:
+                  merchantId: "mer_urbangrill"
+    delete:
+      operationId: "unbindMerchant"
+      summary: "E4 — Unbind / log out"
+      tags:
+        - "Device"
+      parameters:
+        - "$ref": "#/components/parameters/DeviceId"
+        - "$ref": "#/components/parameters/XAppVersion"
+        - "$ref": "#/components/parameters/AcceptLanguage"
+        - "$ref": "#/components/parameters/XMockScenario"
+        - "$ref": "#/components/parameters/XDeviceId"
+      responses:
+        "204":
+          description: "Unbound."
+        "401":
+          "$ref": "#/components/responses/Unauthorized"
+        "500":
+          "$ref": "#/components/responses/ServerError"
+  "/v1/merchants/{merchantId}/config":
+    get:
+      operationId: "getMerchantConfig"
+      summary: "E5 — Merchant config (tax, promos, payment, staff PIN, branding)"
+      tags:
+        - "Catalog"
+      parameters:
+        - "$ref": "#/components/parameters/MerchantId"
+        - "$ref": "#/components/parameters/IfNoneMatch"
+        - "$ref": "#/components/parameters/XAppVersion"
+        - "$ref": "#/components/parameters/AcceptLanguage"
+        - "$ref": "#/components/parameters/XMockScenario"
+        - "$ref": "#/components/parameters/XDeviceId"
+      responses:
+        "200":
+          description: "Config."
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/MerchantConfig"
+              examples:
+                default:
+                  summary: "Urban Grill (mock PIN 1234, debug builds only)"
+                  value:
+                    configVersion: "cfg-42"
+                    merchantId: "mer_urbangrill"
+                    mode: "SINGLE"
+                    brandName: "Urban Grill"
+                    accentColor: "#C8552B"
+                    logoUrl: "https://cdn.example/mer_urbangrill/logo.png"
+                    heroPhotoUrl: "https://cdn.example/mer_urbangrill/hero.jpg"
+                    isOpen: true
+                    currency: "IDR"
+                    tax:
+                      label:
+                        en: "Restaurant tax (PB1 10%)"
+                        id: "Pajak restoran (PB1 10%)"
+                      rateBasisPoints: 1000
+                      inclusive: false
+                    rounding:
+                      allowedSteps:
+                        - 0
+                        - 100
+                        - 500
+                      default: 0
+                      mode: "UP"
+                    promos:
+                      - id: "promo_10k_over_100k"
+                        type: "THRESHOLD_FIXED"
+                        threshold: 100000
+                        amount: 10000
+                        label:
+                          en: "Rp 10.000 off over Rp 100.000"
+                          id: "Potongan Rp 10.000 untuk belanja di atas Rp 100.000"
+                    orderTypes:
+                      - "DINE_IN"
+                      - "TAKEAWAY"
+                    paymentMethods:
+                      - method: "QRIS"
+                        enabled: true
+                        qrisMerchantIdMasked: "ID10 •••• 4721"
+                        qrExpirySecondsAllowed:
+                          - 180
+                          - 300
+                          - 600
+                        qrExpirySecondsDefault: 300
+                      - method: "CARD"
+                        enabled: true
+                        terminal:
+                          tid: "TID 0003 1182"
+                          connection: "USB"
+                    staffPin:
+                      algorithm: "PLAIN_MOCK_ONLY"
+                      hash: "1234"
+                      version: 1
+                    receipt:
+                      address: "Jl. Sudirman No. 1, Jakarta"
+                      npwp: null
+                      defaultFooter:
+                        en: "Thank you for dining with us!"
+                        id: "Terima kasih telah makan bersama kami!"
+                    upsell:
+                      categoryIds:
+                        - "cat_sides"
+                        - "cat_desserts"
+                      maxSuggestions: 4
+                    idlePromos:
+                      - imageUrl: "https://cdn.example/mer_urbangrill/idle1.jpg"
+                      - imageUrl: "https://cdn.example/mer_urbangrill/idle2.jpg"
+                      - imageUrl: "https://cdn.example/mer_urbangrill/idle3.jpg"
+                production:
+                  summary: "Production-shaped hashed PIN"
+                  value:
+                    configVersion: "cfg-42"
+                    merchantId: "mer_urbangrill"
+                    mode: "SINGLE"
+                    brandName: "Urban Grill"
+                    accentColor: "#C8552B"
+                    logoUrl: "https://cdn.example/mer_urbangrill/logo.png"
+                    heroPhotoUrl: "https://cdn.example/mer_urbangrill/hero.jpg"
+                    isOpen: true
+                    currency: "IDR"
+                    tax:
+                      label:
+                        en: "Restaurant tax (PB1 10%)"
+                        id: "Pajak restoran (PB1 10%)"
+                      rateBasisPoints: 1000
+                      inclusive: false
+                    rounding:
+                      allowedSteps:
+                        - 0
+                        - 100
+                        - 500
+                      default: 0
+                      mode: "UP"
+                    promos:
+                      - id: "promo_10k_over_100k"
+                        type: "THRESHOLD_FIXED"
+                        threshold: 100000
+                        amount: 10000
+                        label:
+                          en: "Rp 10.000 off over Rp 100.000"
+                          id: "Potongan Rp 10.000 untuk belanja di atas Rp 100.000"
+                    orderTypes:
+                      - "DINE_IN"
+                      - "TAKEAWAY"
+                    paymentMethods:
+                      - method: "QRIS"
+                        enabled: true
+                        qrisMerchantIdMasked: "ID10 •••• 4721"
+                        qrExpirySecondsAllowed:
+                          - 180
+                          - 300
+                          - 600
+                        qrExpirySecondsDefault: 300
+                      - method: "CARD"
+                        enabled: true
+                        terminal:
+                          tid: "TID 0003 1182"
+                          connection: "USB"
+                    staffPin:
+                      algorithm: "PBKDF2WithHmacSHA256"
+                      iterations: 120000
+                      salt: "b64:3q2+7w=="
+                      hash: "b64:8Jw3k1m0…"
+                      version: 3
+                    receipt:
+                      address: "Jl. Sudirman No. 1, Jakarta"
+                      npwp: null
+                      defaultFooter:
+                        en: "Thank you for dining with us!"
+                        id: "Terima kasih telah makan bersama kami!"
+                    upsell:
+                      categoryIds:
+                        - "cat_sides"
+                        - "cat_desserts"
+                      maxSuggestions: 4
+                    idlePromos:
+                      - imageUrl: "https://cdn.example/mer_urbangrill/idle1.jpg"
+                      - imageUrl: "https://cdn.example/mer_urbangrill/idle2.jpg"
+                      - imageUrl: "https://cdn.example/mer_urbangrill/idle3.jpg"
+          headers:
+            ETag:
+              description: "Version tag; send back in If-None-Match."
+              schema:
+                type: "string"
+        "304":
+          description: "Not modified (If-None-Match matched)."
+        "401":
+          "$ref": "#/components/responses/Unauthorized"
+        "500":
+          "$ref": "#/components/responses/ServerError"
+  "/v1/merchants/{merchantId}/menu":
+    get:
+      operationId: "getMenu"
+      summary: "E6 — Full menu"
+      tags:
+        - "Catalog"
+      parameters:
+        - "$ref": "#/components/parameters/MerchantId"
+        - "$ref": "#/components/parameters/IfNoneMatch"
+        - "$ref": "#/components/parameters/XAppVersion"
+        - "$ref": "#/components/parameters/AcceptLanguage"
+        - "$ref": "#/components/parameters/XMockScenario"
+        - "$ref": "#/components/parameters/XDeviceId"
+      responses:
+        "200":
+          description: "Menu."
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/Menu"
+              examples:
+                default:
+                  summary: "Urban Grill menu (abbreviated, see api-spec §4)"
+                  value:
+                    menuVersion: "menu-118"
+                    categories:
+                      - id: "cat_burgers"
+                        name:
+                          en: "Burgers"
+                          id: "Burger"
+                        sort: 1
+                        tone: "#E9DED0"
+                      - id: "cat_chicken"
+                        name:
+                          en: "Chicken"
+                          id: "Ayam"
+                        sort: 2
+                        tone: "#E3D4C2"
+                      - id: "cat_bowls"
+                        name:
+                          en: "Rice bowls"
+                          id: "Nasi mangkuk"
+                        sort: 3
+                        tone: "#EADCCB"
+                      - id: "cat_sides"
+                        name:
+                          en: "Sides"
+                          id: "Pendamping"
+                        sort: 5
+                        tone: "#E6DCD3"
+                      - id: "cat_drinks"
+                        name:
+                          en: "Drinks"
+                          id: "Minuman"
+                        sort: 6
+                        tone: "#DFE3DC"
+                      - id: "cat_desserts"
+                        name:
+                          en: "Desserts"
+                          id: "Pencuci mulut"
+                        sort: 7
+                        tone: "#EADCCB"
+                    combosCategory:
+                      name:
+                        en: "Meals"
+                        id: "Paket"
+                      sort: 4
+                    featuredProductIds:
+                      - "b2"
+                      - "c1"
+                      - "r1"
+                      - "d1"
+                    promoBanners:
+                      - id: "pb1"
+                        tag:
+                          en: "New"
+                          id: "Baru"
+                        title:
+                          en: "Smoky Double"
+                          id: "Smoky Double"
+                        priceText:
+                          en: "Rp 52.000"
+                          id: "Rp 52.000"
+                        imageUrl: null
+                        target:
+                          type: "PRODUCT"
+                          id: "b2"
+                      - id: "pb2"
+                        tag:
+                          en: "Meal deal"
+                          id: "Paket hemat"
+                        title:
+                          en: "Burger Meal"
+                          id: "Paket Burger"
+                        priceText:
+                          en: "Only Rp 56.000"
+                          id: "Hanya Rp 56.000"
+                        imageUrl: null
+                        target:
+                          type: "COMBO"
+                          id: "combo_burger"
+                      - id: "pb3"
+                        tag:
+                          en: "Share it"
+                          id: "Untuk berbagi"
+                        title:
+                          en: "Family Bucket"
+                          id: "Family Bucket"
+                        priceText:
+                          en: "8 pc · Rp 129.000"
+                          id: "8 pcs · Rp 129.000"
+                        imageUrl: null
+                        target:
+                          type: "PRODUCT"
+                          id: "c4"
+                    products:
+                      - id: "b2"
+                        categoryId: "cat_burgers"
+                        name:
+                          en: "Smoky Double Burger"
+                          id: "Smoky Double Burger"
+                        description:
+                          en: "Two flame-grilled beef patties, smoked cheddar, pickles, onion and smoky house sauce on a toasted sesame bun."
+                          id: "Dua patty sapi panggang, keju cheddar asap, acar, bawang, dan saus asap khas di roti wijen panggang."
+                        price: 52000
+                        kcal: 780
+                        badge:
+                          type: "NEW"
+                          label:
+                            en: "New"
+                            id: "Baru"
+                        tags:
+                          en: "Beef · Contains gluten, dairy"
+                          id: "Sapi · Mengandung gluten, susu"
+                        imageUrl: null
+                        available: true
+                        modifierGroupIds:
+                          - "mg_meal_upgrade"
+                          - "mg_b2_ingredients"
+                          - "mg_burger_extras"
+                      - id: "c1"
+                        categoryId: "cat_chicken"
+                        name:
+                          en: "Crispy Chicken (2 pc)"
+                          id: "Ayam Krispi (2 pcs)"
+                        description:
+                          en: "Original recipe"
+                          id: "Resep original"
+                        price: 38000
+                        kcal: 560
+                        badge:
+                          type: "BEST_SELLER"
+                          label:
+                            en: "Best seller"
+                            id: "Terlaris"
+                        tags: null
+                        imageUrl: null
+                        available: true
+                        modifierGroupIds: []
+                      - id: "s1"
+                        categoryId: "cat_sides"
+                        name:
+                          en: "French Fries"
+                          id: "Kentang Goreng"
+                        description: null
+                        price: 18000
+                        kcal: 320
+                        badge: null
+                        tags: null
+                        imageUrl: null
+                        available: true
+                        modifierGroupIds:
+                          - "mg_fries_size"
+                      - id: "d1"
+                        categoryId: "cat_drinks"
+                        name:
+                          en: "Iced Lychee Tea"
+                          id: "Es Teh Leci"
+                        description: null
+                        price: 16000
+                        kcal: 140
+                        badge: null
+                        tags: null
+                        imageUrl: null
+                        available: true
+                        modifierGroupIds:
+                          - "mg_ice"
+                    modifierGroups:
+                      - id: "mg_meal_upgrade"
+                        name:
+                          en: "Make it a meal?"
+                          id: "Jadikan paket?"
+                        type: "SINGLE"
+                        required: true
+                        min: 1
+                        max: 1
+                        options:
+                          - id: "opt_burger_only"
+                            name:
+                              en: "Burger only"
+                              id: "Burger saja"
+                            description:
+                              en: "Just the burger"
+                              id: "Hanya burger"
+                            priceDelta: 0
+                            default: true
+                            imageUrl: null
+                          - id: "opt_make_meal"
+                            name:
+                              en: "Make it a meal"
+                              id: "Jadikan paket"
+                            description:
+                              en: "Adds fries & a drink"
+                              id: "Tambah kentang & minuman"
+                            priceDelta: 18000
+                            default: false
+                            imageUrl: null
+                      - id: "mg_b2_ingredients"
+                        name:
+                          en: "Customize"
+                          id: "Sesuaikan"
+                        type: "LEVEL"
+                        required: false
+                        options:
+                          - id: "ing_cheddar"
+                            name:
+                              en: "Smoked cheddar"
+                              id: "Cheddar asap"
+                            note:
+                              en: "Extra +Rp 5.000"
+                              id: "Ekstra +Rp 5.000"
+                            levels:
+                              - level: "NONE"
+                                priceDelta: 0
+                              - level: "REGULAR"
+                                priceDelta: 0
+                              - level: "EXTRA"
+                                priceDelta: 5000
+                            defaultLevel: "REGULAR"
+                          - id: "ing_onion"
+                            name:
+                              en: "Onion"
+                              id: "Bawang"
+                            note:
+                              en: "Fresh, diced"
+                              id: "Segar, dipotong dadu"
+                            levels:
+                              - level: "NONE"
+                                priceDelta: 0
+                              - level: "REGULAR"
+                                priceDelta: 0
+                              - level: "EXTRA"
+                                priceDelta: 0
+                            defaultLevel: "REGULAR"
+                          - id: "ing_pickles"
+                            name:
+                              en: "Pickles"
+                              id: "Acar"
+                            note:
+                              en: "Dill"
+                              id: "Dill"
+                            levels:
+                              - level: "NONE"
+                                priceDelta: 0
+                              - level: "REGULAR"
+                                priceDelta: 0
+                              - level: "EXTRA"
+                                priceDelta: 0
+                            defaultLevel: "REGULAR"
+                          - id: "ing_sauce"
+                            name:
+                              en: "Smoky sauce"
+                              id: "Saus asap"
+                            note:
+                              en: "House recipe"
+                              id: "Resep khas"
+                            levels:
+                              - level: "NONE"
+                                priceDelta: 0
+                              - level: "REGULAR"
+                                priceDelta: 0
+                              - level: "EXTRA"
+                                priceDelta: 0
+                            defaultLevel: "REGULAR"
+                      - id: "mg_burger_extras"
+                        name:
+                          en: "Add extras"
+                          id: "Tambahan"
+                        type: "MULTI"
+                        required: false
+                        min: 0
+                        max: 3
+                        options:
+                          - id: "ext_bacon"
+                            name:
+                              en: "Beef bacon"
+                              id: "Beef bacon"
+                            priceDelta: 8000
+                            default: false
+                            imageUrl: null
+                          - id: "ext_egg"
+                            name:
+                              en: "Fried egg"
+                              id: "Telur goreng"
+                            priceDelta: 6000
+                            default: false
+                            imageUrl: null
+                          - id: "ext_jala"
+                            name:
+                              en: "Jalapeños"
+                              id: "Jalapeño"
+                            priceDelta: 4000
+                            default: false
+                            imageUrl: null
+                      - id: "mg_fries_size"
+                        name:
+                          en: "Size"
+                          id: "Ukuran"
+                        type: "SINGLE"
+                        required: true
+                        min: 1
+                        max: 1
+                        options:
+                          - id: "opt_regular"
+                            name:
+                              en: "Regular"
+                              id: "Reguler"
+                            priceDelta: 0
+                            default: true
+                          - id: "opt_large"
+                            name:
+                              en: "Large"
+                              id: "Besar"
+                            priceDelta: 4000
+                            default: false
+                      - id: "mg_ice"
+                        name:
+                          en: "Ice"
+                          id: "Es"
+                        type: "SINGLE"
+                        required: true
+                        min: 1
+                        max: 1
+                        options:
+                          - id: "opt_ice_regular"
+                            name:
+                              en: "Regular ice"
+                              id: "Es normal"
+                            priceDelta: 0
+                            default: true
+                          - id: "opt_ice_less"
+                            name:
+                              en: "Less ice"
+                              id: "Sedikit es"
+                            priceDelta: 0
+                            default: false
+                    combos:
+                      - id: "combo_burger"
+                        name:
+                          en: "Cheeseburger Meal"
+                          id: "Paket Cheeseburger"
+                        shortName:
+                          en: "Cheeseburger Meal"
+                          id: "Paket Cheeseburger"
+                        includes:
+                          en: "Cheeseburger, side, drink"
+                          id: "Cheeseburger, pendamping, minuman"
+                        price: 56000
+                        separatePrice: 70000
+                        serves: 1
+                        imageUrl: null
+                        tone: "#E9DED0"
+                        available: true
+                      - id: "combo_chicken"
+                        name:
+                          en: "Crispy Chicken Meal"
+                          id: "Paket Ayam Krispi"
+                        shortName:
+                          en: "Chicken Meal"
+                          id: "Paket Ayam"
+                        includes:
+                          en: "2 pc chicken, side, drink"
+                          id: "2 pcs ayam, pendamping, minuman"
+                        price: 59000
+                        separatePrice: 70000
+                        serves: 1
+                        imageUrl: null
+                        tone: "#E3D4C2"
+                        available: true
+                      - id: "combo_bowl"
+                        name:
+                          en: "Rice Bowl Combo"
+                          id: "Paket Nasi Mangkuk"
+                        shortName:
+                          en: "Rice Bowl Combo"
+                          id: "Paket Nasi Mangkuk"
+                        includes:
+                          en: "Sambal matah bowl, side, drink"
+                          id: "Nasi sambal matah, pendamping, minuman"
+                        price: 52000
+                        separatePrice: 64000
+                        serves: 1
+                        imageUrl: null
+                        tone: "#EADCCB"
+                        available: true
+                      - id: "combo_feast"
+                        name:
+                          en: "Feast for Two"
+                          id: "Paket Berdua"
+                        shortName:
+                          en: "Feast for Two"
+                          id: "Paket Berdua"
+                        includes:
+                          en: "2 burgers, 2 sides, 2 drinks"
+                          id: "2 burger, 2 pendamping, 2 minuman"
+                        price: 109000
+                        separatePrice: 140000
+                        serves: 2
+                        imageUrl: null
+                        tone: "#E6DCD3"
+                        available: true
+                    comboSlots:
+                      SIDE:
+                        - id: "cs_fries"
+                          name:
+                            en: "Fries"
+                            id: "Kentang goreng"
+                          upcharge: 0
+                          imageUrl: null
+                        - id: "cs_cheese"
+                          name:
+                            en: "Cheese fries"
+                            id: "Kentang keju"
+                          upcharge: 8000
+                          imageUrl: null
+                        - id: "cs_nuggets"
+                          name:
+                            en: "Nuggets"
+                            id: "Nugget"
+                          upcharge: 4000
+                          imageUrl: null
+                        - id: "cs_corn"
+                          name:
+                            en: "Corn cup"
+                            id: "Jagung cup"
+                          upcharge: 0
+                          imageUrl: null
+                      DRINK:
+                        - id: "cd_cola"
+                          name:
+                            en: "Cola"
+                            id: "Cola"
+                          upcharge: 0
+                          imageUrl: null
+                        - id: "cd_tea"
+                          name:
+                            en: "Lychee tea"
+                            id: "Teh leci"
+                          upcharge: 2000
+                          imageUrl: null
+                        - id: "cd_coffee"
+                          name:
+                            en: "Iced latte"
+                            id: "Es latte"
+                          upcharge: 4000
+                          imageUrl: null
+                        - id: "cd_water"
+                          name:
+                            en: "Water"
+                            id: "Air mineral"
+                          upcharge: 0
+                          imageUrl: null
+                      SIZE_LARGE_UPCHARGE: 6000
+          headers:
+            ETag:
+              description: "Version tag; send back in If-None-Match."
+              schema:
+                type: "string"
+        "304":
+          description: "Not modified (If-None-Match matched)."
+        "401":
+          "$ref": "#/components/responses/Unauthorized"
+        "500":
+          "$ref": "#/components/responses/ServerError"
+  "/v1/orders":
+    post:
+      operationId: "createOrder"
+      summary: "E7 — Create order (backend re-prices and assigns order number)"
+      tags:
+        - "Orders"
+      parameters:
+        - "$ref": "#/components/parameters/IdempotencyKey"
+        - "$ref": "#/components/parameters/XAppVersion"
+        - "$ref": "#/components/parameters/AcceptLanguage"
+        - "$ref": "#/components/parameters/XMockScenario"
+        - "$ref": "#/components/parameters/XDeviceId"
+      responses:
+        "201":
+          description: "Order created."
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/OrderResponse"
+              examples:
+                default:
+                  summary: "Order A247, Rp 172.700"
+                  value:
+                    orderId: "ord_7Hq2k9"
+                    orderNumber: "A247"
+                    status: "AWAITING_PAYMENT"
+                    createdAt: "2026-10-22T07:15:30Z"
+                    totals:
+                      subtotal: 167000
+                      discount: 10000
+                      promoId: "promo_10k_over_100k"
+                      tax: 15700
+                      rounding: 0
+                      total: 172700
+                    lines:
+                      - lineId: "l1"
+                        description:
+                          en: "Fries · Cola · Extra cheddar · No onion"
+                          id: "Kentang · Cola · Ekstra cheddar · Tanpa bawang"
+                        lineTotal: 75000
+        "400":
+          description: "Invalid order."
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/Error"
+              examples:
+                invalidRequest:
+                  summary: "Missing header or invalid body"
+                  value:
+                    code: "VALIDATION_ERROR"
+                    message: "Invalid order request (check Idempotency-Key and body)."
+                    details: {}
+                quantityTooHigh:
+                  summary: "Quantity above 20"
+                  value:
+                    code: "VALIDATION_ERROR"
+                    message: "quantity must be at most 20."
+                    details:
+                      lineId: "l1"
+        "401":
+          "$ref": "#/components/responses/Unauthorized"
+        "409":
+          description: "Order rejected."
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/Error"
+              examples:
+                priceChanged:
+                  summary: "Prices changed"
+                  value:
+                    code: "PRICE_CHANGED"
+                    message: "Prices have changed since the menu was loaded."
+                    details:
+                      menuVersion: "menu-119"
+                      configVersion: "cfg-42"
+                      serverTotals:
+                        subtotal: 169000
+                        discount: 10000
+                        tax: 15900
+                        rounding: 0
+                        total: 174900
+                itemUnavailable:
+                  summary: "Item sold out"
+                  value:
+                    code: "ITEM_UNAVAILABLE"
+                    message: "Some items are sold out."
+                    details:
+                      lineIds:
+                        - "l2"
+                      productIds:
+                        - "c1"
+                merchantClosed:
+                  summary: "Merchant closed"
+                  value:
+                    code: "MERCHANT_CLOSED"
+                    message: "The restaurant isn't taking orders right now."
+                    details: {}
+        "500":
+          "$ref": "#/components/responses/ServerError"
+        "503":
+          description: "Temporary failure; retry with the same Idempotency-Key."
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/Error"
+              examples:
+                serverError:
+                  summary: "Server error"
+                  value:
+                    code: "SERVER_ERROR"
+                    message: "Temporary failure."
+                    details: {}
+      requestBody:
+        required: true
+        content:
+          "application/json":
+            schema:
+              "$ref": "#/components/schemas/CreateOrderRequest"
+            examples:
+              default:
+                summary: "Design sample cart"
+                value:
+                  merchantId: "mer_urbangrill"
+                  orderType: "DINE_IN"
+                  language: "en"
+                  menuVersion: "menu-118"
+                  configVersion: "cfg-42"
+                  roundingStep: 0
+                  lines:
+                    - lineId: "l1"
+                      kind: "PRODUCT"
+                      productId: "b2"
+                      quantity: 1
+                      selections:
+                        - groupId: "mg_meal_upgrade"
+                          optionId: "opt_make_meal"
+                        - groupId: "mg_b2_ingredients"
+                          optionId: "ing_cheddar"
+                          level: "EXTRA"
+                        - groupId: "mg_b2_ingredients"
+                          optionId: "ing_onion"
+                          level: "NONE"
+                      unitPrice: 75000
+                      lineTotal: 75000
+                    - lineId: "l2"
+                      kind: "PRODUCT"
+                      productId: "c1"
+                      quantity: 1
+                      selections: []
+                      unitPrice: 38000
+                      lineTotal: 38000
+                    - lineId: "l3"
+                      kind: "PRODUCT"
+                      productId: "s1"
+                      quantity: 1
+                      selections:
+                        - groupId: "mg_fries_size"
+                          optionId: "opt_large"
+                      unitPrice: 22000
+                      lineTotal: 22000
+                    - lineId: "l4"
+                      kind: "PRODUCT"
+                      productId: "d1"
+                      quantity: 2
+                      selections:
+                        - groupId: "mg_ice"
+                          optionId: "opt_ice_less"
+                      unitPrice: 16000
+                      lineTotal: 32000
+                  clientTotals:
+                    subtotal: 167000
+                    discount: 10000
+                    promoId: "promo_10k_over_100k"
+                    tax: 15700
+                    rounding: 0
+                    total: 172700
+              combo:
+                summary: "One combo line"
+                value:
+                  merchantId: "mer_urbangrill"
+                  orderType: "DINE_IN"
+                  language: "en"
+                  menuVersion: "menu-118"
+                  configVersion: "cfg-42"
+                  roundingStep: 0
+                  lines:
+                    - lineId: "l5"
+                      kind: "COMBO"
+                      comboId: "combo_burger"
+                      quantity: 1
+                      comboSelections:
+                        sideId: "cs_cheese"
+                        drinkId: "cd_coffee"
+                        size: "LARGE"
+                      unitPrice: 74000
+                      lineTotal: 74000
+                  clientTotals:
+                    subtotal: 74000
+                    discount: 0
+                    promoId: null
+                    tax: 7400
+                    rounding: 0
+                    total: 81400
+  "/v1/orders/{orderId}/cancel":
+    post:
+      operationId: "cancelOrder"
+      summary: "E8 — Abandon an unpaid order"
+      tags:
+        - "Orders"
+      parameters:
+        - "$ref": "#/components/parameters/OrderId"
+        - "$ref": "#/components/parameters/IdempotencyKeyOptional"
+        - "$ref": "#/components/parameters/XAppVersion"
+        - "$ref": "#/components/parameters/AcceptLanguage"
+        - "$ref": "#/components/parameters/XMockScenario"
+        - "$ref": "#/components/parameters/XDeviceId"
+      responses:
+        "200":
+          description: "Cancelled."
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/OrderStatusResponse"
+              examples:
+                default:
+                  summary: "Cancelled"
+                  value:
+                    orderId: "ord_7Hq2k9"
+                    status: "CANCELLED"
+        "401":
+          "$ref": "#/components/responses/Unauthorized"
+        "409":
+          description: "Already paid."
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/Error"
+              examples:
+                alreadyPaid:
+                  summary: "Order already paid"
+                  value:
+                    code: "VALIDATION_ERROR"
+                    message: "Order is already paid."
+                    details:
+                      status: "PAID"
+        "500":
+          "$ref": "#/components/responses/ServerError"
+      requestBody:
+        required: true
+        content:
+          "application/json":
+            schema:
+              "$ref": "#/components/schemas/CancelOrderRequest"
+            examples:
+              default:
+                summary: "Customer went back"
+                value:
+                  reason: "CUSTOMER_BACK"
+  "/v1/orders/{orderId}/payments":
+    post:
+      operationId: "startPayment"
+      summary: "E9 — Start a QRIS or card payment"
+      tags:
+        - "Payments"
+      parameters:
+        - "$ref": "#/components/parameters/OrderId"
+        - "$ref": "#/components/parameters/IdempotencyKey"
+        - "$ref": "#/components/parameters/XAppVersion"
+        - "$ref": "#/components/parameters/AcceptLanguage"
+        - "$ref": "#/components/parameters/XMockScenario"
+        - "$ref": "#/components/parameters/XDeviceId"
+      responses:
+        "201":
+          description: "Payment started."
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/Payment"
+              examples:
+                qris:
+                  summary: "QRIS payment"
+                  value:
+                    paymentId: "pay_Q1x8"
+                    method: "QRIS"
+                    status: "PENDING"
+                    amount: 172700
+                    qrString: "00020101021226650013ID.CO.EXAMPLE.WWW0118936000000000000000303UMI51440014ID.CO.QRIS.WWW0215ID1020000004721520458125303360540617270058"
+                    expiresAt: "2026-10-22T07:20:31Z"
+                    createdAt: "2026-10-22T07:15:31Z"
+                card:
+                  summary: "Card payment on EDC terminal"
+                  value:
+                    paymentId: "pay_C7m2"
+                    method: "CARD"
+                    status: "PENDING"
+                    amount: 172700
+                    terminalRef: "TRX-20261022-000247"
+                    terminal:
+                      tid: "TID 0003 1182"
+                      connection: "USB"
+                    timeoutSeconds: 90
+                    createdAt: "2026-10-22T07:15:31Z"
+        "401":
+          "$ref": "#/components/responses/Unauthorized"
+        "409":
+          description: "Order not awaiting payment."
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/Error"
+              examples:
+                wrongState:
+                  summary: "Order not awaiting payment"
+                  value:
+                    code: "VALIDATION_ERROR"
+                    message: "Order is not awaiting payment."
+                    details: {}
+        "422":
+          description: "Method unavailable."
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/Error"
+              examples:
+                methodUnavailable:
+                  summary: "Method disabled"
+                  value:
+                    code: "PAYMENT_METHOD_UNAVAILABLE"
+                    message: "Card payments are not enabled for this merchant."
+                    details: {}
+        "502":
+          description: "Gateway error."
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/Error"
+              examples:
+                gatewayError:
+                  summary: "Gateway error"
+                  value:
+                    code: "GATEWAY_ERROR"
+                    message: "Payment gateway unavailable."
+                    details: {}
+        "500":
+          "$ref": "#/components/responses/ServerError"
+      description: "Prism returns the `qris` example by default; send `Prefer: example=card` for the card response."
+      requestBody:
+        required: true
+        content:
+          "application/json":
+            schema:
+              "$ref": "#/components/schemas/StartPaymentRequest"
+            examples:
+              qris:
+                summary: "QRIS, 5 min"
+                value:
+                  method: "QRIS"
+                  qrExpirySeconds: 300
+              card:
+                summary: "Card"
+                value:
+                  method: "CARD"
+  "/v1/orders/{orderId}/payments/{paymentId}":
+    get:
+      operationId: "getPayment"
+      summary: "E10 — Payment status (polled every 2 s)"
+      tags:
+        - "Payments"
+      parameters:
+        - "$ref": "#/components/parameters/OrderId"
+        - "$ref": "#/components/parameters/PaymentId"
+        - "$ref": "#/components/parameters/XAppVersion"
+        - "$ref": "#/components/parameters/AcceptLanguage"
+        - "$ref": "#/components/parameters/XMockScenario"
+        - "$ref": "#/components/parameters/XDeviceId"
+      responses:
+        "200":
+          description: "Current status."
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/Payment"
+              examples:
+                pending:
+                  summary: "Waiting for customer"
+                  value:
+                    paymentId: "pay_Q1x8"
+                    method: "QRIS"
+                    status: "PENDING"
+                    amount: 172700
+                    expiresAt: "2026-10-22T07:20:31Z"
+                processing:
+                  summary: "Confirming"
+                  value:
+                    paymentId: "pay_Q1x8"
+                    method: "QRIS"
+                    amount: 172700
+                    status: "PROCESSING"
+                paid:
+                  summary: "Paid"
+                  value:
+                    paymentId: "pay_Q1x8"
+                    method: "QRIS"
+                    status: "PAID"
+                    amount: 172700
+                    paidAt: "2026-10-22T07:16:02Z"
+                    reference: "QR-8812-4471-0091"
+                    issuer: "GoPay"
+                    order:
+                      orderId: "ord_7Hq2k9"
+                      orderNumber: "A247"
+                      status: "PAID"
+                declined:
+                  summary: "Card declined"
+                  value:
+                    paymentId: "pay_C7m2"
+                    method: "CARD"
+                    status: "FAILED"
+                    amount: 172700
+                    reason: "DECLINED"
+                    message:
+                      en: "Your bank declined the card."
+                      id: "Bank Anda menolak kartu."
+                cancelledByPayer:
+                  summary: "Cancelled in e-wallet"
+                  value:
+                    paymentId: "pay_Q1x8"
+                    method: "QRIS"
+                    status: "FAILED"
+                    amount: 172700
+                    reason: "CANCELLED_BY_PAYER"
+                    message:
+                      en: "The payment was cancelled in your app."
+                      id: "Pembayaran dibatalkan di aplikasi Anda."
+                terminalTimeout:
+                  summary: "Terminal timeout"
+                  value:
+                    paymentId: "pay_C7m2"
+                    method: "CARD"
+                    status: "FAILED"
+                    amount: 172700
+                    reason: "TERMINAL_TIMEOUT"
+                    message:
+                      en: "The card terminal didn't respond."
+                      id: "Terminal kartu tidak merespons."
+                expired:
+                  summary: "QR expired"
+                  value:
+                    paymentId: "pay_Q1x8"
+                    method: "QRIS"
+                    status: "EXPIRED"
+                    amount: 172700
+                    expiresAt: "2026-10-22T07:20:31Z"
+        "401":
+          "$ref": "#/components/responses/Unauthorized"
+        "404":
+          description: "Unknown payment."
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/Error"
+              examples:
+                notFound:
+                  summary: "Not found"
+                  value:
+                    code: "NOT_FOUND"
+                    message: "Payment not found."
+                    details: {}
+        "500":
+          "$ref": "#/components/responses/ServerError"
+      description: "Prism returns `pending` by default. Use `Prefer: example=paid` (or declined, expired, …) to simulate outcomes."
+  "/v1/orders/{orderId}/payments/{paymentId}/cancel":
+    post:
+      operationId: "cancelPayment"
+      summary: "E11 — Cancel a pending payment"
+      tags:
+        - "Payments"
+      parameters:
+        - "$ref": "#/components/parameters/OrderId"
+        - "$ref": "#/components/parameters/PaymentId"
+        - "$ref": "#/components/parameters/IdempotencyKeyOptional"
+        - "$ref": "#/components/parameters/XAppVersion"
+        - "$ref": "#/components/parameters/AcceptLanguage"
+        - "$ref": "#/components/parameters/XMockScenario"
+        - "$ref": "#/components/parameters/XDeviceId"
+      responses:
+        "200":
+          description: "Cancelled."
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/PaymentStatusResponse"
+              examples:
+                default:
+                  summary: "Cancelled"
+                  value:
+                    paymentId: "pay_Q1x8"
+                    status: "CANCELLED"
+        "401":
+          "$ref": "#/components/responses/Unauthorized"
+        "409":
+          description: "Already final."
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/Error"
+              examples:
+                alreadyPaid:
+                  summary: "Already paid"
+                  value:
+                    code: "PAYMENT_NOT_CANCELLABLE"
+                    message: "Payment already completed."
+                    details:
+                      status: "PAID"
+        "500":
+          "$ref": "#/components/responses/ServerError"
+      requestBody:
+        required: true
+        content:
+          "application/json":
+            schema:
+              "$ref": "#/components/schemas/CancelPaymentRequest"
+            examples:
+              default:
+                summary: "QR expired on kiosk"
+                value:
+                  reason: "EXPIRED_ON_KIOSK"
+  "/v1/orders/{orderId}/payments/{paymentId}/terminal-result":
+    post:
+      operationId: "relayTerminalResult"
+      summary: "E12 — Relay EDC terminal result (only if the terminal reports to the kiosk)"
+      tags:
+        - "Payments"
+      parameters:
+        - "$ref": "#/components/parameters/OrderId"
+        - "$ref": "#/components/parameters/PaymentId"
+        - "$ref": "#/components/parameters/XAppVersion"
+        - "$ref": "#/components/parameters/AcceptLanguage"
+        - "$ref": "#/components/parameters/XMockScenario"
+        - "$ref": "#/components/parameters/XDeviceId"
+      responses:
+        "200":
+          description: "Accepted."
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/PaymentStatusResponse"
+              examples:
+                default:
+                  summary: "Processing"
+                  value:
+                    paymentId: "pay_C7m2"
+                    status: "PROCESSING"
+        "401":
+          "$ref": "#/components/responses/Unauthorized"
+        "500":
+          "$ref": "#/components/responses/ServerError"
+      requestBody:
+        required: true
+        content:
+          "application/json":
+            schema:
+              "$ref": "#/components/schemas/TerminalResultRequest"
+            examples:
+              default:
+                summary: "Approved"
+                value:
+                  approved: true
+                  terminalRef: "TRX-20261022-000247"
+                  tid: "TID 0003 1182"
+                  approvalCode: "123456"
+                  cardBrand: "VISA"
+                  maskedPan: "•••• 4821"
+                  rawResponseCode: "00"
+  "/v1/devices/{deviceId}/staff-pin":
+    put:
+      operationId: "changeStaffPin"
+      summary: "E13 — Change staff PIN"
+      tags:
+        - "Device"
+      parameters:
+        - "$ref": "#/components/parameters/DeviceId"
+        - "$ref": "#/components/parameters/IdempotencyKeyOptional"
+        - "$ref": "#/components/parameters/XAppVersion"
+        - "$ref": "#/components/parameters/AcceptLanguage"
+        - "$ref": "#/components/parameters/XMockScenario"
+        - "$ref": "#/components/parameters/XDeviceId"
+      responses:
+        "200":
+          description: "Changed."
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/ChangePinResponse"
+              examples:
+                default:
+                  summary: "New hash"
+                  value:
+                    staffPin:
+                      algorithm: "PBKDF2WithHmacSHA256"
+                      iterations: 120000
+                      salt: "b64:Zm9v"
+                      hash: "b64:YmFy…"
+                      version: 4
+        "400":
+          description: "Invalid PIN."
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/Error"
+              examples:
+                validation:
+                  summary: "Not 4 digits"
+                  value:
+                    code: "VALIDATION_ERROR"
+                    message: "PIN must be 4 digits."
+                    details: {}
+        "401":
+          "$ref": "#/components/responses/Unauthorized"
+        "409":
+          description: "Wrong current PIN."
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/Error"
+              examples:
+                incorrect:
+                  summary: "Wrong current PIN"
+                  value:
+                    code: "PIN_INCORRECT"
+                    message: "Current PIN is incorrect."
+                    details: {}
+        "500":
+          "$ref": "#/components/responses/ServerError"
+      requestBody:
+        required: true
+        content:
+          "application/json":
+            schema:
+              "$ref": "#/components/schemas/ChangePinRequest"
+            examples:
+              default:
+                summary: "1234 → 5678"
+                value:
+                  currentPin: "1234"
+                  newPin: "5678"
+  "/v1/health":
+    get:
+      operationId: "getHealth"
+      summary: "E14 — Backend and gateway reachability"
+      tags:
+        - "System"
+      parameters:
+        - "$ref": "#/components/parameters/XAppVersion"
+        - "$ref": "#/components/parameters/AcceptLanguage"
+        - "$ref": "#/components/parameters/XMockScenario"
+      responses:
+        "200":
+          description: "Health."
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/Health"
+              examples:
+                default:
+                  summary: "All OK"
+                  value:
+                    status: "OK"
+                    serverTime: "2026-10-22T07:15:30Z"
+                    components:
+                      api: "OK"
+                      database: "OK"
+                      paymentGateway: "OK"
+                gatewayDown:
+                  summary: "Gateway down"
+                  value:
+                    status: "DEGRADED"
+                    serverTime: "2026-10-22T07:15:30Z"
+                    components:
+                      api: "OK"
+                      database: "OK"
+                      paymentGateway: "DOWN"
+      security: []
+components:
+  securitySchemes:
+    deviceToken:
+      type: "http"
+      scheme: "bearer"
+      description: "deviceToken returned by E1."
+  parameters:
+    DeviceId:
+      name: "deviceId"
+      in: "path"
+      required: true
+      schema:
+        type: "string"
+      example: "dev_0003"
+    MerchantId:
+      name: "merchantId"
+      in: "path"
+      required: true
+      schema:
+        type: "string"
+      example: "mer_urbangrill"
+    OrderId:
+      name: "orderId"
+      in: "path"
+      required: true
+      schema:
+        type: "string"
+      example: "ord_7Hq2k9"
+    PaymentId:
+      name: "paymentId"
+      in: "path"
+      required: true
+      schema:
+        type: "string"
+      example: "pay_Q1x8"
+    IdempotencyKey:
+      name: "Idempotency-Key"
+      in: "header"
+      required: true
+      schema:
+        type: "string"
+        format: "uuid"
+      description: "Same key + same body returns the same result and never creates a duplicate."
+    IdempotencyKeyOptional:
+      name: "Idempotency-Key"
+      in: "header"
+      required: false
+      schema:
+        type: "string"
+        format: "uuid"
+    IfNoneMatch:
+      name: "If-None-Match"
+      in: "header"
+      required: false
+      schema:
+        type: "string"
+      example: "\"cfg-42\""
+    XAppVersion:
+      name: "X-App-Version"
+      in: "header"
+      required: false
+      schema:
+        type: "string"
+      example: "0.3.0"
+    XDeviceId:
+      name: "X-Device-Id"
+      in: "header"
+      required: false
+      schema:
+        type: "string"
+      example: "dev_0003"
+    AcceptLanguage:
+      name: "Accept-Language"
+      in: "header"
+      required: false
+      schema:
+        type: "string"
+        enum:
+          - "en"
+          - "id"
+    XMockScenario:
+      name: "X-Mock-Scenario"
+      in: "header"
+      required: false
+      schema:
+        type: "string"
+      description: "Scenario name from api-spec.md §4. Ignored by Prism (use the Prefer header); honoured by a custom mock server."
+  responses:
+    Unauthorized:
+      description: "Device token revoked or missing → app returns to Sign in."
+      content:
+        "application/json":
+          schema:
+            "$ref": "#/components/schemas/Error"
+          examples:
+            tokenInvalid:
+              summary: "Token invalid"
+              value:
+                code: "TOKEN_INVALID"
+                message: "Device token is invalid."
+                details: {}
+    ServerError:
+      description: "Server error; idempotent calls are retried (1 s / 2 s / 4 s)."
+      content:
+        "application/json":
+          schema:
+            "$ref": "#/components/schemas/Error"
+          examples:
+            serverError:
+              summary: "Server error"
+              value:
+                code: "SERVER_ERROR"
+                message: "Unexpected error."
+                details: {}
+  schemas:
+    LocalizedText:
+      type: "object"
+      description: "Localized text; the app falls back to the other language."
+      properties:
+        en:
+          type: "string"
+        id:
+          type: "string"
+    Error:
+      type: "object"
+      properties:
+        code:
+          type: "string"
+          enum:
+            - "VALIDATION_ERROR"
+            - "TOKEN_INVALID"
+            - "DEVICE_DISABLED"
+            - "DEVICE_NOT_REGISTERED"
+            - "NOT_FOUND"
+            - "PRICE_CHANGED"
+            - "ITEM_UNAVAILABLE"
+            - "MERCHANT_CLOSED"
+            - "PAYMENT_NOT_CANCELLABLE"
+            - "PIN_INCORRECT"
+            - "PAYMENT_METHOD_UNAVAILABLE"
+            - "RATE_LIMITED"
+            - "SERVER_ERROR"
+            - "GATEWAY_ERROR"
+        message:
+          type: "string"
+        details:
+          type: "object"
+          additionalProperties: true
+      required:
+        - "code"
+        - "message"
+    Merchant:
+      type: "object"
+      properties:
+        id:
+          type: "string"
+        name:
+          type: "string"
+        cuisine:
+          "$ref": "#/components/schemas/LocalizedText"
+        logoUrl:
+          type: "string"
+          nullable: true
+        photoUrl:
+          type: "string"
+          nullable: true
+        status:
+          type: "string"
+          enum:
+            - "live"
+            - "coming_soon"
+        isOpen:
+          type: "boolean"
+      required:
+        - "id"
+        - "name"
+        - "status"
+        - "isOpen"
+    ActivateRequest:
+      type: "object"
+      properties:
+        serialNumber:
+          type: "string"
+        model:
+          type: "string"
+        osVersion:
+          type: "string"
+        appVersion:
+          type: "string"
+      required:
+        - "serialNumber"
+        - "appVersion"
+    ActivateResponse:
+      type: "object"
+      properties:
+        deviceId:
+          type: "string"
+        deviceToken:
+          type: "string"
+        tokenExpiresAt:
+          type: "string"
+          format: "date-time"
+          nullable: true
+        kioskCode:
+          type: "string"
+        kioskName:
+          type: "string"
+        boundMerchantId:
+          type: "string"
+          nullable: true
+        merchants:
+          type: "array"
+          items:
+            "$ref": "#/components/schemas/Merchant"
+      required:
+        - "deviceId"
+        - "deviceToken"
+        - "kioskCode"
+        - "kioskName"
+        - "merchants"
+    MerchantList:
+      type: "object"
+      properties:
+        merchants:
+          type: "array"
+          items:
+            "$ref": "#/components/schemas/Merchant"
+      required:
+        - "merchants"
+    BindingRequest:
+      type: "object"
+      properties:
+        merchantId:
+          type: "string"
+      required:
+        - "merchantId"
+    BindingResponse:
+      type: "object"
+      properties:
+        deviceId:
+          type: "string"
+        merchantId:
+          type: "string"
+        kioskName:
+          type: "string"
+        boundAt:
+          type: "string"
+          format: "date-time"
+      required:
+        - "deviceId"
+        - "merchantId"
+    StaffPin:
+      type: "object"
+      properties:
+        algorithm:
+          type: "string"
+          enum:
+            - "PBKDF2WithHmacSHA256"
+            - "PLAIN_MOCK_ONLY"
+        iterations:
+          type: "integer"
+        salt:
+          type: "string"
+        hash:
+          type: "string"
+        version:
+          type: "integer"
+      required:
+        - "algorithm"
+        - "hash"
+        - "version"
+    Promo:
+      type: "object"
+      properties:
+        id:
+          type: "string"
+        type:
+          type: "string"
+          enum:
+            - "THRESHOLD_FIXED"
+        threshold:
+          type: "integer"
+          minimum: 0
+          description: "Integer Rupiah (IDR)."
+        amount:
+          type: "integer"
+          minimum: 0
+          description: "Integer Rupiah (IDR)."
+        label:
+          "$ref": "#/components/schemas/LocalizedText"
+      required:
+        - "id"
+        - "type"
+        - "threshold"
+        - "amount"
+    PaymentMethodConfig:
+      type: "object"
+      properties:
+        method:
+          type: "string"
+          enum:
+            - "QRIS"
+            - "CARD"
+        enabled:
+          type: "boolean"
+        qrisMerchantIdMasked:
+          type: "string"
+        qrExpirySecondsAllowed:
+          type: "array"
+          items:
+            type: "integer"
+        qrExpirySecondsDefault:
+          type: "integer"
+        terminal:
+          type: "object"
+          properties:
+            tid:
+              type: "string"
+            connection:
+              type: "string"
+      required:
+        - "method"
+        - "enabled"
+    MerchantConfig:
+      type: "object"
+      properties:
+        configVersion:
+          type: "string"
+        merchantId:
+          type: "string"
+        mode:
+          type: "string"
+          enum:
+            - "SINGLE"
+            - "FOOD_COURT"
+        brandName:
+          type: "string"
+        accentColor:
+          type: "string"
+          pattern: "^#[0-9A-Fa-f]{6}$"
+        logoUrl:
+          type: "string"
+          nullable: true
+        heroPhotoUrl:
+          type: "string"
+          nullable: true
+        isOpen:
+          type: "boolean"
+        currency:
+          type: "string"
+          enum:
+            - "IDR"
+        tax:
+          type: "object"
+          properties:
+            label:
+              "$ref": "#/components/schemas/LocalizedText"
+            rateBasisPoints:
+              type: "integer"
+            inclusive:
+              type: "boolean"
+          required:
+            - "rateBasisPoints"
+            - "inclusive"
+        rounding:
+          type: "object"
+          properties:
+            allowedSteps:
+              type: "array"
+              items:
+                type: "integer"
+            default:
+              type: "integer"
+            mode:
+              type: "string"
+              enum:
+                - "UP"
+        promos:
+          type: "array"
+          items:
+            "$ref": "#/components/schemas/Promo"
+        orderTypes:
+          type: "array"
+          items:
+            type: "string"
+            enum:
+              - "DINE_IN"
+              - "TAKEAWAY"
+        paymentMethods:
+          type: "array"
+          items:
+            "$ref": "#/components/schemas/PaymentMethodConfig"
+        staffPin:
+          "$ref": "#/components/schemas/StaffPin"
+        receipt:
+          type: "object"
+          properties:
+            address:
+              type: "string"
+              nullable: true
+            npwp:
+              type: "string"
+              nullable: true
+            defaultFooter:
+              "$ref": "#/components/schemas/LocalizedText"
+        upsell:
+          type: "object"
+          properties:
+            categoryIds:
+              type: "array"
+              items:
+                type: "string"
+            maxSuggestions:
+              type: "integer"
+        idlePromos:
+          type: "array"
+          items:
+            type: "object"
+            properties:
+              imageUrl:
+                type: "string"
+                nullable: true
+      required:
+        - "configVersion"
+        - "merchantId"
+        - "mode"
+        - "brandName"
+        - "tax"
+        - "orderTypes"
+        - "paymentMethods"
+        - "staffPin"
+    Category:
+      type: "object"
+      properties:
+        id:
+          type: "string"
+        name:
+          "$ref": "#/components/schemas/LocalizedText"
+        sort:
+          type: "integer"
+        tone:
+          type: "string"
+      required:
+        - "id"
+        - "name"
+        - "sort"
+    Badge:
+      type: "object"
+      properties:
+        type:
+          type: "string"
+          enum:
+            - "NEW"
+            - "BEST_SELLER"
+            - "SPICY"
+            - "SHARE"
+            - "LOCAL"
+        label:
+          "$ref": "#/components/schemas/LocalizedText"
+      required:
+        - "type"
+      nullable: true
+    Product:
+      type: "object"
+      properties:
+        id:
+          type: "string"
+        categoryId:
+          type: "string"
+        name:
+          "$ref": "#/components/schemas/LocalizedText"
+        description:
+          type: "object"
+          nullable: true
+          properties:
+            en:
+              type: "string"
+            id:
+              type: "string"
+        price:
+          type: "integer"
+          minimum: 0
+          description: "Integer Rupiah (IDR)."
+        kcal:
+          type: "integer"
+          nullable: true
+        badge:
+          "$ref": "#/components/schemas/Badge"
+        tags:
+          type: "object"
+          nullable: true
+          properties:
+            en:
+              type: "string"
+            id:
+              type: "string"
+        imageUrl:
+          type: "string"
+          nullable: true
+        available:
+          type: "boolean"
+        modifierGroupIds:
+          type: "array"
+          items:
+            type: "string"
+      required:
+        - "id"
+        - "categoryId"
+        - "name"
+        - "price"
+        - "available"
+        - "modifierGroupIds"
+    ModifierOption:
+      type: "object"
+      properties:
+        id:
+          type: "string"
+        name:
+          "$ref": "#/components/schemas/LocalizedText"
+        description:
+          "$ref": "#/components/schemas/LocalizedText"
+        note:
+          "$ref": "#/components/schemas/LocalizedText"
+        priceDelta:
+          type: "integer"
+        default:
+          type: "boolean"
+        imageUrl:
+          type: "string"
+          nullable: true
+        levels:
+          type: "array"
+          items:
+            type: "object"
+            properties:
+              level:
+                type: "string"
+                enum:
+                  - "NONE"
+                  - "REGULAR"
+                  - "EXTRA"
+              priceDelta:
+                type: "integer"
+            required:
+              - "level"
+              - "priceDelta"
+        defaultLevel:
+          type: "string"
+          enum:
+            - "NONE"
+            - "REGULAR"
+            - "EXTRA"
+      required:
+        - "id"
+        - "name"
+    ModifierGroup:
+      type: "object"
+      properties:
+        id:
+          type: "string"
+        name:
+          "$ref": "#/components/schemas/LocalizedText"
+        type:
+          type: "string"
+          enum:
+            - "SINGLE"
+            - "MULTI"
+            - "LEVEL"
+        required:
+          type: "boolean"
+        min:
+          type: "integer"
+        max:
+          type: "integer"
+        options:
+          type: "array"
+          items:
+            "$ref": "#/components/schemas/ModifierOption"
+      required:
+        - "id"
+        - "name"
+        - "type"
+        - "required"
+        - "options"
+    Combo:
+      type: "object"
+      properties:
+        id:
+          type: "string"
+        name:
+          "$ref": "#/components/schemas/LocalizedText"
+        shortName:
+          "$ref": "#/components/schemas/LocalizedText"
+        includes:
+          "$ref": "#/components/schemas/LocalizedText"
+        price:
+          type: "integer"
+          minimum: 0
+          description: "Integer Rupiah (IDR)."
+        separatePrice:
+          type: "integer"
+          minimum: 0
+          description: "Integer Rupiah (IDR)."
+        serves:
+          type: "integer"
+          minimum: 1
+        imageUrl:
+          type: "string"
+          nullable: true
+        tone:
+          type: "string"
+        available:
+          type: "boolean"
+      required:
+        - "id"
+        - "name"
+        - "price"
+        - "separatePrice"
+        - "serves"
+        - "available"
+    ComboSlotOption:
+      type: "object"
+      properties:
+        id:
+          type: "string"
+        name:
+          "$ref": "#/components/schemas/LocalizedText"
+        upcharge:
+          type: "integer"
+          minimum: 0
+          description: "Integer Rupiah (IDR)."
+        imageUrl:
+          type: "string"
+          nullable: true
+      required:
+        - "id"
+        - "name"
+        - "upcharge"
+    PromoBanner:
+      type: "object"
+      properties:
+        id:
+          type: "string"
+        tag:
+          "$ref": "#/components/schemas/LocalizedText"
+        title:
+          "$ref": "#/components/schemas/LocalizedText"
+        priceText:
+          "$ref": "#/components/schemas/LocalizedText"
+        imageUrl:
+          type: "string"
+          nullable: true
+        target:
+          type: "object"
+          properties:
+            type:
+              type: "string"
+              enum:
+                - "PRODUCT"
+                - "COMBO"
+            id:
+              type: "string"
+          required:
+            - "type"
+            - "id"
+      required:
+        - "id"
+        - "title"
+        - "target"
+    Menu:
+      type: "object"
+      properties:
+        menuVersion:
+          type: "string"
+        categories:
+          type: "array"
+          items:
+            "$ref": "#/components/schemas/Category"
+        combosCategory:
+          type: "object"
+          properties:
+            name:
+              "$ref": "#/components/schemas/LocalizedText"
+            sort:
+              type: "integer"
+        featuredProductIds:
+          type: "array"
+          items:
+            type: "string"
+        promoBanners:
+          type: "array"
+          items:
+            "$ref": "#/components/schemas/PromoBanner"
+        products:
+          type: "array"
+          items:
+            "$ref": "#/components/schemas/Product"
+        modifierGroups:
+          type: "array"
+          items:
+            "$ref": "#/components/schemas/ModifierGroup"
+        combos:
+          type: "array"
+          items:
+            "$ref": "#/components/schemas/Combo"
+        comboSlots:
+          type: "object"
+          properties:
+            SIDE:
+              type: "array"
+              items:
+                "$ref": "#/components/schemas/ComboSlotOption"
+            DRINK:
+              type: "array"
+              items:
+                "$ref": "#/components/schemas/ComboSlotOption"
+            SIZE_LARGE_UPCHARGE:
+              type: "integer"
+              minimum: 0
+              description: "Integer Rupiah (IDR)."
+          required:
+            - "SIDE"
+            - "DRINK"
+            - "SIZE_LARGE_UPCHARGE"
+      required:
+        - "menuVersion"
+        - "categories"
+        - "products"
+        - "modifierGroups"
+        - "combos"
+        - "comboSlots"
+    Selection:
+      type: "object"
+      properties:
+        groupId:
+          type: "string"
+        optionId:
+          type: "string"
+        level:
+          type: "string"
+          enum:
+            - "NONE"
+            - "REGULAR"
+            - "EXTRA"
+      required:
+        - "groupId"
+        - "optionId"
+    OrderLine:
+      type: "object"
+      properties:
+        lineId:
+          type: "string"
+        kind:
+          type: "string"
+          enum:
+            - "PRODUCT"
+            - "COMBO"
+        productId:
+          type: "string"
+        comboId:
+          type: "string"
+        quantity:
+          type: "integer"
+          minimum: 1
+          maximum: 20
+        selections:
+          type: "array"
+          items:
+            "$ref": "#/components/schemas/Selection"
+        comboSelections:
+          type: "object"
+          properties:
+            sideId:
+              type: "string"
+            drinkId:
+              type: "string"
+            size:
+              type: "string"
+              enum:
+                - "REGULAR"
+                - "LARGE"
+          required:
+            - "sideId"
+            - "drinkId"
+            - "size"
+        unitPrice:
+          type: "integer"
+          minimum: 0
+          description: "Integer Rupiah (IDR)."
+        lineTotal:
+          type: "integer"
+          minimum: 0
+          description: "Integer Rupiah (IDR)."
+      required:
+        - "lineId"
+        - "kind"
+        - "quantity"
+        - "unitPrice"
+        - "lineTotal"
+    Totals:
+      type: "object"
+      properties:
+        subtotal:
+          type: "integer"
+          minimum: 0
+          description: "Integer Rupiah (IDR)."
+        discount:
+          type: "integer"
+          minimum: 0
+          description: "Integer Rupiah (IDR)."
+        promoId:
+          type: "string"
+          nullable: true
+        tax:
+          type: "integer"
+          minimum: 0
+          description: "Integer Rupiah (IDR)."
+        rounding:
+          type: "integer"
+          minimum: 0
+          description: "Integer Rupiah (IDR)."
+        total:
+          type: "integer"
+          minimum: 0
+          description: "Integer Rupiah (IDR)."
+      required:
+        - "subtotal"
+        - "discount"
+        - "tax"
+        - "rounding"
+        - "total"
+    CreateOrderRequest:
+      type: "object"
+      properties:
+        merchantId:
+          type: "string"
+        orderType:
+          type: "string"
+          enum:
+            - "DINE_IN"
+            - "TAKEAWAY"
+        language:
+          type: "string"
+          enum:
+            - "en"
+            - "id"
+        menuVersion:
+          type: "string"
+        configVersion:
+          type: "string"
+        roundingStep:
+          type: "integer"
+          enum:
+            - 0
+            - 100
+            - 500
+        lines:
+          type: "array"
+          minItems: 1
+          maxItems: 30
+          items:
+            "$ref": "#/components/schemas/OrderLine"
+        clientTotals:
+          "$ref": "#/components/schemas/Totals"
+      required:
+        - "merchantId"
+        - "orderType"
+        - "language"
+        - "menuVersion"
+        - "lines"
+        - "clientTotals"
+    OrderResponse:
+      type: "object"
+      properties:
+        orderId:
+          type: "string"
+        orderNumber:
+          type: "string"
+          pattern: "^[A-Z][0-9]{3}$"
+        status:
+          type: "string"
+          enum:
+            - "AWAITING_PAYMENT"
+            - "PAID"
+            - "CANCELLED"
+        createdAt:
+          type: "string"
+          format: "date-time"
+        totals:
+          "$ref": "#/components/schemas/Totals"
+        lines:
+          type: "array"
+          items:
+            type: "object"
+            properties:
+              lineId:
+                type: "string"
+              description:
+                "$ref": "#/components/schemas/LocalizedText"
+              lineTotal:
+                type: "integer"
+                minimum: 0
+                description: "Integer Rupiah (IDR)."
+      required:
+        - "orderId"
+        - "orderNumber"
+        - "status"
+        - "totals"
+    CancelOrderRequest:
+      type: "object"
+      properties:
+        reason:
+          type: "string"
+          enum:
+            - "CUSTOMER_BACK"
+            - "TIMEOUT"
+            - "PAYMENT_FAILED"
+            - "APP_RECOVERY"
+      required:
+        - "reason"
+    OrderStatusResponse:
+      type: "object"
+      properties:
+        orderId:
+          type: "string"
+        status:
+          type: "string"
+          enum:
+            - "AWAITING_PAYMENT"
+            - "PAID"
+            - "CANCELLED"
+      required:
+        - "orderId"
+        - "status"
+    StartPaymentRequest:
+      type: "object"
+      properties:
+        method:
+          type: "string"
+          enum:
+            - "QRIS"
+            - "CARD"
+        qrExpirySeconds:
+          type: "integer"
+          enum:
+            - 180
+            - 300
+            - 600
+      required:
+        - "method"
+    PaymentStatus:
+      type: "string"
+      enum:
+        - "PENDING"
+        - "PROCESSING"
+        - "PAID"
+        - "FAILED"
+        - "EXPIRED"
+        - "CANCELLED"
+    Payment:
+      type: "object"
+      properties:
+        paymentId:
+          type: "string"
+        method:
+          type: "string"
+          enum:
+            - "QRIS"
+            - "CARD"
+        status:
+          "$ref": "#/components/schemas/PaymentStatus"
+        amount:
+          type: "integer"
+          minimum: 0
+          description: "Integer Rupiah (IDR)."
+        qrString:
+          type: "string"
+          description: "EMVCo QRIS payload (QRIS only)."
+        expiresAt:
+          type: "string"
+          format: "date-time"
+        terminalRef:
+          type: "string"
+        terminal:
+          type: "object"
+          properties:
+            tid:
+              type: "string"
+            connection:
+              type: "string"
+        timeoutSeconds:
+          type: "integer"
+        createdAt:
+          type: "string"
+          format: "date-time"
+        paidAt:
+          type: "string"
+          format: "date-time"
+        reference:
+          type: "string"
+        issuer:
+          type: "string"
+        reason:
+          type: "string"
+          enum:
+            - "DECLINED"
+            - "CANCELLED_BY_PAYER"
+            - "TERMINAL_TIMEOUT"
+            - "TERMINAL_ERROR"
+            - "GATEWAY_ERROR"
+            - "INSUFFICIENT_FUNDS"
+        message:
+          "$ref": "#/components/schemas/LocalizedText"
+        order:
+          type: "object"
+          properties:
+            orderId:
+              type: "string"
+            orderNumber:
+              type: "string"
+            status:
+              type: "string"
+      required:
+        - "paymentId"
+        - "method"
+        - "status"
+        - "amount"
+    CancelPaymentRequest:
+      type: "object"
+      properties:
+        reason:
+          type: "string"
+          enum:
+            - "CUSTOMER_BACK"
+            - "SWITCH_METHOD"
+            - "EXPIRED_ON_KIOSK"
+            - "TIMEOUT"
+      required:
+        - "reason"
+    PaymentStatusResponse:
+      type: "object"
+      properties:
+        paymentId:
+          type: "string"
+        status:
+          "$ref": "#/components/schemas/PaymentStatus"
+      required:
+        - "paymentId"
+        - "status"
+    TerminalResultRequest:
+      type: "object"
+      properties:
+        approved:
+          type: "boolean"
+        terminalRef:
+          type: "string"
+        tid:
+          type: "string"
+        approvalCode:
+          type: "string"
+        cardBrand:
+          type: "string"
+        maskedPan:
+          type: "string"
+        rawResponseCode:
+          type: "string"
+      required:
+        - "approved"
+        - "terminalRef"
+        - "tid"
+    ChangePinRequest:
+      type: "object"
+      properties:
+        currentPin:
+          type: "string"
+          pattern: "^[0-9]{4}$"
+        newPin:
+          type: "string"
+          pattern: "^[0-9]{4}$"
+      required:
+        - "currentPin"
+        - "newPin"
+    ChangePinResponse:
+      type: "object"
+      properties:
+        staffPin:
+          "$ref": "#/components/schemas/StaffPin"
+      required:
+        - "staffPin"
+    Health:
+      type: "object"
+      properties:
+        status:
+          type: "string"
+          enum:
+            - "OK"
+            - "DEGRADED"
+            - "DOWN"
+        serverTime:
+          type: "string"
+          format: "date-time"
+        components:
+          type: "object"
+          properties:
+            api:
+              type: "string"
+              enum:
+                - "OK"
+                - "DEGRADED"
+                - "DOWN"
+            database:
+              type: "string"
+              enum:
+                - "OK"
+                - "DEGRADED"
+                - "DOWN"
+            paymentGateway:
+              type: "string"
+              enum:
+                - "OK"
+                - "DEGRADED"
+                - "DOWN"
+      required:
+        - "status"
+        - "serverTime"
+        - "components"

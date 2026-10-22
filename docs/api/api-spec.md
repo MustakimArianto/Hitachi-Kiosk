@@ -9,6 +9,16 @@
 
 The sample data is taken from the approved design (`../ui-design/`): merchant "Urban Grill", its menu, prices, combos and promo. A mock returning exactly these examples makes the app look like the design.
 
+**Machine-readable version:** [`openapi.yaml`](openapi.yaml) (OpenAPI 3.0.3). It is generated from this file by [`tools/gen_openapi.py`](tools/gen_openapi.py), using every JSON example below. Edit this file first, then regenerate:
+```bash
+python3 docs/api/tools/gen_openapi.py docs/api/api-spec.md docs/api/openapi.yaml
+```
+Run it as a mock server with Prism:
+```bash
+npx @stoplight/prism-cli mock docs/api/openapi.yaml --port 4010
+```
+To choose an outcome, send a `Prefer` header, e.g. `Prefer: code=409, example=priceChanged` or `Prefer: example=paid` (mapping in §4).
+
 ---
 
 ## 1. Endpoint list
@@ -683,22 +693,26 @@ To make the mock match the design screens one-to-one, include:
 
 Bold items are in "Popular" (`featuredProductIds`). Combos and slot options are as in E6.
 
-**Mock scenarios to support** (switch via a query param or header such as `X-Mock-Scenario`, or a mock admin endpoint):
+**Mock scenarios to support.** A custom mock switches them with the `X-Mock-Scenario` header. With Prism, use the `Prefer` header in the last column.
 
-| Scenario | Effect |
-|---|---|
-| `activate_unregistered` | E1 → 404 DEVICE_NOT_REGISTERED |
-| `activate_disabled` | E1 → 403 DEVICE_DISABLED |
-| `order_price_changed` | E7 → 409 PRICE_CHANGED |
-| `order_item_unavailable` | E7 → 409 ITEM_UNAVAILABLE (c1) |
-| `qris_paid_after_5s` | E10 → PENDING for 5 s, then PAID |
-| `qris_cancelled` | E10 → FAILED / CANCELLED_BY_PAYER |
-| `qris_expire_fast` | E9 `expiresAt` = now + 20 s |
-| `card_declined` | E10 → FAILED / DECLINED |
-| `card_timeout` | E10 → FAILED / TERMINAL_TIMEOUT after 90 s |
-| `slow_network` | every response delayed 8 s |
-| `server_error_once` | first E7 → 503, retry → 201 (same order) |
-| `gateway_down` | E14 `paymentGateway: DOWN` |
+| Scenario | Effect | Prism `Prefer` header |
+|---|---|---|
+| `activate_unregistered` | E1 → 404 DEVICE_NOT_REGISTERED | `code=404` |
+| `activate_disabled` | E1 → 403 DEVICE_DISABLED | `code=403` |
+| `order_price_changed` | E7 → 409 PRICE_CHANGED | `code=409, example=priceChanged` |
+| `order_item_unavailable` | E7 → 409 ITEM_UNAVAILABLE (c1) | `code=409, example=itemUnavailable` |
+| `qris_paid_after_5s` | E10 → PENDING for 5 s, then PAID | `example=pending`, then `example=paid` (switched by the app's debug options) |
+| `qris_cancelled` | E10 → FAILED / CANCELLED_BY_PAYER | `example=cancelledByPayer` |
+| `qris_expire_fast` | E9 `expiresAt` = now + 20 s | not possible (static examples); then `example=expired` on E10 |
+| `card_declined` | E10 → FAILED / DECLINED | `example=declined` |
+| `card_timeout` | E10 → FAILED / TERMINAL_TIMEOUT after 90 s | `example=terminalTimeout` |
+| `slow_network` | every response delayed 8 s | not supported by Prism |
+| `server_error_once` | first E7 → 503, retry → 201 (same order) | `code=503`, then no header |
+| `gateway_down` | E14 `paymentGateway: DOWN` | `example=gatewayDown` |
+
+Card start on E9: `Prefer: example=card`. Without a `Prefer` header, Prism returns the happy path: the QRIS payment on E9 and `pending` on E10.
+
+Prism serves fixed example timestamps (e.g. `expiresAt: 2026-10-22T07:20:31Z`), so the QR countdown will show as already expired against the real clock. For realistic timing, use the in-app fakes or a custom mock that sets `expiresAt` relative to now.
 
 ---
 

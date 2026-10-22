@@ -85,10 +85,10 @@ Create a buildable, testable Android project with the architecture, design syste
   - *Verify:* a token unit test asserts the hex values. A reduce-motion test asserts specs return `snap()`.
 
 **Contract & fakes**
-- [ ] **DEV-006** Derive `docs/api/openapi.yaml` from the existing human-readable contract `docs/api/api-spec.md` (E1–E14, written 2026-10-22, from which the product owner builds the mock server first).
-  - Copy the example payloads into the OpenAPI `examples`.
-  - Reconcile any difference found while building the mock, updating `api-spec.md` first.
-  - *Verify:* the OpenAPI lints clean (e.g. `redocly lint`); the examples validate against their schemas; and the app's MockWebServer fixtures equal the spec's examples.
+- [ ] **DEV-006** Keep the API contract in sync and wire it into CI. `docs/api/api-spec.md` and the generated `docs/api/openapi.yaml` (via `docs/api/tools/gen_openapi.py`) already exist as of 2026-10-22. The yaml lints valid and has been run under Prism.
+  - Reconcile any difference found while building the mock, updating `api-spec.md` first, then regenerating.
+  - Add a CI step that regenerates the yaml and fails on a diff, and one that runs `redocly lint`.
+  - *Verify:* CI lint is green; the app's MockWebServer fixtures equal the spec's examples.
 - [ ] **DEV-007** Networking skeleton in `:core:data` (NFR-010).
   - Retrofit + OkHttp + kotlinx.serialization, error envelope parsing, auth interceptor, timeouts 10 s/15 s, network security config with cleartext disabled.
   - The base URL comes from build config `dev|staging|prod`.
