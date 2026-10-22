@@ -56,9 +56,9 @@ A feature package contains only `XxxRoute.kt`, `XxxScreen.kt`, `XxxViewModel.kt`
 - Sizes use `Int.dpx`, text uses `Int.spx`. Raw `.dp`/`.sp` are allowed only inside `:core:designsystem`.
 - Colors, type and shapes come from `KioskTheme`. Never write hex literals outside the token file.
 - Animations use the named motion specs. Every new animation must respect `LocalReduceMotion`.
-- Every user-visible string is a resource in both `values/` and `values-in/`. Plurals use `<plurals>`.
+- Every user-visible string is a resource in `values/strings.xml`. The 1.0 UI is English only (D-29), so there is no `values-in/` and no language switch. Keep strings externalised so a locale can be added later. Plurals use `<plurals>`.
 - Every interactive element has a content description matching the design's aria label (NFR-007).
-- Each screen has `@Preview`s for its main states, which feed the Roborazzi screenshot tests.
+- Each screen has `@Preview`s for its main states, which feed the Roborazzi screenshot tests. Every `S_<Screen>_<scenario>` board in `docs/ui-design/` has a matching preview and screenshot test (English only).
 
 ## 6. Coroutines
 
@@ -95,7 +95,7 @@ A feature package contains only `XxxRoute.kt`, `XxxScreen.kt`, `XxxViewModel.kt`
 1. The behavior matches the cited FR acceptance criteria.
 2. Tests from the testing plan for that task exist and pass: unit tests first for domain logic, plus a screenshot or UI test for UI.
 3. No new lint, detekt or ktlint findings. Coverage targets hold (domain ≥ 90 %, data ≥ 70 %).
-4. Strings in both languages. Reduce motion and larger text checked.
+4. Strings are in `values/strings.xml`, not hardcoded. Reduce motion and larger text checked.
 5. If the API changed: `api-spec.md` updated first, `openapi.yaml` regenerated.
 6. If a decision was made: an ADR, or an update to `architecture.md`.
 7. The checkbox is ticked in `dev-plan.md`.

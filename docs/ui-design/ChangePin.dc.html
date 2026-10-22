@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Hitachi Kiosk · Change staff PIN</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#FAF8F5}
+*{box-sizing:border-box}
+a{color:inherit;text-decoration:none}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent}
+.press{transition:transform 140ms cubic-bezier(.2,0,0,1),background-color 200ms}
+.press:active{transform:scale(.96)}
+.key:active{background:#F1EDE7;transform:scale(.95)}
+@keyframes fade{0%{opacity:0}100%{opacity:1}}
+@keyframes up{0%{opacity:0;transform:translateY(24px)}100%{opacity:1;transform:none}}
+@keyframes rise{0%{transform:translateY(100%)}100%{transform:none}}
+@keyframes dotIn{0%{transform:scale(.3)}60%{transform:scale(1.25)}100%{transform:scale(1)}}
+@keyframes keyIn{0%{opacity:0;transform:translateY(20px) scale(.96)}100%{opacity:1;transform:none}}
+@keyframes shakeA{0%,100%{transform:translateX(0)}20%{transform:translateX(-22px)}40%{transform:translateX(18px)}60%{transform:translateX(-10px)}80%{transform:translateX(5px)}}
+@keyframes shakeB{0%,100%{transform:translateX(0)}20%{transform:translateX(-22px)}40%{transform:translateX(18px)}60%{transform:translateX(-10px)}80%{transform:translateX(5px)}}
+@keyframes swapA{0%{opacity:0;transform:translateX(48px)}100%{opacity:1;transform:none}}
+@keyframes swapB{0%{opacity:0;transform:translateX(48px)}100%{opacity:1;transform:none}}
+@keyframes badgeIn{0%{transform:scale(0)}60%{transform:scale(1.08)}100%{transform:scale(1)}}
+@keyframes draw{from{stroke-dashoffset:40}to{stroke-dashoffset:0}}
+@keyframes ring{0%{opacity:.6;transform:scale(1)}100%{opacity:0;transform:scale(1.9)}}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:1ms!important;animation-delay:0ms!important;animation-iteration-count:1!important;transition-duration:1ms!important}}
+</style>
+</helmet>
+<div style="position: relative; width: 1080px; height: 1920px; overflow: hidden; background: #FAF8F5; color: #171513; font-family: 'Schibsted Grotesk', 'Helvetica Neue', Arial, sans-serif">
+  <header style="position: absolute; left: 0; right: 0; top: 0; height: 168px; padding: 48px 72px 0; display: flex; align-items: flex-start; justify-content: space-between; z-index: 2; animation: fade 400ms ease both">
+    <a href="SettingsDevice.dc.html" class="press" style="height: 96px; padding: 0 36px 0 24px; border-radius: 999px; background: #F1EDE7; display: flex; align-items: center; gap: 12px; font-size: 30px; font-weight: 600">
+      <svg aria-hidden="true" viewBox="0 0 24 24" style="width: 40px; height: 40px"><path d="M15 5l-7 7 7 7" fill="none" stroke="#171513" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+      Device &amp; network
+    </a>
+    <a href="Idle.dc.html" class="press" style="height: 96px; padding: 0 44px; border-radius: 999px; background: #171513; color: #FAF8F5; display: flex; align-items: center; font-size: 30px; font-weight: 600">Exit</a>
+  </header>
+
+  <sc-if value="{{entering}}" hint-placeholder-val="{{ true }}">
+    <div style="position: absolute; left: 72px; right: 72px; top: 216px; bottom: 0; display: flex; flex-direction: column">
+      <div style="display: flex; flex-direction: column; gap: 12px">
+        <div style="display: flex; align-items: center; gap: 16px; animation: up 600ms cubic-bezier(.16,1,.3,1) 40ms both">
+          <span aria-hidden="true" style="display: flex; gap: 8px">
+            <sc-for list="{{dashes}}" as="ds" hint-placeholder-count="3">
+              <span style="display: block; width: 48px; height: 8px; border-radius: 4px; background: {{ds.bg}}; transition: background-color 400ms cubic-bezier(.2,0,0,1)"></span>
+            </sc-for>
+          </span>
+          <span style="font-size: 26px; font-weight: 500; color: #6F6961">Step {{stepNo}} of 3 · Change staff PIN</span>
+        </div>
+        <div style="overflow: hidden"><h1 style="margin: 0; font-size: 80px; font-weight: 700; letter-spacing: -0.03em; line-height: 1.02; animation: rise 900ms cubic-bezier(.16,1,.3,1) 80ms both">Change PIN</h1></div>
+        <span style="display: flex; align-items: center; gap: 12px; font-size: 26px; font-weight: 500; color: #6F6961; animation: up 600ms cubic-bezier(.16,1,.3,1) 160ms both">
+          <svg aria-hidden="true" viewBox="0 0 24 24" style="width: 32px; height: 32px"><path d="M5 12.5a10 10 0 0 1 14 0M8.5 16a5 5 0 0 1 7 0M2 9a14.5 14.5 0 0 1 20 0M12 19.5h.01" fill="none" stroke="#6F6961" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+          Requires an internet connection
+        </span>
+      </div>
+
+      <div style="margin-top: 96px; display: flex; flex-direction: column; align-items: center; text-align: center">
+        <div style="{{stepAnim}}; display: flex; flex-direction: column; align-items: center">
+          <h2 style="margin: 0; font-size: 48px; font-weight: 700; letter-spacing: -0.02em">{{stepTitle}}</h2>
+          <p style="margin: 16px 0 0; font-size: 30px; color: {{hintColor}}; transition: color 300ms">{{stepHint}}</p>
+        </div>
+        <div role="status" aria-label="PIN digits entered" style="display: flex; gap: 32px; margin: 64px 0; {{shake}}">
+          <sc-for list="{{dots}}" as="d" hint-placeholder-count="4">
+            <span style="width: 32px; height: 32px; border-radius: 50%; border: 3px solid {{d.ring}}; background: {{d.bg}}; transition: background-color 200ms, border-color 200ms; {{d.anim}}"></span>
+          </sc-for>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; width: 744px">
+          <sc-for list="{{keys}}" as="k" hint-placeholder-count="12">
+            <sc-if value="{{k.isNum}}" hint-placeholder-val="{{ true }}">
+              <button onClick="{{k.press}}" aria-label="{{k.t}}" class="press key" style="height: 152px; border-radius: 40px; background: #FFFFFF; border: 2px solid #EFE9E0; display: flex; align-items: center; justify-content: center; font-size: 60px; font-weight: 500; animation: keyIn 600ms cubic-bezier(.16,1,.3,1) {{k.delay}}ms backwards">{{k.t}}</button>
+            </sc-if>
+            <sc-if value="{{k.isDel}}" hint-placeholder-val="{{ false }}">
+              <button onClick="{{k.press}}" aria-label="Delete" class="press key" style="height: 152px; border-radius: 40px; display: flex; align-items: center; justify-content: center"><svg aria-hidden="true" viewBox="0 0 24 24" style="width: 56px; height: 56px"><path d="M9 5h11v14H9l-6-7zM12 9.5l5 5M17 9.5l-5 5" fill="none" stroke="#171513" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path></svg></button>
+            </sc-if>
+            <sc-if value="{{k.isBlank}}" hint-placeholder-val="{{ false }}"><span></span></sc-if>
+          </sc-for>
+        </div>
+      </div>
+      <p style="margin: auto 0 72px; text-align: center; font-size: 24px; color: #6F6961">Prototype: any 4 digits work for the current PIN</p>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{success}}" hint-placeholder-val="{{ false }}">
+    <div style="position: absolute; left: 72px; right: 72px; top: 168px; bottom: 0; display: flex; flex-direction: column; align-items: center; text-align: center">
+      <div style="position: relative; margin-top: 360px; width: 240px; height: 240px">
+        <span aria-hidden="true" style="position: absolute; inset: 0; border-radius: 50%; border: 4px solid #2F7A50; animation: ring 1400ms cubic-bezier(.2,0,0,1) 500ms both"></span>
+        <span style="position: absolute; inset: 0; border-radius: 50%; background: #2F7A50; display: flex; align-items: center; justify-content: center; animation: badgeIn 600ms cubic-bezier(.3,1.15,.4,1) both">
+          <svg aria-hidden="true" viewBox="0 0 24 24" style="width: 120px; height: 120px"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="#FFFFFF" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="40" style="animation: draw 520ms cubic-bezier(.2,0,0,1) 380ms both"></path></svg>
+        </span>
+      </div>
+      <div style="overflow: hidden; margin-top: 64px"><h1 style="margin: 0; font-size: 96px; font-weight: 800; letter-spacing: -0.035em; line-height: 1; animation: rise 900ms cubic-bezier(.16,1,.3,1) 450ms both">PIN updated</h1></div>
+      <p style="margin: 24px 0 0; font-size: 30px; color: #6F6961; animation: up 600ms cubic-bezier(.16,1,.3,1) 600ms both">Use the new PIN next time you open settings.</p>
+      <a href="SettingsDevice.dc.html" class="press" style="margin-top: auto; margin-bottom: 72px; width: 100%; height: 152px; border-radius: 40px; background: {{accent}}; color: #FFFFFF; display: flex; align-items: center; justify-content: center; font-size: 34px; font-weight: 700; animation: up 700ms cubic-bezier(.16,1,.3,1) 750ms both">Back to settings</a>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#C8552B","options":["#C8552B","#2F5D4A","#3A4C7A","#171513"]},"$preview":{"width":1080,"height":1920}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { step: 0, pin: '', newPin: '', error: false, shakeTick: 0, stepTick: 0, done: false };
+  }
+  componentWillUnmount() { clearTimeout(this.t); }
+  key(d) {
+    const s = this.state;
+    if (s.pin.length === 4 && d !== 'del') return;
+    if (d === 'del') { this.setState({ pin: s.pin.slice(0, -1) }); return; }
+    const pin = s.pin + d;
+    this.setState({ pin: pin, error: s.error && pin.length < 1 });
+    if (pin.length < 4) return;
+    clearTimeout(this.t);
+    this.t = setTimeout(() => {
+      const st = this.state;
+      if (st.step === 0) this.setState((x) => ({ step: 1, pin: '', error: false, stepTick: x.stepTick + 1 }));
+      else if (st.step === 1) this.setState((x) => ({ step: 2, newPin: pin, pin: '', error: false, stepTick: x.stepTick + 1 }));
+      else if (pin === st.newPin) this.setState({ done: true });
+      else this.setState((x) => ({ step: 1, newPin: '', pin: '', error: true, shakeTick: x.shakeTick + 1, stepTick: x.stepTick + 1 }));
+    }, 320);
+  }
+  renderVals() {
+    const s = this.state;
+    const titles = ['Enter current PIN', 'Enter new PIN', 'Confirm new PIN'];
+    const hints = ['The 4-digit PIN you use to open settings', 'Choose 4 digits staff will remember', 'Enter the new PIN once more'];
+    return {
+      accent: this.props.accent ?? '#C8552B',
+      entering: !s.done,
+      success: s.done,
+      stepNo: s.step + 1,
+      dashes: [0, 1, 2].map((i) => ({ bg: i <= s.step ? (this.props.accent ?? '#C8552B') : '#E9E4DC' })),
+      stepTitle: titles[s.step],
+      stepHint: s.error ? 'PINs didn’t match. Enter the new PIN again.' : hints[s.step],
+      hintColor: s.error ? (this.props.accent ?? '#C8552B') : '#6F6961',
+      stepAnim: s.stepTick ? 'animation: swap' + (s.stepTick % 2 ? 'B' : 'A') + ' 520ms cubic-bezier(.16,1,.3,1) both' : '',
+      shake: s.shakeTick ? 'animation: shake' + (s.shakeTick % 2 ? 'B' : 'A') + ' 520ms cubic-bezier(.36,.07,.19,.97) both' : '',
+      dots: [0, 1, 2, 3].map((i) => ({
+        ring: s.error && s.pin.length === 0 ? (this.props.accent ?? '#C8552B') : '#171513',
+        bg: i < s.pin.length ? '#171513' : 'transparent',
+        anim: i === s.pin.length - 1 ? 'animation: dotIn 360ms cubic-bezier(.3,1.15,.4,1) both' : ''
+      })),
+      keys: ['1', '2', '3', '4', '5', '6', '7', '8', '9', '', '0', 'del'].map((k, i) => ({
+        t: k, isNum: k !== '' && k !== 'del', isDel: k === 'del', isBlank: k === '', delay: 260 + i * 30, press: () => this.key(k)
+      }))
+    };
+  }
+}
+</script>
+</body>
+</html>

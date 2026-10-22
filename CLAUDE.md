@@ -8,19 +8,19 @@ Android self-order kiosk app (Kotlin, Jetpack Compose, `minSdk 30`, portrait 108
 3. [`docs/architecture.md`](docs/architecture.md) and [`docs/adr/`](docs/adr/): how the app is structured
 4. [`docs/conventions.md`](docs/conventions.md): naming, patterns, git, definition of done
 5. [`docs/dev-plan.md`](docs/dev-plan.md) (DEV- tasks) and [`docs/testing-plan.md`](docs/testing-plan.md) (TC- cases)
-6. [`docs/ui-design/*.dc.html`](docs/ui-design/): visual source of truth for layout, copy and motion (D-02)
+6. [`docs/ui-design/*.dc.html`](docs/ui-design/): the final "Linen & Paprika" design, the visual source of truth for layout, copy and motion (D-02). `S_<Screen>_<scenario>.dc.html` are the state boards (errors, offline, empty, blocked) and are the visual spec for every non-default state. Start with [`docs/ui-design/README.md`](docs/ui-design/README.md).
 
 If the docs conflict, or a requirement is ambiguous, stop and ask. Don't guess. Never invent requirements. When an open question (OQ-) blocks you, build against the interface and fake, and say so.
 
 ## Hard rules
 - **Module boundaries** (architecture §3): `:core:domain` is pure Kotlin/JVM, so no `android.*`, Retrofit, Room or Hilt. Feature packages in `:app` never import each other. DTOs and Room entities never leave `:core:data`.
-- **Business logic lives in `:core:domain`** (pricing, cart, Budget Pas, order/payment state machines), not in ViewModels or composables.
+- **Business logic lives in `:core:domain`** (pricing, cart, Budget Plan, order/payment state machines), not in ViewModels or composables.
 - **Every external system goes behind a domain interface with a scriptable fake** in `:core:testing` (NFR-012).
 - **Money is integer IDR (`Long`)**, never floating point. Business timestamps come from the server, and UI timers use the injected `Clock`.
 - **Paid means backend `PAID`**, never a terminal result alone (A-15). Never show "not charged" for an unknown status (FR-019).
 - **Debug-only tools live in `src/debug/`** and must not be referenced from release.
 - **No analytics, crash-reporting or ad SDKs** (D-23). No PIN, full payment references or customer data in logs.
-- **No hardcoded UI strings**: every string goes in both `values/` and `values-in/`. Layout uses `dpx`/`spx`, not raw `dp`/`sp`. Colors and motion come from the design system tokens, and animations respect `LocalReduceMotion`.
+- **No hardcoded UI strings**: every string goes in `values/strings.xml`. The 1.0 UI is English only (D-29), so there is no `values-in/` and no language switch. Layout uses `dpx`/`spx`, not raw `dp`/`sp`. Colors and motion come from the design system tokens, and animations respect `LocalReduceMotion`.
 - **API changes**: edit `docs/api/api-spec.md` first, then regenerate the yaml (command below). Never hand-edit `openapi.yaml`.
 
 ## Workflow per DEV task

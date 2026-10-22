@@ -73,7 +73,7 @@ Offline check:  E14 health (on network change / every 30 s while offline)
 | `If-None-Match` | E5, E6 | `"cfg-42"` |
 | `X-App-Version` | All | `0.3.0` |
 | `X-Device-Id` | All after activation | `dev_0003` |
-| `Accept-Language` | All | `en` or `id` |
+| `Accept-Language` | All | `en` or `id`. The 1.0 app always sends `en` (English-only UI, D-29). `id` stays valid for later. |
 
 Response headers the app reads: `ETag` (E5/E6) and `Date`, which the app uses to compute the server clock offset for QR expiry.
 
@@ -81,7 +81,7 @@ Response headers the app reads: `ETag` (E5/E6) and `Date`, which the app uses to
 - **Money:** integer Rupiah (IDR). No decimals. `52000` means Rp 52.000.
 - **Time:** ISO-8601 UTC, e.g. `2026-10-22T07:15:30Z`.
 - **IDs:** opaque strings. The app never parses them.
-- **Localized text:** an object `{ "en": "…", "id": "…" }`. If one language is missing, the app shows the other.
+- **Localized text:** an object `{ "en": "…", "id": "…" }`. The contract can carry both languages. The 1.0 app is English only (D-29): it shows `en` and falls back to `id` only when `en` is missing. `id` values are ignored otherwise, and the backend may omit them.
 - **Colors:** `#RRGGBB`.
 - **Image URLs:** absolute HTTPS URLs, or `null` (the app shows a tone placeholder).
 
@@ -412,7 +412,8 @@ Rules the mock must respect:
 - `ModifierGroup.type`: `SINGLE` (radio) | `MULTI` (checkbox list) | `LEVEL` (None / Regular / Extra per option).
 - Combo price = `price + (side.upcharge + drink.upcharge + (large ? SIZE_LARGE_UPCHARGE : 0)) × serves`.
 - `available: false` → the item is hidden from the menu (PRD A-09).
-- Budget Pas fields (PRD FR-032), required on every product:
+- `promoBanners`: the final design has no promo carousel on Menu, so the 1.0 app does not render them. The field stays in the contract as optional and the app ignores it.
+- Budget Plan fields (PRD FR-032), required on every product:
   - `role`: `MAIN` | `SIDE` | `DRINK` | `DESSERT`.
   - `kidFriendly`: whether the item may be planned for a child.
   - `servesAdults`: portions; items with > 1 are not planned as mains in 1.0.
@@ -705,11 +706,11 @@ To make the mock match the design screens one-to-one, include:
 
 Bold items are in "Popular" (`featuredProductIds`). Combos and slot options are as in E6.
 
-**Budget Pas tags for the mock:**
+**Budget Plan tags for the mock:**
 - `role`: Burgers, Chicken, Rice bowls → `MAIN`; Sides → `SIDE`; Drinks → `DRINK`; Desserts → `DESSERT`.
 - `kidFriendly: true`: b1, c3, r2 (kid mains), s1, s3 (sides), d2, d4 (drinks), e1, e2, e3 (desserts). Everything else is `false`.
 - `servesAdults`: c4 Family Bucket = 4 with `shareable: true`; everything else is 1.
-- With these tags, testing-plan TC-161–TC-163 expect: 2 adults + 1 child at Rp 150.000 → Rp 149.600 / Rp 150.700; 1 adult + 1 child at Rp 99.000 → Rp 99.000; 2 adults + 1 child at Rp 100.000 → Rp 116.600 ("Butuh Rp 16.600 lagi").
+- With these tags, testing-plan TC-161–TC-163 expect: 2 adults + 1 child at Rp 150.000 → Rp 149.600 / Rp 150.700; 1 adult + 1 child at Rp 99.000 → Rp 99.000; 2 adults + 1 child at Rp 100.000 → Rp 116.600 ("Need Rp 16.600 more").
 
 **Mock scenarios to support.** A custom mock switches them with the `X-Mock-Scenario` header. With Prism, use the `Prefer` header in the last column.
 
@@ -741,7 +742,7 @@ Prism serves fixed example timestamps (e.g. `expiresAt: 2026-10-22T07:20:31Z`), 
 | `merchant.status` | `live`, `coming_soon` |
 | `mode` | `SINGLE` (`FOOD_COURT` reserved, post-1.0) |
 | `orderType` | `DINE_IN`, `TAKEAWAY` |
-| `language` | `en`, `id` |
+| `language` | `en`, `id` (the 1.0 app sends `en`) |
 | `payment.method` | `QRIS`, `CARD` (`COUNTER` reserved, post-1.0) |
 | `payment.status` | `PENDING`, `PROCESSING`, `PAID`, `FAILED`, `EXPIRED`, `CANCELLED` |
 | `order.status` | `AWAITING_PAYMENT`, `PAID`, `CANCELLED` |

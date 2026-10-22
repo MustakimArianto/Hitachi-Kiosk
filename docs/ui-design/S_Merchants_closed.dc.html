@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Hitachi Kiosk · Merchants · Closed</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<div style="position: relative; width: 1080px; height: 1920px; overflow: hidden; background: #FAF8F5">
+  <dc-import name="Merchants" scenario="closed" idle-off="{{ true }}" hint-size="1080px,1920px"></dc-import>
+</div>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1080,"height":1920}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</x-dc>
+</body>
+</html>

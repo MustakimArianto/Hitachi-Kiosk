@@ -89,6 +89,9 @@ input:focus{border-color:#171513!important;background:#FFFFFF!important}
                   {{r.btnLabel}}
                 </button>
               </sc-if>
+              <sc-if value="{{r.isLink}}" hint-placeholder-val="{{ false }}">
+                <a href="{{r.href}}" class="press" style="flex-shrink: 0; height: 88px; padding: 0 36px; border-radius: 999px; background: #171513; color: #FFFFFF; display: flex; align-items: center; gap: 12px; font-size: 28px; font-weight: 600">{{r.btnLabel}}</a>
+              </sc-if>
               <sc-if value="{{r.isInfo}}" hint-placeholder-val="{{ false }}">
                 <span style="flex-shrink: 0; font-size: 28px; font-weight: 600; color: {{r.valColor}}; text-align: right">{{r.value}}</span>
               </sc-if>
@@ -131,7 +134,7 @@ class Component extends DCLogic {
         { title: 'Device', rows: [
           { k: 'kid', type: 'info', label: 'Kiosk ID', value: 'KSK-0003' },
           { k: 'ver', type: 'info', label: 'App version', value: 'Hitachi Kiosk 1.0.0' },
-          { k: 'pin', type: 'action', label: 'Staff PIN', sub: 'Change the PIN used to open settings', btn: 'Change PIN', busyLabel: 'Saving…', doneLabel: 'PIN updated' },
+          { k: 'pin', type: 'link', label: 'Staff PIN', sub: 'Change the PIN used to open settings', btn: 'Change PIN', href: 'ChangePin.dc.html' },
           { k: 'restart', type: 'action', label: 'Restart app', sub: 'Takes about 20 seconds', btn: 'Restart', busyLabel: 'Restarting…', doneLabel: 'Restarted' }
         ] }
       ]
@@ -178,7 +181,7 @@ class Component extends DCLogic {
             sub: r.sub || '',
             hasSub: !!r.sub,
             line: ri < g.rows.length - 1 ? '2px solid #F1EDE7' : 'none',
-            isToggle: r.type === 'toggle', isSeg: r.type === 'seg', isAction: r.type === 'action',
+            isToggle: r.type === 'toggle', isSeg: r.type === 'seg', isAction: r.type === 'action', isLink: r.type === 'link', href: r.href || '',
             isInfo: r.type === 'info', isInput: r.type === 'input', isMeter: r.type === 'meter',
             on: !!v,
             track: v ? '#2F7A50' : '#D9D2C8',

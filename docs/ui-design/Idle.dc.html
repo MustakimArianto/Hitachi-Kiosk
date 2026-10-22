@@ -13,6 +13,7 @@
 body{margin:0;background:#FAF8F5}
 *{box-sizing:border-box}
 a{color:inherit;text-decoration:none}
+@keyframes alertPulse{0%{box-shadow:0 0 0 0 rgba(214,64,43,.5)}100%{box-shadow:0 0 0 22px rgba(214,64,43,0)}}
 @keyframes kbA{0%{transform:scale(1.06)}100%{transform:scale(1)}}
 @keyframes kbB{0%{transform:scale(1)}100%{transform:scale(1.06)}}
 @keyframes progA{from{transform:scaleX(0)}to{transform:scaleX(1)}}
@@ -67,14 +68,17 @@ a{color:inherit;text-decoration:none}
         <span style="font-size: 52px; font-weight: 700; letter-spacing: -0.02em">Tap to order</span>
       </div>
     </div>
-    <p style="margin: 24px 0 0; text-align: center; font-size: 26px; font-weight: 500; color: #6F6961">Sentuh layar untuk memesan</p>
+    <p style="margin: 24px 0 0; text-align: center; font-size: 26px; font-weight: 500; color: #6F6961">Touch the screen to start your order</p>
   </section>
 
+  <sc-if value="{{issues}}" hint-placeholder-val="{{ false }}">
+    <span role="status" aria-label="Staff attention needed" style="position: absolute; right: 44px; bottom: 44px; width: 32px; height: 32px; border-radius: 50%; background: #D6402B; border: 4px solid #FAF8F5; box-shadow: 0 0 0 0 rgba(214,64,43,.5); animation: alertPulse 2s cubic-bezier(.2,0,0,1) infinite; z-index: 4; pointer-events: none; display: block"></span>
+  </sc-if>
   <button onPointerDown="{{holdStart}}" onPointerUp="{{holdEnd}}" onPointerLeave="{{holdEnd}}" aria-label="Staff settings, press and hold" style="position: absolute; right: 0; bottom: 0; width: 160px; height: 160px; border: 0; background: transparent; opacity: 0; z-index: 5"></button>
   <a ref="{{setLink}}" href="Settings.dc.html" aria-hidden="true" tabindex="-1" style="position: absolute; width: 1px; height: 1px; overflow: hidden; opacity: 0">Settings</a>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#C8552B","options":["#C8552B","#2F5D4A","#3A4C7A","#171513"]},"brand":{"editor":"text","default":"Urban Grill"},"reduceMotion":{"editor":"boolean","default":false},"$preview":{"width":1080,"height":1920}}'>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#C8552B","options":["#C8552B","#2F5D4A","#3A4C7A","#171513"]},"brand":{"editor":"text","default":"Urban Grill"},"reduceMotion":{"editor":"boolean","default":false},"scenario":{"editor":"enum","options":["default","issues"],"default":"default"},"$preview":{"width":1080,"height":1920}}'>
 class Component extends DCLogic {
   constructor(props) {
     super(props);
@@ -99,6 +103,7 @@ class Component extends DCLogic {
     const accent = this.props.accent ?? '#C8552B';
     return {
       rootClass: this.props.reduceMotion ? 'rm' : '',
+      issues: (this.props.scenario || 'default') === 'issues',
       accent: accent,
       accentShadow: this.hexA(accent, .28),
       brand: this.props.brand ?? 'Urban Grill',

@@ -2,16 +2,17 @@
 
 | | |
 |---|---|
-| Document version | 1.0 (2026-10-22) |
+| Document version | 1.1 (2026-10-22) — updated to the final "Linen & Paprika" design, English-only UI, Budget Plan |
 | Requirements | [`prd.md`](prd.md) (FR-xxx, NFR-xxx, D-xx, A-xx, OQ-xx) |
 | Tests | [`testing-plan.md`](testing-plan.md) (TC-xxx) |
 | Team | One Android developer (with AI coding agents) [D-25] |
-| Horizon | ~14.75 weeks to `1.0.0` (includes Budget Pas, D-26) |
+| Horizon | ~14.25 weeks to `1.0.0` (includes Budget Plan, D-26; English-only UI, D-29) |
 
 ## 1. Starting point
 
 Verified repository state on 2026-10-22:
-- `hitachi-kiosk/` contains only `docs/ui-design/`, which holds 18 design artboards plus `canvas.json`.
+- `hitachi-kiosk/` contains only `docs/`. `docs/ui-design/` is the final "Linen & Paprika" design: 20 screen artboards (14 customer/onboarding + 6 staff), 33 state boards named `S_<Screen>_<scenario>.dc.html`, the `Photo` component, `canvas.json` and a `README.md`. Every screen with states exposes a `scenario` prop, and a state board is that screen rendered with one value (for example `S_Checkout_expired` = `Checkout` with `scenario="expired"`). A few scenarios exist only as props and have no board (`Login` busy and snUnreadable, `Merchants` menuDownloadFailed, `Menu` unavailable and maxQty, `ItemDetail` maxQty, `Checkout` checking, `StillThere` countdownLow).
+- Upsell (`Upsell.dc.html`), Budget Plan (`BudgetPas.dc.html`), the inactivity overlay (`StillThere.dc.html`) and Change PIN (`ChangePin.dc.html`) are now designed, so DEP-5 and OQ-14 are resolved. The UI language is English only for 1.0 (D-29).
 - It has no Android project, no Gradle build, no source code and no tests.
 - It is not yet a git repository. Git is initialized when these documents are committed.
 
@@ -23,7 +24,7 @@ Everything below is therefore greenfield. No existing code is changed or migrate
 2. **Risk early, polish late.** Unknown hardware (SN, printers) gets spikes in the milestone that first needs it. Pricing and payment state logic land before UI polish.
 3. **Each milestone is testable on its own.** Every version ships an installable debug APK whose new journeys run end-to-end on an emulator with fakes.
 4. **Tests ship with features.** No milestone exits with untested new behavior. Testing-plan §7 lists the tests per version.
-5. **Design fidelity is built in.** Every screen is built from the design tokens and motion specs as it is created. 0.8.0 is a fidelity *audit*, not the first time animations are added.
+5. **Design fidelity is built in.** Every screen is built from the design tokens and motion specs as it is created. 0.8.0 is a fidelity *audit*, not the first time animations are added. The `S_*` state boards are the visual spec for every error, empty and blocking state, and each one gets a screenshot test (DEV-084).
 
 ## 3. Milestone overview
 
@@ -31,19 +32,24 @@ Everything below is therefore greenfield. No existing code is changed or migrate
 |---|---|---|---|---|
 | 0.1.0 | Foundation | 1 | NFR-001/002/011/012, contract | — |
 | 0.2.0 | Device activation & setup | 1 | FR-001–005 | iMin device for SN spike (DEP-4) |
-| 0.3.0 | Catalog: idle, order type, menu, item, combo | 2 | FR-006–011, FR-028 (sync), NFR-013 | — |
-| 0.4.0 | Cart, pricing, Budget Pas, upsell & inactivity | 2.75 | FR-012–015, FR-023, FR-032 | Upsell design (DEP-5), Budget Pas design (OQ-14), menu role tags in mock (DEP-8) |
+| 0.3.0 | Catalog: idle, order type, menu, item, combo | 1.75 | FR-006, FR-007, FR-009–011, FR-028 (sync), NFR-013 | — |
+| 0.4.0 | Cart, pricing, Budget Plan, upsell & inactivity | 2.75 | FR-012–015, FR-023, FR-032 | Menu role tags in mock (DEP-8) |
 | 0.5.0 | Order submission & payments (fakes) | 2 | FR-016–019, FR-028 (offline gate), NFR-017 | Gateway + EDC specs (DEP-2/3) |
 | 0.6.0 | Printing & completion | 1.5 | FR-020–022, NFR-016 | Test printers (DEP-7) |
 | 0.7.0 | Staff settings & kiosk lockdown | 1.5 | FR-024–027, FR-029–031 | MDM/provisioning answer (OQ-10) |
-| 0.8.0 | Localization, accessibility, motion & performance | 1 | FR-008, NFR-003/007/008/009 | — |
+| 0.8.0 | Accessibility, motion & performance | 0.75 | NFR-003/007/008/009 | — |
 | 0.9.0 | Release candidate: real integrations & pilot | 1.5 | FR-017/018 real, NFR-004/005/006/014/015 | Real backend, gateway sandbox, EDC (DEP-1/2/3), pilot content (DEP-6) |
 | 1.0.0 | Release | 0.5 | All MVP | Sign-off |
 
-Total ≈ 14.75 weeks. That is about 1.75 weeks over the 3-month target, shown on purpose: Budget Pas (D-26) adds ~1.25 weeks. If the date is fixed, the first cuts (with PO approval) are:
-1. Budget Pas per-item "swap" → 1.0.1 (the two plan cards still ship).
+Total ≈ 14.25 weeks (1 + 1 + 1.75 + 2.75 + 2 + 1.5 + 1.5 + 0.75 + 1.5 + 0.5). That is about 1.25 weeks over the 13-week (3-month) target, shown on purpose: Budget Plan (D-26) adds ~1.25 weeks. Compared with the previous 14.75-week plan:
+- 0.3.0 loses 0.25 week: runtime language switching (DEV-026) is removed and the Menu no longer has a promo carousel.
+- 0.8.0 loses 0.25 week: no Bahasa translation, native-speaker review or two-language screenshot matrix.
+- 0.4.0 is unchanged at 2.75 weeks: the Customize sheet and the swap-with-rebalancing (+0.25) are offset by the designs now existing (no interim Upsell/Budget Plan UI, no restyle task, no EN/ID strings) (−0.25).
+
+If the date is fixed, the first cuts (with PO approval) are:
+1. Budget Plan Customize options other than Swap (the side/dessert toggles and the Strict / Up to +10 % control) → 1.0.1. The hero plan, the Just under / Just over control, the exact-match card and the swap-with-rebalancing still ship.
 2. Bluetooth printers → 1.0.1.
-3. Upsell visuals limited to design-system components.
+3. The `Photo` sheen and other non-essential motion polish → 1.0.1.
 
 ### 3.1 Dependency graph
 ```
@@ -103,7 +109,7 @@ Create a buildable, testable Android project with the architecture, design syste
   - *Verify:* the release APK has no reference to the class (`apkanalyzer` check, scripted in CI).
 
 **Navigation skeleton**
-- [ ] **DEV-010a** A Navigation Compose graph with routes for SCR-01…SCR-18 (PRD §4). Each route shows a placeholder with the screen ID, and all edges in PRD §5.1 are wired as debug buttons.
+- [ ] **DEV-010a** A Navigation Compose graph with routes for SCR-01…SCR-19 (PRD §4). Each route shows a placeholder with the screen ID, and all edges in PRD §5.1 are wired as debug buttons.
   - *Verify:* a UI test walks every edge in §5.1 on the emulator.
 
 **Docs**
@@ -150,8 +156,9 @@ A fresh kiosk goes from first launch to "bound to a merchant". The device identi
   - Try the iMin SDK SN API, a system property, and `Build.getSerial()` as device owner. Document the findings in `docs/adr/0002-device-serial.md`.
   - Implement the chosen source plus the fallback chain and caching.
   - *Verify:* TC-005–TC-007. If no unit is available, record the blocker and keep the fake; the milestone may exit with this as a documented risk only if the PO accepts.
-- [ ] **DEV-013** SCR-02 Sign in UI per `Login.dc.html`. Busy state "Signing in…" with spinner, single-flight tap, error panel variants (not registered with SN shown, disabled, network), and "Need help?" text (FR-003).
-  - *Verify:* UI tests for each state with fake responses.
+- [ ] **DEV-013** SCR-02 Sign in UI per `Login.dc.html`. Busy state "Signing in…" with spinner, single-flight tap, error panel variants (not registered with the SN shown, disabled, network), and "Need help?" text (FR-003).
+  - Visual specs for the states: `S_Login_notRegistered` ("This kiosk isn't registered yet", large SN, "Try again"), `S_Login_networkTimeout` ("The connection timed out…", "Try again"). Two more states are `scenario` values only: `busy` (Log in disabled while signing in) and `snUnreadable` (Log in disabled, "Restart the kiosk…").
+  - *Verify:* UI tests for each state with fake responses, plus screenshot tests against the two state boards.
 - [ ] **DEV-014** `ActivationRepository` (FR-003, NFR-005).
   - Calls E1 and persists `deviceToken` in the Secure DataStore (Tink AEAD + Android Keystore, architecture §6), and `deviceId`/`kioskCode`/`kioskName` in DataStore.
   - A 401 interceptor clears activation and routes to SCR-02.
@@ -159,8 +166,9 @@ A fresh kiosk goes from first launch to "bound to a merchant". The device identi
 
 **Merchant**
 - [ ] **DEV-015** SCR-03 Merchant selection UI per `Merchants.dc.html` (FR-004).
-  - Live card with photo, logo, "Open now"/"Closed" badge and arrow; coming-soon disabled rows; empty state; skeletons [A-32]; and the "Log out" header button.
-  - *Verify:* UI tests including the TalkBack disabled semantics on soon rows.
+  - Live card with photo, logo, "Open now" or "Closed · opens 10:00" badge and arrow (a closed card is not tappable); **two** compact "Coming soon" disabled rows; skeletons "Loading restaurants…" [A-32]; empty state "No restaurants yet"; bind or menu-download failure with Retry (Retry shows the skeleton, then the list); and the "Log out" header button.
+  - States are specified by `S_Merchants_skeleton`, `S_Merchants_empty`, `S_Merchants_bindFailed` and `S_Merchants_closed` (`menuDownloadFailed` is the same layout as `bindFailed`, set through the `scenario` prop).
+  - *Verify:* UI tests including the TalkBack disabled semantics on soon rows, plus screenshot tests of the four state boards.
 - [ ] **DEV-016** `MerchantRepository`: E2 list, E3 bind (then trigger the config + menu fetch stub that completes in 0.3.0), and E4 unbind on Log out with local data wiped (FR-004 AC1–AC4).
   - *Verify:* integration tests; a failure path that keeps staff on SCR-03 with retry.
 - [ ] **DEV-017** Store `mode=SINGLE` from config. Ensure no customer merchant picker exists (FR-005).
@@ -178,7 +186,7 @@ A fresh kiosk goes from first launch to "bound to a merchant". The device identi
 - Integration: MockWebServer flows.
 - UI: SCR-01/02/03 states, J5, J6.
 - Manual: SN spike on the iMin device.
-- TCs: TC-001–TC-019, TC-146.
+- TCs: TC-001–TC-019, TC-146, TC-179.
 - Regression: 0.1.0 suite.
 
 ### Deliverables
@@ -195,14 +203,14 @@ All 0.2.0 TCs pass. The SN source is decided (or explicitly accepted as a risk b
 A customer can start an order and browse and customize the full menu with design-fidelity UI, backed by a synced, cached menu that works offline.
 
 ### Scope
-**Included:** Menu/config domain models, Room cache, versioned sync and periodic WorkManager sync, image caching with tone placeholders, Idle, Order type with the language switch, Menu (categories, promo carousel, grid, quick add, cart dock with count/total only), Item detail, Combo, and the in-memory cart *add* operations (full cart management in 0.4.0), plus the performance baseline.
+**Included:** Menu/config domain models, Room cache, versioned sync and periodic WorkManager sync, image caching with tone placeholders, Idle, Order type (text-only cards), Menu (categories, slim Plan-by-budget row, grid, quick add, cart dock with count/total only), Item detail, Combo, and the in-memory cart *add* operations (full cart management in 0.4.0), plus the performance baseline.
 **Excluded:** Pricing beyond the line totals needed for the dock, the review screen, payment, the inactivity overlay, and the upsell.
 
 ### TODO checklist
 
 **Data**
-- [ ] **DEV-020** Domain models in `:core:domain` per PRD §10.3: Category, Product, ModifierGroup (SINGLE/MULTI/LEVEL), Option, Combo, Promo, MerchantConfig, LocalizedText with fallback (FR-008 rule).
-  - *Verify:* unit tests for LocalizedText fallback and LEVEL price deltas.
+- [ ] **DEV-020** Domain models in `:core:domain` per PRD §10.3: Category, Product, ModifierGroup (SINGLE/MULTI/LEVEL), Option, Combo, Promo (idle promos only), MerchantConfig, LocalizedText. The UI shows the `en` text; the optional `id` text is kept in the model and DTOs so the backend contract does not change when language switching returns (D-29).
+  - *Verify:* unit tests for LocalizedText resolution (a missing `en` falls back to `id`, never blank) and LEVEL price deltas.
 - [ ] **DEV-021** Room schema for config and menu with atomic replace by `menuVersion`. Add the migration test scaffold.
   - *Verify:* DAO tests (in-memory Room) for replace atomicity: a failed replace leaves the old version intact.
 - [ ] **DEV-022** `CatalogSyncRepository` (FR-028).
@@ -214,37 +222,41 @@ A customer can start an order and browse and customize the full menu with design
 
 **Customer screens**
 - [ ] **DEV-024** SCR-04 Idle per `Idle.dc.html` (FR-006).
-  - Slideshow of 7 s with 1.4 s crossfade, 8 s Ken Burns and progress dots; the bottom sheet with the CTA ring and bilingual subtitle; tap-anywhere → SCR-05.
-  - The staff corner exists here but only routes to the 0.7.0 placeholder. Hold detection is 2.0 s and implemented now.
+  - Slideshow of 7 s with 1.4 s crossfade, 8 s Ken Burns and progress dots; the bottom sheet with "Hungry?", the CTA ring and the subtitle "Touch the screen to start your order"; tap-anywhere → SCR-05.
+  - The staff corner exists here but only routes to the 0.7.0 placeholder. Hold detection is 2.0 s and implemented now. The red issue dot on the corner (`S_Idle_issues`) is wired to the status source in DEV-073.
   - Entering Idle clears the order session.
   - *Verify:* TC-020–TC-024.
 - [ ] **DEV-025** SCR-05 Order type per `OrderType.dc.html` (FR-007).
-  - Cards come from config toggles. The selection animation runs, then navigation after 950 ms; extra taps are ignored.
+  - **Text and logo only: no photos, no hero image and no language control.** The screen shows the brand mark, "Welcome to {merchant}", the question "Where are you eating today?" and two full-width cards (icon, title, one-line description) for Dine in and Takeaway.
+  - Cards come from config toggles. With one type enabled, a single card and the note "Takeaway isn't offered at this restaurant right now." are shown (`S_OrderType_singleOption`).
+  - The selection animation runs, then navigation after 950 ms; extra taps are ignored.
   - The order type is stored in `OrderSession`.
   - *Verify:* TC-025–TC-028.
-- [ ] **DEV-026** Runtime language switching (FR-008).
-  - An app-level `LocaleController` applies per-order language via `AppCompatDelegate.setApplicationLocales` or a Compose-local override, chosen in the ADR.
-  - Add the EN/ID segmented control and reset to the default at order end.
-  - Create the initial `values-in` for all strings existing so far.
-  - *Verify:* TC-029–TC-031.
+- [-] **DEV-026** ~~Runtime language switching (FR-008)~~ **Removed from 1.0 (D-29).** The id stays so references remain stable.
+  - There is no `LocaleController`, no EN/ID control and no `values-in`. All customer and staff strings are English and live in `values/strings.xml` (no hardcoded text, NFR-008), so a second language can be added later without touching the screens.
+  - Replacement check: lint `HardcodedText` is an error from this milestone (TC-032).
 - [ ] **DEV-027** SCR-06 Menu per `Menu.dc.html` (FR-009).
-  - Header with the order-type pill and Change/Cancel; time-of-day greeting [A-07].
+  - Header with the "Dine in · Change" pill (no language tag) and Cancel; time-of-day greeting [A-07].
   - Category pills including Popular and the Meals → Combo link.
-  - Promo carousel (5 s, dots, pause on touch, "Order now" target).
-  - Section heading with item count; the 2-column grid with badges and kcal; empty-category state [A-33].
-  - *Verify:* TC-033–TC-037.
+  - On Popular: one slim "Plan by budget" row (hidden when `budgetPlanner.enabled` is false; built in DEV-043). **There is no promo carousel on the Menu.**
+  - Section heading with item count; the 2-column grid. A card shows badge, name, price and the add button (no kcal line).
+  - Content has bottom padding for the dock plus a fade above it, so no card is cut against the dock.
+  - States: empty category "Nothing here right now" with "See popular items" [A-33] (`S_Menu_emptyCategory`); offline banner "Ordering is paused — reconnecting…" with add buttons and "View order" disabled (`S_Menu_offline`). Also `scenario` values: `unavailable` (sold-out items hidden) and `maxQty` (toast "Maximum 20 per item").
+  - *Verify:* TC-033–TC-035, TC-037, TC-175; screenshot tests of both state boards.
 - [ ] **DEV-028** Quick add and cart dock (FR-009).
   - `+` → check state for 1.4 s with ring burst, fly-to-cart animation (760 ms), dock thumbnails (last 3), count bump and total roll.
-  - Products with required groups route to Item instead [A-08].
+  - Products with required groups show a "Choose ›" pill instead of "+" and open Item [A-08].
   - The in-memory `Cart.add()` merges identical lines (FR-010 rule).
   - *Verify:* TC-038, TC-039.
 - [ ] **DEV-029** SCR-08 Item detail per `ItemDetail.dc.html` (FR-010).
-  - Rendered generically from modifier groups: meal radio pair (SINGLE), Customize LEVEL rows with the 3-segment indicator colors, and Extras (MULTI).
+  - Photo hero 560 dpx tall; the sheet below is rendered generically from modifier groups in this order: a required SINGLE group first (e.g. "Choose a size", tagged "Required"), "Make it a meal?" as one switch row (off by default), then **collapsed** rows "Customize" (LEVEL rows with the 3-segment indicator colors) and "Add extras" (MULTI) whose closed state shows a summary ("No changes", "None added").
   - Stepper 1–20; the price roll; "Add to order" → Added dock swap with Keep ordering / View order.
-  - *Verify:* TC-040–TC-045 (including the Rp 81.000 sample).
+  - States: required group unselected disables the CTA with "Choose a size to continue" (`S_ItemDetail_requiredMissing`); "No longer available" banner with a dimmed hero and a disabled CTA (`S_ItemDetail_soldOut`); `maxQty` scenario starts at 20 with the "Maximum 20 per item" toast.
+  - *Verify:* TC-040–TC-045 (including the Rp 81.000 sample), TC-176.
 - [ ] **DEV-030** SCR-07 Combo per `Combo.dc.html` (FR-011).
-  - Combo radio list with Save; Side/Drink chips; Size segmented; multiplier logic; summary line; the Add combo → Added state for 1.8 s.
-  - *Verify:* TC-046–TC-049 (Rp 74.000 and Rp 129.000 samples).
+  - Combo radio list with Save; Side and Drink sections show **3 option cards each** with a "More sides (n)" / "More drinks (n)" button revealing the rest (a selected hidden option stays visible); Size segmented; multiplier logic; summary line; the Add combo → Added state for 1.8 s.
+  - States: required side or drink missing disables the CTA ("Pick side & drink", "Choose a side", "Choose a drink") with "Required" tags (`S_Combo_requiredMissing`); sold-out options are greyed and not selectable (`S_Combo_soldOut`).
+  - *Verify:* TC-046–TC-049 (Rp 74.000 and Rp 129.000 samples), TC-176.
 
 **Performance**
 - [ ] **DEV-031** Add a `:benchmark` macrobenchmark module with a baseline profile for startup and the Idle→Menu→Item journey, and JankStats logging in debug (NFR-003).
@@ -252,7 +264,7 @@ A customer can start an order and browse and customize the full menu with design
 
 ### Acceptance criteria
 - FR-006, FR-007, FR-009, FR-010 and FR-011 acceptance criteria pass with fake data mirroring the design samples.
-- FR-008 AC2.
+- FR-008 (language switching) is removed from 1.0, so it has no acceptance criteria in this milestone.
 - FR-028 AC3 (with the fake backend) and AC4.
 - Each screen has a screenshot test approved against the design artboard (side-by-side review recorded).
 
@@ -262,7 +274,7 @@ A customer can start an order and browse and customize the full menu with design
 - UI: Compose tests per screen + screenshot tests.
 - Benchmark baseline.
 - Manual: visual review vs design at 1080×1920.
-- TCs: TC-020–TC-049, TC-121, TC-124, TC-125, TC-142, TC-157.
+- TCs: TC-020–TC-049 (TC-029–TC-031 and TC-036 are retired), TC-174–TC-176, TC-121, TC-124, TC-125, TC-142, TC-157.
 - Regression: 0.1.0 and 0.2.0 suites.
 
 ### Deliverables
@@ -273,17 +285,17 @@ All listed TCs pass. The perf baseline is recorded, and any screen > 16 ms P90 f
 
 ---
 
-## Version 0.4.0 — Cart, pricing, Budget Pas, upsell & inactivity
+## Version 0.4.0 — Cart, pricing, Budget Plan, upsell & inactivity
 
 ### Objective
 Complete the ordering half of the journey:
 - a correct, tested pricing engine;
-- the **Budget Pas** group meal planner (the 1.0.0 differentiator, D-26), built on that engine;
+- the **Budget Plan** group meal planner (the 1.0.0 differentiator, D-26), built on that engine;
 - the order review screen with payment method choice;
 - the upsell step and the inactivity protection.
 
 ### Scope
-**Included:** PricingEngine, full cart management, the OrderSession state machine, the Budget Pas optimizer + SCR-19 + Menu entry card + menu data fields, SCR-10 Your order (totals, methods, empty state), SCR-09 Upsell, the SCR-13 inactivity overlay.
+**Included:** PricingEngine, full cart management, the OrderSession state machine, the Budget Plan optimizer + SCR-19 + Menu entry row + menu data fields, SCR-10 Your order (totals, methods, empty state), SCR-09 Upsell, the SCR-13 inactivity overlay.
 **Excluded:** Order submission and payment (0.5.0), the offline gate on Pay (0.5.0; Pay navigates to the 0.5.0 placeholder).
 
 ### TODO checklist
@@ -292,20 +304,26 @@ Complete the ordering half of the journey:
   - *Verify:* table-driven unit tests TC-055–TC-061, including the Rp 172.700 sample, plus property-based tests (total ≥ 0, monotonic in qty).
 - [ ] **DEV-036** `Cart` domain (FR-012): add/merge, increment, decrement-to-remove, the limits of 20 per line and 30 lines with error results, and the line description builder (e.g. "Fries · Cola · Extra cheddar · No onion").
   - *Verify:* unit tests TC-050–TC-052.
-- [ ] **DEV-041** `OrderSession` state machine (PRD §12.2) owning the cart, order type, language and the upsell-shown flag. Every transition to Idle resets it.
+- [ ] **DEV-041** `OrderSession` state machine (PRD §12.2) owning the cart, order type and the upsell-shown flag. Every transition to Idle resets it.
   - *Verify:* state-transition unit tests for every edge.
-- [ ] **DEV-037** SCR-10 Your order per `Payment.dc.html` (FR-012). Lines with roll animations and slide-out removal, the fade mask, the empty state, step label, item count plural, "Add more" and the order-type chip.
+- [ ] **DEV-037** SCR-10 Your order per `Payment.dc.html` (FR-012). The order lines are the primary scroll area (at least 3½ rows visible above the summary panel), with roll animations and slide-out removal, the fade mask, the empty state, step label, item count plural, "Add more" and the order-type chip.
+  - Lines that came from a Budget Plan carry a "Budget Plan plan" tag row above the list (`plan`), and the promo nudge "Add Rp X more to get Rp 10.000 off" appears as a banner with a progress bar while the subtotal is under the threshold.
+  - Banners (price changed, offline, nudge) scroll inside the list so the summary panel never leaves the screen.
   - *Verify:* TC-053, TC-054.
+- [ ] **DEV-037a** SCR-10 blocking states per the state boards (FR-012, FR-015, FR-016, FR-028): `S_Payment_priceChanged` ("Prices have been updated. Please review your order." with Review), `S_Payment_itemUnavailable` ("1 item is no longer available." with Remove on the line), `S_Payment_offline` ("Ordering is paused — reconnecting…"), `S_Payment_noMethods` ("No payment methods right now" / "Please ask a team member for help."), `S_Payment_emptyTray` ("Your tray is empty" with "Back to menu") and `S_Payment_promoNudge`. In every blocking state Pay is disabled and shows the reason.
+  - *Verify:* TC-177 and a screenshot test per board.
 - [ ] **DEV-038** Summary panel and payment method tiles (FR-013 display, FR-015).
-  - Subtotal, the Promo line or unlock hint, the PB1 label from config, Rounding, Total; methods = settings ∩ config with no "At counter"; the Pay label equals the total; the disabled state.
-  - *Verify:* TC-065–TC-067.
-- [ ] **DEV-039** SCR-09 Upsell (FR-014). Built with design-system components until the OQ-05 design arrives: up to 4 suggestions, quick add, "No thanks"/"Continue", once per order, and the toggle read from settings (default on).
-  - *Verify:* TC-062–TC-064. When the design arrives, add DEV-039b to restyle and re-baseline the screenshot.
-- [ ] **DEV-040** Inactivity controller (FR-023). A global touch observer on customer routes with the configurable timeout and the SCR-13 overlay ("Still there?", 15 s ring, "Continue ordering").
+  - The dark summary panel is compact (about 520 dpx): it shows the large Total and a "Details" toggle. Details expands Subtotal, the Promo line, the PB1 label from config and the Rounding line; the list above resizes to match.
+  - Method tiles are **two wide tiles, QRIS and Card** (methods = settings ∩ config); there is no "At counter" tile. The Pay label equals the total; the disabled state.
+  - *Verify:* TC-065–TC-067, TC-173.
+- [ ] **DEV-039** SCR-09 Upsell per `Upsell.dc.html` (FR-014): a "Your order" summary strip (thumbs, item count, total), up to 4 suggestions in a 2 × 2 grid with quick add, "No thanks" and "Continue · Rp X", once per order, and the toggle read from settings (default on).
+  - When nothing is left to suggest, show "Nothing more to suggest" ("Your order already has everything it needs…") with a single "Review order" button (`S_Upsell_noSuggestions`).
+  - *Verify:* TC-062–TC-064, TC-172. The design exists, so no interim UI or restyle task is needed.
+- [ ] **DEV-040** Inactivity controller (FR-023). A global touch observer on customer routes with the configurable timeout and the SCR-13 overlay per `StillThere.dc.html`: the current screen stays visible under a blurred scrim, with the "Still there?" card, a 15 s ring, "Continue ordering" and "Start over". The last 5 s pulse (`scenario=countdownLow`).
   - Excluded on Checkout pending/processing, Complete and settings. The empty-cart rule on SCR-05 applies [A-23].
   - *Verify:* TC-101–TC-104 using a test clock.
 
-**Budget Pas (FR-032)**
+**Budget Plan (FR-032)**
 - [ ] **DEV-044** Menu and config data for the planner (prereq: DEV-020, DEV-022).
   - Add `role`, `kidFriendly`, `servesAdults`, `shareable` and `plannerWeight` to the Product domain model and its DTO mapper.
   - Add the `budgetPlanner` block (`enabled`, `overCapPercent` default 10, `maxGroupSize` default 10, `quickBudgets`) to MerchantConfig.
@@ -319,33 +337,38 @@ Complete the ordering half of the journey:
     2. Run a bounded best-first search with pruning on the running final total via `PricingEngine`.
     3. Add optional side/dessert (max 1 per person) only while it moves the total toward the target.
     4. Apply the ranking/tie-breaks from FR-032, and cap the over plan by `overCapPercent`.
-    5. Return `swap(plan, slot)` → next-best alternative in the same role.
+    5. **Exact match:** if some plan's final total equals the budget, return it as the single result (no under/over pair). The search may vary mains and drinks and add or remove at most one side/dessert per person to find one.
+    6. `swap(plan, slot)` returns the next-best alternative in the same role **and rebalances** the shared sides/desserts so the total lands on the budget if possible, otherwise the nearest total under it (an "over" plan rebalances toward the lowest total just over, within the cap).
+    7. Options: `includeSides`, `includeDesserts` and `tolerance` (STRICT = only plans at or under budget; PLUS_10 = allow the over plan within `overCapPercent`).
   - Pure Kotlin, deterministic (stable ordering), no Android dependency.
-  - *Verify:* TC-161–TC-166 (exact values: Rp 149.600 / Rp 150.700; the Rp 99.000 promo twist; Rp 116.600 infeasible). Property test (1,000 random groups/budgets): under ≤ budget, budget < over ≤ cap, every person covered, ≤ 1 main per person. A JVM micro-benchmark for the 10-person worst case.
-- [ ] **DEV-043** SCR-19 Budget Pas UI + the Menu entry card (prereq: DEV-042, DEV-027).
-  - Budget number pad + quick chips, adult/child steppers with the group limit, two plan cards (per-person grouping, final total, "sisa"/"+Rp" label), swap per item, edge-case messages, Back.
-  - "Use this plan" loads the lines into `Cart` and navigates to SCR-10.
-  - Built from design-system components until OQ-14 is answered. EN/ID strings are added to both resource files.
-  - The entry card is hidden when `budgetPlanner.enabled` is false.
-  - *Verify:* TC-167 (Compose UI), screenshot tests in both languages, TC-168 benchmark on the device in 0.8.0.
+  - *Verify:* TC-161–TC-166 and TC-169 (exact values: Rp 149.600 / Rp 150.700; the Rp 99.000 promo twist now an exact match; Rp 116.600 infeasible), TC-170 (rebalancing). Property test (1,000 random groups/budgets): under ≤ budget, budget < over ≤ cap, every person covered, ≤ 1 main per person. A JVM micro-benchmark for the 10-person worst case.
+- [ ] **DEV-043** SCR-19 Budget Plan UI + the Menu entry row, per `BudgetPas.dc.html` (prereq: DEV-042, DEV-027).
+  - **Step 1 "Your table":** the budget as a large amount with quick chips (Rp 50k / 100k / 150k / 200k from `quickBudgets`) and "Other" (exact-amount keypad, to the nearest Rp 100), and Adults / Children steppers with the group limit. The dock button is "See plans"; it is disabled for an empty budget.
+  - **Step 2 "Your plan":** one hero plan card with the final total and a badge ("Exact match", "Rp X left", "+Rp X over", "Need Rp X more", "More than enough"); a "Just under" / "Just over" segmented control only when both plans exist; collapsed rows "What's included" (per-person grouping) and "Price details" (breakdown); a "Customize" row; the dock "Add plan to order · Rp X" loads the lines into `Cart`, flags them as a plan and navigates to SCR-10. Back returns to Step 1 with the inputs kept.
+  - Edge states in the same layout: budget too low ("Need Rp X more", closest complete plan), "More than enough", and a group over `maxGroupSize` ("Please order in smaller groups", "Set group to 10", dock disabled).
+  - The entry is the slim "Plan by budget" row on the Menu's Popular view, hidden when `budgetPlanner.enabled` is false.
+  - *Verify:* TC-167 and TC-169–TC-171 (Compose UI); screenshot tests of `S_BudgetPas_exact`, `S_BudgetPas_tooLow`, `S_BudgetPas_moreThanEnough`, `S_BudgetPas_group` and the two default steps; TC-168 benchmark on the device in 0.8.0.
+- [ ] **DEV-043a** Budget Plan "Customize" bottom sheet (prereq: DEV-043, DEV-042).
+  - Header with the live total; "Swap items" (per item, uses the rebalancing `swap`); toggles "Include sides" and "Include desserts"; "Strict" / "Up to +10 %" over-budget control; "Reset to suggested"; "Done". The sheet is closed by default so Step 2 stays simple.
+  - *Verify:* TC-170. If time is short these options (not Swap) are the 1.0.1 cut in §3.
 
 ### Acceptance criteria
 FR-012 AC1–AC3, FR-013 AC1–AC3 (AC4 deferred to 0.5.0), FR-014 AC1–AC3, FR-015 AC1–AC3, FR-023 AC1–AC4 and FR-032 AC1–AC5 + AC7 pass. FR-032 AC6 is measured on the emulator here and confirmed on the iMin device in 0.8.0.
 
 ### Testing requirements
 - Unit: pricing (≥ 90 % coverage on `:core:domain`), cart, session, BudgetPlanner (exact cases + property test).
-- UI: review screen, upsell, overlay, Budget Pas screen.
+- UI: review screen, upsell, overlay, Budget Plan screen (both steps and the Customize sheet).
 - Manual: pricing spot checks against a spreadsheet of 20 carts produced from the design samples. Plan sanity review of 10 budget/group combinations by the PO.
-- TCs: TC-050–TC-067, TC-101–TC-104, TC-161–TC-167.
+- TCs: TC-050–TC-067, TC-101–TC-104, TC-161–TC-167, TC-169–TC-173, TC-177.
 - Regression: 0.3.0 menu suite.
 
 ### Deliverables
 - A pricing engine with a test table (`docs/pricing-cases.md`, generated from the tests).
-- The Budget Pas planner with its case table (`docs/budget-pas-cases.md`, generated from the tests).
+- The Budget Plan planner with its case table (`docs/budget-plan-cases.md`, generated from the tests).
 - A complete ordering flow up to Pay.
 
 ### Exit criteria
-All TCs pass. Domain coverage ≥ 90 %. The PO has reviewed the upsell and Budget Pas interim UIs, or their designs have arrived.
+All TCs pass. Domain coverage ≥ 90 %. The PO has reviewed the built Upsell and Budget Plan screens against their designs.
 
 ---
 
@@ -364,22 +387,24 @@ Implement the full order and payment lifecycle, including every failure, retry, 
   - Persists the pending order/payment IDs in Room for recovery. Cancel uses E8.
   - *Verify:* TC-068–TC-070.
 - [ ] **DEV-046** Mismatch handling (FR-016): `PRICE_CHANGED` → refresh catalog, re-price, back to SCR-10 with the message; `ITEM_UNAVAILABLE` → flag the lines and block Pay until they are removed.
-  - *Verify:* TC-071, TC-072.
+  - The visuals are `S_Payment_priceChanged` and `S_Payment_itemUnavailable` (DEV-037a).
+  - *Verify:* TC-071, TC-072, TC-177.
 - [ ] **DEV-047** `PaymentStateMachine` + QRIS (FR-017, NFR-017).
   - E9 (QRIS) and polling E10 every 2 s; the countdown from server `expiresAt` with the skew-corrected server clock offset from the `Date` header.
   - Expiry → E11 cancel → Failed(expired). Polling stops on a terminal state. The idle timer is suspended.
   - *Verify:* TC-074–TC-078, TC-160.
-- [ ] **DEV-048** QR rendering from `qrString` (ZXing core, ECC ≥ M) in the design frame: centered mark, scan line, expiry ring, the 3 steps with the amount.
+- [ ] **DEV-048** QR rendering from `qrString` (ZXing core, ECC ≥ M) in the design frame: a centered QR card with the logo mark and the expiry ring "Code expires in m:ss". **There is no scan line, no 1-2-3 instruction list and no "Step 3 of 3" indicator** (removed from the design).
   - *Verify:* TC-079 (decode the rendered bitmap equals the input).
 - [ ] **DEV-049** `CardTerminal` interface (`startSale(amount, ref)`, `cancel()`, result flow), `FakeCardTerminal`, and the card UI per Checkout (terminal illustration, card-tap loop). Add the 90 s timeout [A-16]; success only on backend `PAID` [A-15].
   - *Verify:* TC-080–TC-083.
 - [ ] **DEV-050** Processing and Failed states (FR-019).
-  - Reason copy mapping; the "not charged" note only on terminal non-paid states; the Unknown state polling for 60 s; "Try again" with a fresh payment; "Pay by X instead" only if enabled.
+  - Reason copy mapping; the "not charged" note only on terminal non-paid states; the Unknown state polling for 60 s; "Try again" with a fresh payment (shows "Creating your payment…" first); "Pay by X instead" only if enabled; "Cancel order" → Idle.
+  - Visual specs: `S_Checkout_creating`, `S_Checkout_expired`, `S_Checkout_cancelled`, `S_Checkout_declined`, `S_Checkout_terminalTimeout` and `S_Checkout_offline` (Try again disabled and labelled "Reconnecting…"). "Checking your payment…" is the `checking` scenario (no board).
   - "Back to order" cancels. The "Pay at the counter" button is not rendered.
   - Add the debug-only simulate bar.
-  - *Verify:* TC-084–TC-087.
-- [ ] **DEV-051** `ConnectivityMonitor` (validated network + E14 health) and an offline banner on customer screens; disable Pay and submission while offline; auto-recover (FR-028, NFR-010).
-  - *Verify:* TC-122, TC-123, TC-154.
+  - *Verify:* TC-084–TC-087, TC-178.
+- [ ] **DEV-051** `ConnectivityMonitor` (validated network + E14 health) and an offline banner on customer screens; disable Pay and submission while offline; auto-recover (FR-028, NFR-010). The banner text is "Ordering is paused — reconnecting…" (`S_Menu_offline`, `S_Payment_offline`, `S_Checkout_offline`).
+  - *Verify:* TC-122, TC-123, TC-154, TC-175.
 - [ ] **DEV-052** Process-death recovery (FR-016): on launch with a persisted pending payment, query E10 and route to Complete (paid) or cancel → Idle.
   - *Verify:* TC-073 (using `adb shell am kill` during a pending payment).
 - [ ] **DEV-053** Update `openapi.yaml` with anything learned. If the gateway/EDC specs (DEP-2/3) have arrived, write `docs/adr/0003-payment-integration.md` mapping them to the interfaces. Otherwise raise risk R-1 to the PO.
@@ -392,7 +417,7 @@ FR-013 AC4 (contract test against the mock), FR-016 AC1–AC4, FR-017 AC1–AC5,
 - Integration: MockWebServer scripted payment sequences.
 - UI: Checkout states.
 - Manual: airplane-mode toggling during each state.
-- TCs: TC-068–TC-087 (except TC-083, the real-EDC test, which runs in 0.9.0), TC-122, TC-123, TC-132–TC-134, TC-137, TC-138, TC-154, TC-160.
+- TCs: TC-068–TC-087 (except TC-083, the real-EDC test, which runs in 0.9.0), TC-122, TC-123, TC-132–TC-134, TC-137, TC-138, TC-154, TC-160, TC-178.
 - Regression: the 0.4.0 suite plus J1–J3 end-to-end with fakes.
 
 ### Deliverables
@@ -421,16 +446,17 @@ Paid orders end on the Complete screen with the backend order number, and a rece
   - **USB:** USB host bulk transfer with the permission flow.
   - **Bluetooth:** SPP to paired devices, with `BLUETOOTH_CONNECT`/`SCAN` runtime permission and rationale.
   - *Verify:* TC-096–TC-099 on real printers (DEP-7) and the iMin device (DEP-4).
-- [ ] **DEV-057** Receipt renderer (FR-021) with the content per FR-021/A-20 in the order language, 58/80 mm layouts and density mapping.
-  - *Verify:* golden-text tests for both widths and both languages; TC-093.
+- [ ] **DEV-057** Receipt renderer (FR-021) with the content per FR-021/A-20 in English, 58/80 mm layouts and density mapping.
+  - *Verify:* golden-text tests for both widths; TC-093.
 - [ ] **DEV-058** Kitchen ticket renderer (large order number, type, time, lines with options, no prices).
   - *Verify:* golden-text test; TC-092.
 - [ ] **DEV-059** Print orchestration: on `PAID`, enqueue the receipt and/or ticket per toggles and roles, without blocking the UI. Failures surface on Complete and in status (FR-020 AC4, FR-021 AC4).
   - *Verify:* TC-091, TC-094, TC-095.
 - [ ] **DEV-060** SCR-12 Complete per `Complete.dc.html` (FR-020).
   - Flood, badge, check draw, rings, confetti, digit cascade (first character in accent), order-type instruction copy, printer animation, 20 s ring and Done.
+  - Takeaway copy "Pick up at the counter when your number is called." (`S_Complete_takeaway`). When printing fails the printer animation is replaced by a card "Receipt couldn't print — Please show this screen at the counter." (`S_Complete_printFailed`).
   - Clear the session to Idle on exit.
-  - *Verify:* TC-088–TC-090.
+  - *Verify:* TC-088–TC-090, TC-095.
 - [ ] **DEV-061** SCR-15 Printer settings per `SettingsPrinter.dc.html`, extended with the printer list and add/role UI [D-18].
   - Status meter (red < 15 %), last printed, Test page and Feed actions with busy/done labels, receipt toggles, footer input, paper width and density.
   - *Verify:* TC-100.
@@ -474,11 +500,11 @@ Staff can securely maintain the kiosk on site, and the device behaves like an ap
   - *Verify:* TC-109, TC-130.
 - [ ] **DEV-068** SCR-16 Payment settings (FR-025): method toggles (counter hidden; the last one cannot turn off), terminal status/TID/Test terminal via `CardTerminal`, masked QRIS MID, expiry 3/5/10, PB1 info, rounding.
   - *Verify:* TC-110–TC-112.
-- [ ] **DEV-069** SCR-17 Kiosk behaviour (FR-026): order type toggles (last one cannot turn off), upsell, idle timeout, default language, brightness [A-26], sound, reduce motion (also bound to the system animator scale = 0), and larger text (1.15× through `DesignUnit`).
+- [ ] **DEV-069** SCR-17 Kiosk behaviour (FR-026): order type toggles (last one cannot turn off), upsell, idle timeout, brightness [A-26] (there is no "Default language" row any more), sound, reduce motion (also bound to the system animator scale = 0), and larger text (1.15× through `DesignUnit`).
   - *Verify:* TC-113–TC-116.
 - [ ] **DEV-070** SCR-18 Device & network (FR-027).
   - SSID/IP/signal (location permission optional), Connection test (backend + gateway separately), Last synced/Auto-sync/Sync now, Kiosk ID, version.
-  - Change PIN flow (current → new → confirm, online only, E13, with interim UI for OQ-13), Restart app (process restart via `AlarmManager`/relaunch intent), and "Exit kiosk mode" [A-30].
+  - Change PIN flow (current → new → confirm, online only, E13) per `ChangePin.dc.html`, which now designs OQ-13, Restart app (process restart via `AlarmManager`/relaunch intent), and "Exit kiosk mode" [A-30].
   - *Verify:* TC-117–TC-120.
 - [ ] **DEV-071** Lock task (FR-029).
   - A `DeviceAdminReceiver`; when device owner, call `setLockTaskPackages`, set the persistent preferred home activity and disable the keyguard/status bar.
@@ -487,7 +513,7 @@ Staff can securely maintain the kiosk on site, and the device behaves like an ap
   - *Verify:* TC-126–TC-128 on the iMin device.
 - [ ] **DEV-072** Sound effects (FR-030): 3 short sounds via `SoundPool`, gated by the setting.
   - *Verify:* TC-129.
-- [ ] **DEV-073** Local logging (FR-031, NFR-006): Timber to rotating files (7 days / 10 MB), a redaction helper (payment refs → last 4 characters, never the PIN), and a red-dot issue indicator on the Idle staff corner [A-31].
+- [ ] **DEV-073** Local logging (FR-031, NFR-006): Timber to rotating files (7 days / 10 MB), a redaction helper (payment refs → last 4 characters, never the PIN), and the red-dot issue indicator on the Idle staff corner [A-31] (visual: `S_Idle_issues`).
   - *Verify:* TC-131, TC-149 (partial).
 
 ### Acceptance criteria
@@ -508,44 +534,44 @@ All TCs pass on the target device. Provisioning is documented and has been run o
 
 ---
 
-## Version 0.8.0 — Localization, accessibility, motion & performance
+## Version 0.8.0 — Accessibility, motion & performance
 
 ### Objective
-Audit and finish the cross-cutting qualities so the app is ready for a real-world pilot: complete Bahasa translation, accessibility compliance, motion matching the design, and performance on the target device.
+Audit and finish the cross-cutting qualities so the app is ready for a real-world pilot: string externalisation checks, accessibility compliance, motion matching the design, and performance on the target device. The UI is English only (D-29), so there is no translation work.
 
 ### Scope
-**Included:** Translation completion and review, accessibility fixes, the motion fidelity audit, on-device performance tuning, screenshot test suite completion, and the larger-text layout pass.
+**Included:** String lint hardening, accessibility fixes, the motion fidelity audit, on-device performance tuning, screenshot test suite completion, and the larger-text layout pass.
 **Excluded:** New features.
 
 ### TODO checklist
-- [ ] **DEV-080** Localization (FR-008, NFR-008).
-  - Extract any remaining strings; complete `values-in`; add plurals; get a native-speaker review of all ID copy, including receipts and errors.
-  - Turn on the pseudo-locale run; set the lint `HardcodedText`/`MissingTranslation` checks to error.
+- [ ] **DEV-080** String externalisation (NFR-008).
+  - Extract any remaining hardcoded strings into `values/strings.xml`; add plurals; have the PO review all English copy, including receipts and errors.
+  - Keep the pseudo-locale (en-XA) screenshot run to catch text that cannot grow; set the lint `HardcodedText` check to error.
   - *Verify:* TC-032, TC-152.
 - [ ] **DEV-081** Accessibility (NFR-007).
   - TalkBack labels matching the design aria labels, a focus order per screen, role semantics (radio, toggle, button), contrast check of every text/background token pair (fix any < 4.5:1 with the PO), and touch targets ≥ 88 dpx.
   - *Verify:* TC-150, TC-151.
 - [ ] **DEV-082** Performance on the target device (NFR-003, FR-032 AC6).
   - Run the macrobenchmarks on the iMin device; fix regressions (image sizes, recomposition hot spots, `graphicsLayer` for animated layers); update the baseline profile.
-  - Run the Budget Pas planner benchmark (10-person worst case).
+  - Run the Budget Plan planner benchmark (10-person worst case).
   - *Verify:* TC-142–TC-144 and TC-168, with results in `docs/perf/0.8.0.md`.
 - [ ] **DEV-083** Motion fidelity audit (NFR-009): screen-by-screen comparison against PRD §11.4 (screen recordings next to the design prototype), and confirm reduce motion collapses everything.
   - *Verify:* TC-153 checklist signed.
-- [ ] **DEV-084** Complete the screenshot test suite (Paparazzi or Roborazzi; pick the one that runs on JVM CI) for every screen and state in PRD §7 at 1080×1920, in both languages and with larger text.
-  - *Verify:* CI screenshot job green, and references reviewed against the design.
+- [ ] **DEV-084** Complete the screenshot test suite (Paparazzi or Roborazzi; pick the one that runs on JVM CI) for every screen and state in PRD §7 at 1080×1920, in English and with larger text. The matrix is the 20 screen artboards plus the 33 `S_*` state boards plus the `scenario`-only states listed in §1.
+  - *Verify:* CI screenshot job green, references reviewed against the design, TC-180.
 - [ ] **DEV-085** Larger-text layout fixes (FR-026 AC3).
   - *Verify:* TC-116.
 
 ### Acceptance criteria
-NFR-003, NFR-007, NFR-008 and NFR-009 acceptance criteria pass on the target device. There are no untranslated strings, and Accessibility Scanner shows zero errors.
+NFR-003, NFR-007, NFR-008 and NFR-009 acceptance criteria pass on the target device. There are no hardcoded strings, and Accessibility Scanner shows zero errors.
 
 ### Testing requirements
-- Screenshot regression; accessibility scanner + manual TalkBack J1; on-device benchmarks; native-speaker review sign-off.
-- TCs: TC-032, TC-116, TC-142–TC-144, TC-150–TC-153, TC-168.
+- Screenshot regression; accessibility scanner + manual TalkBack J1; on-device benchmarks; PO copy review.
+- TCs: TC-032, TC-116, TC-142–TC-144, TC-150–TC-153, TC-168, TC-180.
 - Regression: full automated suite.
 
 ### Deliverables
-Performance report; accessibility report; translation sign-off; complete screenshot suite.
+Performance report; accessibility report; PO copy sign-off; complete screenshot suite.
 
 ### Exit criteria
 All targets are met, or variances are formally accepted by the PO with a tracked issue for 1.0.x. There are no P1/P2 defects.
@@ -610,7 +636,7 @@ Ship the validated MVP to production kiosks.
 
 ### TODO checklist
 - [ ] **DEV-102** Final regression on the signed `1.0.0` build against `prod`, with one real low-value QRIS and one real card transaction (refunded through the gateway) per the release checklist.
-- [ ] **DEV-100** Set `versionName 1.0.0` and `versionCode 10000`. Produce the signed APK, record its SHA-256 checksum, and tag `v1.0.0` in git. Write release notes in EN and ID.
+- [ ] **DEV-100** Set `versionName 1.0.0` and `versionCode 10000`. Produce the signed APK, record its SHA-256 checksum, and tag `v1.0.0` in git. Write release notes in English.
 - [ ] **DEV-101** Ops documentation: `docs/provisioning.md` (final), `docs/runbook.md` (staff troubleshooting: paper, printer offline, terminal offline, network, sync, restart, PIN lockout), and `docs/rollback.md` (MDM rollback to 0.9.x).
 - [ ] **DEV-103** Staged MDM rollout: pilot kiosks first, 48 h watch, then the remaining kiosks.
 
@@ -634,6 +660,8 @@ Rolled out to pilot kiosks with no P1/P2 issues in 48 h. The full rollout is app
 |---|---|---|
 | Food-court mode (one merchant per order) | FR-005, D-07, D-08 | 1.1.0 |
 | Pay at counter | D-12a | 1.1.0 |
+| Language switching (EN/ID control, `values-in`, Bahasa translation, per-order receipt language) | FR-008, D-09, D-29 | 1.1.0 (decision needed) |
+| Menu promo carousel on Popular (removed from the design; idle promos remain) | FR-009 | Not planned |
 | Merchant rebinding from settings (if OQ-07 is not resolved by 0.7.0) | OQ-07 | 1.0.1 |
 | Sold-out display variant | OQ-08 | 1.0.x |
 | Dark theme | D-02 | Not planned |
@@ -665,13 +693,13 @@ Rolled out to pilot kiosks with no P1/P2 issues in 48 h. The full rollout is app
 | DEV-016 | 0.2.0 | FR-004 |
 | DEV-017 | 0.2.0 | FR-005 |
 | DEV-018 | 0.2.0 | FR-001–FR-004 |
-| DEV-020 | 0.3.0 | FR-008, FR-010, FR-011 |
+| DEV-020 | 0.3.0 | FR-010, FR-011 |
 | DEV-021 | 0.3.0 | FR-028 |
 | DEV-022 | 0.3.0 | FR-028 |
 | DEV-023 | 0.3.0 | FR-028, NFR-013 |
 | DEV-024 | 0.3.0 | FR-006 |
 | DEV-025 | 0.3.0 | FR-007 |
-| DEV-026 | 0.3.0 | FR-008 |
+| DEV-026 | 0.3.0 | FR-008 (removed from 1.0) |
 | DEV-027 | 0.3.0 | FR-009 |
 | DEV-028 | 0.3.0 | FR-009, FR-010 |
 | DEV-029 | 0.3.0 | FR-010 |
@@ -680,12 +708,14 @@ Rolled out to pilot kiosks with no P1/P2 issues in 48 h. The full rollout is app
 | DEV-035 | 0.4.0 | FR-013 |
 | DEV-036 | 0.4.0 | FR-012 |
 | DEV-037 | 0.4.0 | FR-012 |
+| DEV-037a | 0.4.0 | FR-012, FR-015, FR-016, FR-028 |
 | DEV-038 | 0.4.0 | FR-013, FR-015 |
 | DEV-039 | 0.4.0 | FR-014 |
 | DEV-040 | 0.4.0 | FR-023 |
-| DEV-041 | 0.4.0 | FR-012, FR-023, FR-008 |
+| DEV-041 | 0.4.0 | FR-012, FR-023 |
 | DEV-042 | 0.4.0 | FR-032 |
 | DEV-043 | 0.4.0 | FR-032 |
+| DEV-043a | 0.4.0 | FR-032 |
 | DEV-044 | 0.4.0 | FR-032 |
 | DEV-045 | 0.5.0 | FR-016 |
 | DEV-046 | 0.5.0 | FR-016, FR-013 |
@@ -712,7 +742,7 @@ Rolled out to pilot kiosks with no P1/P2 issues in 48 h. The full rollout is app
 | DEV-071 | 0.7.0 | FR-029 |
 | DEV-072 | 0.7.0 | FR-030 |
 | DEV-073 | 0.7.0 | FR-031, NFR-006 |
-| DEV-080 | 0.8.0 | FR-008, NFR-008 |
+| DEV-080 | 0.8.0 | NFR-008 |
 | DEV-081 | 0.8.0 | NFR-007 |
 | DEV-082 | 0.8.0 | NFR-003 |
 | DEV-083 | 0.8.0 | NFR-009 |

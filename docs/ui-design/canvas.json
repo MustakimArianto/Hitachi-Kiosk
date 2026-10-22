@@ -1,220 +1,561 @@
 {
-  "v": 3,
-  "attachments": {},
-  "boards": {
-    "Checkout.dc.html": {
-      "h": 1920,
-      "is_interactive": true,
-      "title": "9 · Checkout",
-      "w": 1080,
-      "x": 0,
-      "y": 4800
-    },
-    "Combo.dc.html": {
-      "h": 1920,
-      "is_interactive": true,
-      "title": "6 · Combo",
-      "w": 1080,
-      "x": 1160,
-      "y": 2400
-    },
-    "Complete.dc.html": {
-      "h": 1920,
-      "is_interactive": true,
-      "title": "10 · Transaction complete",
-      "w": 1080,
-      "x": 1160,
-      "y": 4800
-    },
-    "Idle.dc.html": {
-      "h": 1920,
-      "is_interactive": true,
-      "title": "Idle (after inactivity)",
-      "w": 1080,
-      "x": 2320,
-      "y": 4800
-    },
-    "ItemDetail.dc.html": {
-      "h": 1920,
-      "is_interactive": true,
-      "title": "7 · Item",
-      "w": 1080,
-      "x": 2320,
-      "y": 2400
-    },
-    "Login.dc.html": {
-      "h": 1920,
-      "is_interactive": true,
-      "title": "2 · Login",
-      "w": 1080,
-      "x": 1160,
-      "y": 0
-    },
-    "Logos.dc.html": {
-      "h": 960,
-      "title": "Logos",
-      "w": 1440,
-      "x": 600,
-      "y": 7200
-    },
-    "Main.dc.html": {
-      "h": 1920,
-      "is_interactive": true,
-      "title": "1 · Splash",
-      "w": 1080,
-      "x": 0,
-      "y": 0
-    },
-    "Menu.dc.html": {
-      "h": 1920,
-      "is_interactive": true,
-      "title": "5 · Menu",
-      "w": 1080,
-      "x": 0,
-      "y": 2400
-    },
-    "Merchants.dc.html": {
-      "h": 1920,
-      "is_interactive": true,
-      "title": "3 · Merchant selection",
-      "w": 1080,
-      "x": 2320,
-      "y": 0
-    },
-    "OrderType.dc.html": {
-      "h": 1920,
-      "is_interactive": true,
-      "title": "4 · Onboard: dine in / takeaway",
-      "w": 1080,
-      "x": 3480,
-      "y": 0
-    },
-    "Payment.dc.html": {
-      "h": 1920,
-      "is_interactive": true,
-      "title": "8 · Payment",
-      "w": 1080,
-      "x": 3480,
-      "y": 2400
-    },
-    "Photo.dc.html": {
-      "h": 360,
-      "title": "Photo slot component",
-      "w": 480,
-      "x": 0,
-      "y": 7200
-    },
-    "Settings.dc.html": {
-      "h": 1920,
-      "is_interactive": true,
-      "title": "Settings home (hold bottom-right corner on Idle)",
-      "w": 1080,
-      "x": 0,
-      "y": 9600
-    },
-    "SettingsDevice.dc.html": {
-      "h": 1920,
-      "is_interactive": true,
-      "title": "Settings · Device & network",
-      "w": 1080,
-      "x": 4640,
-      "y": 9600
-    },
-    "SettingsKiosk.dc.html": {
-      "h": 1920,
-      "is_interactive": true,
-      "title": "Settings · Kiosk behaviour",
-      "w": 1080,
-      "x": 3480,
-      "y": 9600
-    },
-    "SettingsPayment.dc.html": {
-      "h": 1920,
-      "is_interactive": true,
-      "title": "Settings · Payment",
-      "w": 1080,
-      "x": 2320,
-      "y": 9600
-    },
-    "SettingsPrinter.dc.html": {
-      "h": 1920,
-      "is_interactive": true,
-      "title": "Settings · Receipt printer",
-      "w": 1080,
-      "x": 1160,
-      "y": 9600
-    }
+ "v": 3,
+ "attachments": {},
+ "boards": {
+  "BudgetPas.dc.html": {
+   "h": 1920,
+   "is_interactive": true,
+   "title": "Budget Plan \u00b7 Plan by budget",
+   "w": 1080,
+   "x": 3600,
+   "y": 2600
   },
-  "createdOnFiles": {
-    "at": "2026-10-22T09:00:00Z",
-    "v": 1
+  "ChangePin.dc.html": {
+   "h": 1920,
+   "is_interactive": true,
+   "title": "Settings \u00b7 Change PIN",
+   "w": 1080,
+   "x": 6000,
+   "y": 27800
   },
-  "designSystems": [],
-  "launch": {
-    "view": "canvas"
+  "Checkout.dc.html": {
+   "h": 1920,
+   "is_interactive": true,
+   "title": "9 \u00b7 Checkout",
+   "w": 1080,
+   "x": 0,
+   "y": 5200
   },
-  "notes": {
-    "row1": {
-      "kind": "title1",
-      "maxW": 4560,
-      "text": "Sign in, pick merchant & start",
-      "w": 240,
-      "x": 0,
-      "y": -300
-    },
-    "row2": {
-      "kind": "title1",
-      "maxW": 4560,
-      "text": "Browse, customize & pay",
-      "w": 240,
-      "x": 0,
-      "y": 2100
-    },
-    "row3": {
-      "kind": "title1",
-      "maxW": 3400,
-      "text": "Finish & idle",
-      "w": 240,
-      "x": 0,
-      "y": 4500
-    },
-    "row4": {
-      "kind": "title1",
-      "maxW": 2040,
-      "text": "Components & brand",
-      "w": 240,
-      "x": 0,
-      "y": 6900
-    },
-    "row5": {
-      "kind": "title1",
-      "maxW": 5720,
-      "text": "Staff settings",
-      "w": 240,
-      "x": 0,
-      "y": 9300
-    }
+  "Combo.dc.html": {
+   "h": 1920,
+   "is_interactive": true,
+   "title": "6 \u00b7 Combo",
+   "w": 1080,
+   "x": 1200,
+   "y": 2600
   },
-  "order": [
-    "Main.dc.html",
-    "Login.dc.html",
-    "Merchants.dc.html",
-    "OrderType.dc.html",
-    "Menu.dc.html",
-    "Combo.dc.html",
-    "ItemDetail.dc.html",
-    "Payment.dc.html",
-    "Checkout.dc.html",
-    "Complete.dc.html",
-    "Idle.dc.html",
-    "Photo.dc.html",
-    "Logos.dc.html",
-    "Settings.dc.html",
-    "SettingsPrinter.dc.html",
-    "SettingsPayment.dc.html",
-    "SettingsKiosk.dc.html",
-    "SettingsDevice.dc.html"
-  ],
-  "pages": [],
-  "title": "Hitachi Kiosk"
+  "Complete.dc.html": {
+   "h": 1920,
+   "is_interactive": true,
+   "title": "10 \u00b7 Transaction complete",
+   "w": 1080,
+   "x": 1200,
+   "y": 5200
+  },
+  "Idle.dc.html": {
+   "h": 1920,
+   "is_interactive": true,
+   "title": "Idle (after inactivity)",
+   "w": 1080,
+   "x": 4800,
+   "y": 0
+  },
+  "ItemDetail.dc.html": {
+   "h": 1920,
+   "is_interactive": true,
+   "title": "7 \u00b7 Item",
+   "w": 1080,
+   "x": 2400,
+   "y": 2600
+  },
+  "Login.dc.html": {
+   "h": 1920,
+   "is_interactive": true,
+   "title": "2 \u00b7 Login",
+   "w": 1080,
+   "x": 1200,
+   "y": 0
+  },
+  "Main.dc.html": {
+   "h": 1920,
+   "is_interactive": true,
+   "title": "1 \u00b7 Splash",
+   "w": 1080,
+   "x": 0,
+   "y": 0
+  },
+  "Menu.dc.html": {
+   "h": 1920,
+   "is_interactive": true,
+   "title": "5 \u00b7 Menu",
+   "w": 1080,
+   "x": 0,
+   "y": 2600
+  },
+  "Merchants.dc.html": {
+   "h": 1920,
+   "is_interactive": true,
+   "title": "3 \u00b7 Merchant selection",
+   "w": 1080,
+   "x": 2400,
+   "y": 0
+  },
+  "OrderType.dc.html": {
+   "h": 1920,
+   "is_interactive": true,
+   "title": "4 \u00b7 Onboard: dine in / takeaway",
+   "w": 1080,
+   "x": 3600,
+   "y": 0
+  },
+  "Payment.dc.html": {
+   "h": 1920,
+   "is_interactive": true,
+   "title": "8 \u00b7 Payment",
+   "w": 1080,
+   "x": 6000,
+   "y": 2600
+  },
+  "S_BudgetPas_exact.dc.html": {
+   "h": 1920,
+   "is_interactive": true,
+   "title": "Budget Plan \u00b7 Exact match",
+   "w": 1080,
+   "x": 0,
+   "y": 17800
+  },
+  "S_BudgetPas_group.dc.html": {
+   "h": 1920,
+   "is_interactive": true,
+   "title": "Budget Plan \u00b7 Group over 10",
+   "w": 1080,
+   "x": 3600,
+   "y": 17800
+  },
+  "S_BudgetPas_moreThanEnough.dc.html": {
+   "h": 1920,
+   "is_interactive": true,
+   "title": "Budget Plan \u00b7 More than enough",
+   "w": 1080,
+   "x": 2400,
+   "y": 17800
+  },
+  "S_BudgetPas_tooLow.dc.html": {
+   "h": 1920,
+   "is_interactive": true,
+   "title": "Budget Plan \u00b7 Budget too low",
+   "w": 1080,
+   "x": 1200,
+   "y": 17800
+  },
+  "S_Checkout_cancelled.dc.html": {
+   "h": 1920,
+   "is_interactive": true,
+   "title": "Checkout \u00b7 Cancelled",
+   "w": 1080,
+   "x": 2400,
+   "y": 22800
+  },
+  "S_Checkout_creating.dc.html": {
+   "h": 1920,
+   "is_interactive": true,
+   "title": "Checkout \u00b7 Creating payment",
+   "w": 1080,
+   "x": 0,
+   "y": 22800
+  },
+  "S_Checkout_declined.dc.html": {
+   "h": 1920,
+   "is_interactive": true,
+   "title": "Checkout \u00b7 Declined",
+   "w": 1080,
+   "x": 3600,
+   "y": 22800
+  },
+  "S_Checkout_expired.dc.html": {
+   "h": 1920,
+   "is_interactive": true,
+   "title": "Checkout \u00b7 QR expired",
+   "w": 1080,
+   "x": 1200,
+   "y": 22800
+  },
+  "S_Checkout_offline.dc.html": {
+   "h": 1920,
+   "is_interactive": true,
+   "title": "Checkout \u00b7 Offline",
+   "w": 1080,
+   "x": 6000,
+   "y": 22800
+  },
+  "S_Checkout_terminalTimeout.dc.html": {
+   "h": 1920,
+   "is_interactive": true,
+   "title": "Checkout \u00b7 Terminal timeout",
+   "w": 1080,
+   "x": 4800,
+   "y": 22800
+  },
+  "S_Combo_requiredMissing.dc.html": {
+   "h": 1920,
+   "is_interactive": true,
+   "title": "Combo \u00b7 Pick side & drink",
+   "w": 1080,
+   "x": 4800,
+   "y": 12800
+  },
+  "S_Combo_soldOut.dc.html": {
+   "h": 1920,
+   "is_interactive": true,
+   "title": "Combo \u00b7 Sold-out option",
+   "w": 1080,
+   "x": 6000,
+   "y": 12800
+  },
+  "S_Complete_printFailed.dc.html": {
+   "h": 1920,
+   "is_interactive": true,
+   "title": "Complete \u00b7 Print failed",
+   "w": 1080,
+   "x": 1200,
+   "y": 25200
+  },
+  "S_Complete_takeaway.dc.html": {
+   "h": 1920,
+   "is_interactive": true,
+   "title": "Complete \u00b7 Takeaway",
+   "w": 1080,
+   "x": 0,
+   "y": 25200
+  },
+  "S_Idle_issues.dc.html": {
+   "h": 1920,
+   "is_interactive": true,
+   "title": "Idle \u00b7 Staff alert dot",
+   "w": 1080,
+   "x": 0,
+   "y": 10200
+  },
+  "S_ItemDetail_requiredMissing.dc.html": {
+   "h": 1920,
+   "is_interactive": true,
+   "title": "Item \u00b7 Required choice missing",
+   "w": 1080,
+   "x": 2400,
+   "y": 12800
+  },
+  "S_ItemDetail_soldOut.dc.html": {
+   "h": 1920,
+   "is_interactive": true,
+   "title": "Item \u00b7 No longer available",
+   "w": 1080,
+   "x": 3600,
+   "y": 12800
+  },
+  "S_Login_networkTimeout.dc.html": {
+   "h": 1920,
+   "is_interactive": true,
+   "title": "Login \u00b7 Network timeout",
+   "w": 1080,
+   "x": 1200,
+   "y": 7800
+  },
+  "S_Login_notRegistered.dc.html": {
+   "h": 1920,
+   "is_interactive": true,
+   "title": "Login \u00b7 Not registered",
+   "w": 1080,
+   "x": 0,
+   "y": 7800
+  },
+  "S_Menu_emptyCategory.dc.html": {
+   "h": 1920,
+   "is_interactive": true,
+   "title": "Menu \u00b7 Empty category",
+   "w": 1080,
+   "x": 1200,
+   "y": 12800
+  },
+  "S_Menu_offline.dc.html": {
+   "h": 1920,
+   "is_interactive": true,
+   "title": "Menu \u00b7 Offline",
+   "w": 1080,
+   "x": 0,
+   "y": 12800
+  },
+  "S_Merchants_bindFailed.dc.html": {
+   "h": 1920,
+   "is_interactive": true,
+   "title": "Merchants \u00b7 Bind failed",
+   "w": 1080,
+   "x": 4800,
+   "y": 7800
+  },
+  "S_Merchants_closed.dc.html": {
+   "h": 1920,
+   "is_interactive": true,
+   "title": "Merchants \u00b7 Closed",
+   "w": 1080,
+   "x": 6000,
+   "y": 7800
+  },
+  "S_Merchants_empty.dc.html": {
+   "h": 1920,
+   "is_interactive": true,
+   "title": "Merchants \u00b7 None assigned",
+   "w": 1080,
+   "x": 3600,
+   "y": 7800
+  },
+  "S_Merchants_skeleton.dc.html": {
+   "h": 1920,
+   "is_interactive": true,
+   "title": "Merchants \u00b7 Loading",
+   "w": 1080,
+   "x": 2400,
+   "y": 7800
+  },
+  "S_OrderType_singleOption.dc.html": {
+   "h": 1920,
+   "is_interactive": true,
+   "title": "Order type \u00b7 Dine in only",
+   "w": 1080,
+   "x": 1200,
+   "y": 10200
+  },
+  "S_Payment_emptyTray.dc.html": {
+   "h": 1920,
+   "is_interactive": true,
+   "title": "Payment \u00b7 Empty tray",
+   "w": 1080,
+   "x": 4800,
+   "y": 20400
+  },
+  "S_Payment_itemUnavailable.dc.html": {
+   "h": 1920,
+   "is_interactive": true,
+   "title": "Payment \u00b7 Item unavailable",
+   "w": 1080,
+   "x": 1200,
+   "y": 20400
+  },
+  "S_Payment_noMethods.dc.html": {
+   "h": 1920,
+   "is_interactive": true,
+   "title": "Payment \u00b7 No methods",
+   "w": 1080,
+   "x": 3600,
+   "y": 20400
+  },
+  "S_Payment_offline.dc.html": {
+   "h": 1920,
+   "is_interactive": true,
+   "title": "Payment \u00b7 Offline",
+   "w": 1080,
+   "x": 2400,
+   "y": 20400
+  },
+  "S_Payment_priceChanged.dc.html": {
+   "h": 1920,
+   "is_interactive": true,
+   "title": "Payment \u00b7 Prices updated",
+   "w": 1080,
+   "x": 0,
+   "y": 20400
+  },
+  "S_Payment_promoNudge.dc.html": {
+   "h": 1920,
+   "is_interactive": true,
+   "title": "Payment \u00b7 Promo nudge",
+   "w": 1080,
+   "x": 6000,
+   "y": 20400
+  },
+  "S_Upsell_noSuggestions.dc.html": {
+   "h": 1920,
+   "is_interactive": true,
+   "title": "Upsell \u00b7 Nothing to suggest",
+   "w": 1080,
+   "x": 0,
+   "y": 15200
+  },
+  "Settings.dc.html": {
+   "h": 1920,
+   "is_interactive": true,
+   "title": "Settings home (hold bottom-right corner on Idle)",
+   "w": 1080,
+   "x": 0,
+   "y": 27800
+  },
+  "SettingsDevice.dc.html": {
+   "h": 1920,
+   "is_interactive": true,
+   "title": "Settings \u00b7 Device & network",
+   "w": 1080,
+   "x": 4800,
+   "y": 27800
+  },
+  "SettingsKiosk.dc.html": {
+   "h": 1920,
+   "is_interactive": true,
+   "title": "Settings \u00b7 Kiosk behaviour",
+   "w": 1080,
+   "x": 3600,
+   "y": 27800
+  },
+  "SettingsPayment.dc.html": {
+   "h": 1920,
+   "is_interactive": true,
+   "title": "Settings \u00b7 Payment",
+   "w": 1080,
+   "x": 2400,
+   "y": 27800
+  },
+  "SettingsPrinter.dc.html": {
+   "h": 1920,
+   "is_interactive": true,
+   "title": "Settings \u00b7 Receipt printer",
+   "w": 1080,
+   "x": 1200,
+   "y": 27800
+  },
+  "StillThere.dc.html": {
+   "h": 1920,
+   "is_interactive": true,
+   "title": "\"Still there?\" inactivity overlay",
+   "w": 1080,
+   "x": 6000,
+   "y": 0
+  },
+  "Upsell.dc.html": {
+   "h": 1920,
+   "is_interactive": true,
+   "title": "9 \u00b7 Upsell (before payment)",
+   "w": 1080,
+   "x": 4800,
+   "y": 2600
+  }
+ },
+ "createdOnFiles": {
+  "at": "2026-10-22T09:00:00Z",
+  "v": 1
+ },
+ "designSystems": [],
+ "launch": {
+  "view": "canvas"
+ },
+ "notes": {
+  "row0": {
+   "kind": "title1",
+   "maxW": 7080,
+   "text": "Sign in, pick merchant & start",
+   "w": 240,
+   "x": 0,
+   "y": -300
+  },
+  "row1": {
+   "kind": "title1",
+   "maxW": 7080,
+   "text": "Browse, customize & pay",
+   "w": 240,
+   "x": 0,
+   "y": 2300
+  },
+  "row2": {
+   "kind": "title1",
+   "maxW": 7080,
+   "text": "Finish",
+   "w": 240,
+   "x": 0,
+   "y": 4900
+  },
+  "row3": {
+   "kind": "title1",
+   "maxW": 7080,
+   "text": "States \u00b7 Sign in & merchants",
+   "w": 240,
+   "x": 0,
+   "y": 7500
+  },
+  "row4": {
+   "kind": "title1",
+   "maxW": 7080,
+   "text": "States \u00b7 Menu, item & combo",
+   "w": 240,
+   "x": 0,
+   "y": 12500
+  },
+  "row5": {
+   "kind": "title1",
+   "maxW": 7080,
+   "text": "States \u00b7 Budget Plan",
+   "w": 240,
+   "x": 0,
+   "y": 17500
+  },
+  "row6": {
+   "kind": "title1",
+   "maxW": 7080,
+   "text": "States \u00b7 Payment, checkout & done",
+   "w": 240,
+   "x": 0,
+   "y": 20100
+  },
+  "row7": {
+   "kind": "title1",
+   "maxW": 7080,
+   "text": "Staff settings",
+   "w": 240,
+   "x": 0,
+   "y": 27500
+  }
+ },
+ "order": [
+  "Main.dc.html",
+  "Login.dc.html",
+  "Merchants.dc.html",
+  "OrderType.dc.html",
+  "Idle.dc.html",
+  "StillThere.dc.html",
+  "Menu.dc.html",
+  "Combo.dc.html",
+  "ItemDetail.dc.html",
+  "BudgetPas.dc.html",
+  "Upsell.dc.html",
+  "Payment.dc.html",
+  "Checkout.dc.html",
+  "Complete.dc.html",
+  "S_Login_notRegistered.dc.html",
+  "S_Login_networkTimeout.dc.html",
+  "S_Merchants_skeleton.dc.html",
+  "S_Merchants_empty.dc.html",
+  "S_Merchants_bindFailed.dc.html",
+  "S_Merchants_closed.dc.html",
+  "S_Idle_issues.dc.html",
+  "S_OrderType_singleOption.dc.html",
+  "S_Menu_offline.dc.html",
+  "S_Menu_emptyCategory.dc.html",
+  "S_ItemDetail_requiredMissing.dc.html",
+  "S_ItemDetail_soldOut.dc.html",
+  "S_Combo_requiredMissing.dc.html",
+  "S_Combo_soldOut.dc.html",
+  "S_Upsell_noSuggestions.dc.html",
+  "S_BudgetPas_exact.dc.html",
+  "S_BudgetPas_tooLow.dc.html",
+  "S_BudgetPas_moreThanEnough.dc.html",
+  "S_BudgetPas_group.dc.html",
+  "S_Payment_priceChanged.dc.html",
+  "S_Payment_itemUnavailable.dc.html",
+  "S_Payment_offline.dc.html",
+  "S_Payment_noMethods.dc.html",
+  "S_Payment_emptyTray.dc.html",
+  "S_Payment_promoNudge.dc.html",
+  "S_Checkout_creating.dc.html",
+  "S_Checkout_expired.dc.html",
+  "S_Checkout_cancelled.dc.html",
+  "S_Checkout_declined.dc.html",
+  "S_Checkout_terminalTimeout.dc.html",
+  "S_Checkout_offline.dc.html",
+  "S_Complete_takeaway.dc.html",
+  "S_Complete_printFailed.dc.html",
+  "Settings.dc.html",
+  "SettingsPrinter.dc.html",
+  "SettingsPayment.dc.html",
+  "SettingsKiosk.dc.html",
+  "SettingsDevice.dc.html",
+  "ChangePin.dc.html"
+ ],
+ "pages": [],
+ "title": "Hitachi Kiosk"
 }

@@ -33,7 +33,7 @@ h1,h2{text-wrap:balance}
 .rm *,.rm *::before,.rm *::after{animation-duration:1ms!important;animation-delay:0ms!important;animation-iteration-count:1!important;transition-duration:1ms!important}
 </style>
 </helmet>
-<div class="{{rootClass}}" style="position: relative; width: 1080px; height: 1920px; overflow: hidden; background: #FAF8F5; color: #171513; font-family: 'Schibsted Grotesk', 'Helvetica Neue', Arial, sans-serif">
+<div onPointerDown="{{idleTouch}}" class="{{rootClass}}" style="position: relative; width: 1080px; height: 1920px; overflow: hidden; background: #FAF8F5; color: #171513; font-family: 'Schibsted Grotesk', 'Helvetica Neue', Arial, sans-serif">
 
   <header style="position: absolute; left: 72px; right: 72px; top: 48px; height: 96px; display: flex; align-items: center; justify-content: space-between; z-index: 3; animation: fadeIn 500ms cubic-bezier(.16,1,.3,1) both">
     <a href="Menu.dc.html" class="press" style="height: 96px; padding: 0 34px 0 24px; border-radius: 999px; background: #F1EDE7; display: flex; align-items: center; gap: 10px; font-size: 30px; font-weight: 600">
@@ -72,39 +72,42 @@ h1,h2{text-wrap:balance}
       </sc-for>
     </div>
 
-    <div style="margin-top: 64px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; animation: fadeUp 700ms cubic-bezier(.16,1,.3,1) 480ms both">
-      <div role="group" aria-label="Side" style="display: flex; flex-direction: column; gap: 12px">
-        <h2 style="margin: 0 0 8px; font-size: 44px; font-weight: 700; letter-spacing: -.9px">Side</h2>
-        <sc-for list="{{sides}}" as="o" hint-placeholder-count="4">
-          <button onClick="{{o.pick}}" aria-pressed="{{o.on}}" class="press" style="width: 100%; height: 112px; border-radius: 32px; background: #FFFFFF; box-shadow: {{o.ring}}; padding: 0 24px 0 16px; display: flex; align-items: center; gap: 18px; transition: box-shadow 320ms cubic-bezier(.16,1,.3,1), transform 140ms">
-            <dc-import name="Photo" src="{{o.img}}" label="" tone="#E6DCD3" w="{{ 80 }}" h="{{ 80 }}" radius="{{ 40 }}" hint-size="80px,80px"></dc-import>
-            <span style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px">
+    <div role="group" aria-label="Side" style="margin-top: 56px; animation: fadeUp 700ms cubic-bezier(.16,1,.3,1) 480ms both">
+      <div style="display: flex; align-items: center; justify-content: space-between; margin: 0 0 20px"><h2 style="margin: 0; font-size: 44px; font-weight: 700; letter-spacing: -.9px">Side</h2><sc-if value="{{sideMissing}}" hint-placeholder-val="{{ false }}"><span style="height: 48px; padding: 0 20px; border-radius: 999px; background: {{accent}}; color: #FFFFFF; display: flex; align-items: center; font-size: 24px; font-weight: 700">Required</span></sc-if></div>
+      <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px">
+        <sc-for list="{{sidesVis}}" as="o" hint-placeholder-count="3">
+          <button onClick="{{o.pick}}" aria-pressed="{{o.on}}" aria-disabled="{{o.off}}" class="press" style="position: relative; opacity: {{o.op}}; width: 100%; height: 232px; border-radius: 36px; background: #FFFFFF; box-shadow: {{o.ring}}; padding: 28px 20px 0; display: flex; flex-direction: column; align-items: center; gap: 14px; text-align: center; transition: box-shadow 320ms cubic-bezier(.16,1,.3,1), transform 140ms; animation: fadeUp 500ms cubic-bezier(.16,1,.3,1) both">
+            <dc-import name="Photo" src="{{o.img}}" label="" tone="#E6DCD3" w="{{ 96 }}" h="{{ 96 }}" radius="{{ 48 }}" hint-size="96px,96px"></dc-import>
+            <span style="display: flex; flex-direction: column; gap: 4px; min-width: 0">
               <span style="font-size: 30px; font-weight: 600; line-height: 1.15">{{o.name}}</span>
               <span style="font-size: 24px; color: #6F6961">{{o.extra}}</span>
             </span>
-            <span aria-hidden="true" style="width: 44px; height: 44px; flex-shrink: 0; border-radius: 50%; background: {{o.dot}}; border: 3px solid {{o.dotBorder}}; display: flex; align-items: center; justify-content: center; transition: background-color 300ms, border-color 300ms">
-              <sc-if value="{{o.on}}" hint-placeholder-val="{{ false }}"><svg viewBox="0 0 24 24" style="width: 26px; height: 26px; animation: checkIn 380ms cubic-bezier(.3,1.4,.5,1) both"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></path></svg></sc-if>
+            <span aria-hidden="true" style="position: absolute; right: 16px; top: 16px; width: 40px; height: 40px; border-radius: 50%; background: {{o.dot}}; border: 3px solid {{o.dotBorder}}; display: flex; align-items: center; justify-content: center; transition: background-color 300ms, border-color 300ms">
+              <sc-if value="{{o.on}}" hint-placeholder-val="{{ false }}"><svg viewBox="0 0 24 24" style="width: 24px; height: 24px; animation: checkIn 380ms cubic-bezier(.3,1.4,.5,1) both"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></path></svg></sc-if>
             </span>
           </button>
         </sc-for>
       </div>
-      <div role="group" aria-label="Drink" style="display: flex; flex-direction: column; gap: 12px">
-        <h2 style="margin: 0 0 8px; font-size: 44px; font-weight: 700; letter-spacing: -.9px">Drink</h2>
-        <sc-for list="{{drinks}}" as="o" hint-placeholder-count="4">
-          <button onClick="{{o.pick}}" aria-pressed="{{o.on}}" class="press" style="width: 100%; height: 112px; border-radius: 32px; background: #FFFFFF; box-shadow: {{o.ring}}; padding: 0 24px 0 16px; display: flex; align-items: center; gap: 18px; transition: box-shadow 320ms cubic-bezier(.16,1,.3,1), transform 140ms">
-            <dc-import name="Photo" src="{{o.img}}" label="" tone="#DFE3DC" w="{{ 80 }}" h="{{ 80 }}" radius="{{ 40 }}" hint-size="80px,80px"></dc-import>
-            <span style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px">
-              <span style="font-size: 30px; font-weight: 600; line-height: 1.15">{{o.name}}</span>
-              <span style="font-size: 24px; color: #6F6961">{{o.extra}}</span>
-            </span>
-            <span aria-hidden="true" style="width: 44px; height: 44px; flex-shrink: 0; border-radius: 50%; background: {{o.dot}}; border: 3px solid {{o.dotBorder}}; display: flex; align-items: center; justify-content: center; transition: background-color 300ms, border-color 300ms">
-              <sc-if value="{{o.on}}" hint-placeholder-val="{{ false }}"><svg viewBox="0 0 24 24" style="width: 26px; height: 26px; animation: checkIn 380ms cubic-bezier(.3,1.4,.5,1) both"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></path></svg></sc-if>
-            </span>
-          </button>
-        </sc-for>
-      </div>
+      <button onClick="{{sideToggle}}" aria-expanded="{{sideOpen}}" class="press" style="margin-top: 16px; height: 96px; width: 100%; border-radius: 32px; background: #F1EDE7; display: flex; align-items: center; justify-content: center; gap: 12px; font-size: 28px; font-weight: 600">{{sideLabel}}<svg aria-hidden="true" viewBox="0 0 24 24" style="width: 32px; height: 32px; transform: rotate({{sideRot}}deg); transition: transform 400ms cubic-bezier(.3,1.15,.4,1)"><path d="M6 9l6 6 6-6" fill="none" stroke="#171513" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"></path></svg></button>
     </div>
-
+    <div role="group" aria-label="Drink" style="margin-top: 56px; animation: fadeUp 700ms cubic-bezier(.16,1,.3,1) 540ms both">
+      <div style="display: flex; align-items: center; justify-content: space-between; margin: 0 0 20px"><h2 style="margin: 0; font-size: 44px; font-weight: 700; letter-spacing: -.9px">Drink</h2><sc-if value="{{drinkMissing}}" hint-placeholder-val="{{ false }}"><span style="height: 48px; padding: 0 20px; border-radius: 999px; background: {{accent}}; color: #FFFFFF; display: flex; align-items: center; font-size: 24px; font-weight: 700">Required</span></sc-if></div>
+      <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px">
+        <sc-for list="{{drinksVis}}" as="o" hint-placeholder-count="3">
+          <button onClick="{{o.pick}}" aria-pressed="{{o.on}}" aria-disabled="{{o.off}}" class="press" style="position: relative; opacity: {{o.op}}; width: 100%; height: 232px; border-radius: 36px; background: #FFFFFF; box-shadow: {{o.ring}}; padding: 28px 20px 0; display: flex; flex-direction: column; align-items: center; gap: 14px; text-align: center; transition: box-shadow 320ms cubic-bezier(.16,1,.3,1), transform 140ms; animation: fadeUp 500ms cubic-bezier(.16,1,.3,1) both">
+            <dc-import name="Photo" src="{{o.img}}" label="" tone="#DFE3DC" w="{{ 96 }}" h="{{ 96 }}" radius="{{ 48 }}" hint-size="96px,96px"></dc-import>
+            <span style="display: flex; flex-direction: column; gap: 4px; min-width: 0">
+              <span style="font-size: 30px; font-weight: 600; line-height: 1.15">{{o.name}}</span>
+              <span style="font-size: 24px; color: #6F6961">{{o.extra}}</span>
+            </span>
+            <span aria-hidden="true" style="position: absolute; right: 16px; top: 16px; width: 40px; height: 40px; border-radius: 50%; background: {{o.dot}}; border: 3px solid {{o.dotBorder}}; display: flex; align-items: center; justify-content: center; transition: background-color 300ms, border-color 300ms">
+              <sc-if value="{{o.on}}" hint-placeholder-val="{{ false }}"><svg viewBox="0 0 24 24" style="width: 24px; height: 24px; animation: checkIn 380ms cubic-bezier(.3,1.4,.5,1) both"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></path></svg></sc-if>
+            </span>
+          </button>
+        </sc-for>
+      </div>
+      <button onClick="{{drinkToggle}}" aria-expanded="{{drinkOpen}}" class="press" style="margin-top: 16px; height: 96px; width: 100%; border-radius: 32px; background: #F1EDE7; display: flex; align-items: center; justify-content: center; gap: 12px; font-size: 28px; font-weight: 600">{{drinkLabel}}<svg aria-hidden="true" viewBox="0 0 24 24" style="width: 32px; height: 32px; transform: rotate({{drinkRot}}deg); transition: transform 400ms cubic-bezier(.3,1.15,.4,1)"><path d="M6 9l6 6 6-6" fill="none" stroke="#171513" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"></path></svg></button>
+    </div>
     <div style="margin-top: 64px; display: flex; flex-direction: column; gap: 20px; animation: fadeUp 700ms cubic-bezier(.16,1,.3,1) 560ms both">
       <h2 style="margin: 0; font-size: 44px; font-weight: 700; letter-spacing: -.9px">Size</h2>
       <div role="group" aria-label="Size" style="position: relative; height: 104px; padding: 8px; border-radius: 52px; background: #F1EDE7; display: flex">
@@ -122,17 +125,36 @@ h1,h2{text-wrap:balance}
       <span style="font-size: 26px; font-weight: 500; color: #B9B2A8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{summary}}</span>
       <span style="height: 56px; overflow: hidden; display: block"><span style="display: inline-block; font-size: 44px; font-weight: 700; line-height: 56px; letter-spacing: -.8px; animation: {{rollAnim}}">{{totalFmt}}</span></span>
     </div>
-    <button onClick="{{add}}" class="press" style="flex-shrink: 0; width: 360px; height: 136px; border-radius: 36px; background: {{addBg}}; color: {{addFg}}; display: flex; align-items: center; justify-content: center; gap: 14px; font-size: 34px; font-weight: 700; transition: background-color 360ms cubic-bezier(.16,1,.3,1), color 360ms, transform 140ms">
+    <button onClick="{{add}}" aria-disabled="{{addOff}}" class="press" style="pointer-events: {{addPE}}; flex-shrink: 0; width: 360px; height: 136px; border-radius: 36px; background: {{addBg}}; color: {{addFg}}; display: flex; align-items: center; justify-content: center; gap: 14px; font-size: 34px; font-weight: 700; transition: background-color 360ms cubic-bezier(.16,1,.3,1), color 360ms, transform 140ms">
       <sc-if value="{{added}}" hint-placeholder-val="{{ false }}">
         <svg aria-hidden="true" viewBox="0 0 24 24" style="width: 42px; height: 42px; animation: checkIn 420ms cubic-bezier(.3,1.4,.5,1) both"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="{{accent}}" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"></path></svg>
       </sc-if>
       {{addLabel}}
     </button>
   </section>
+  <a ref="{{setIdleLink}}" href="StillThere.dc.html" aria-hidden="true" tabindex="-1" style="position: absolute; width: 1px; height: 1px; overflow: hidden; opacity: 0">Still there?</a>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#C8552B","options":["#C8552B","#2F5D4A","#3A4C7A","#171513"]},"brand":{"editor":"text","default":"Urban Grill"},"reduceMotion":{"editor":"boolean","default":false},"$preview":{"width":1080,"height":1920}}'>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#C8552B","options":["#C8552B","#2F5D4A","#3A4C7A","#171513"]},"brand":{"editor":"text","default":"Urban Grill"},"reduceMotion":{"editor":"boolean","default":false},"scenario":{"editor":"enum","options":["default","requiredMissing","soldOut"],"default":"default"},"idleSeconds":{"editor":"enum","options":["30","60","120"],"default":"60"},"idleOff":{"editor":null,"default":false},"$preview":{"width":1080,"height":1920}}'>
 class Component extends DCLogic {
+  idleRefFn() {
+    if (!this._idleRef) this._idleRef = (el) => {
+      this._idleLink = el;
+      if (el) this.idleArm(); else clearTimeout(this._idleT);
+    };
+    return this._idleRef;
+  }
+  idleTouchFn() {
+    if (!this._idleTouch) this._idleTouch = () => this.idleArm();
+    return this._idleTouch;
+  }
+  idleArm() {
+    clearTimeout(this._idleT);
+    if (this.props.idleOff) return;
+    const secs = Number(this.props.idleSeconds ?? 60) || 60;
+    this._idleT = setTimeout(() => { if (this._idleLink) this._idleLink.click(); }, secs * 1000);
+  }
+
   constructor(props) {
     super(props);
     const IMG = { meal: '', chickenmeal: '', bowlmeal: '', feast: '', fries: '', cheesefries: '', nuggets: '', corn: '', cola: '', icedtea: '', coffee: '', water: '' };
@@ -154,7 +176,8 @@ class Component extends DCLogic {
       { id: 'coffee', name: 'Iced latte', up: 4000, img: IMG.coffee },
       { id: 'water', name: 'Water', up: 0, img: IMG.water }
     ];
-    this.state = { sel: 'burger', side: 'fries', drink: 'cola', large: false, optTick: 0, added: false, count: 4, cartTick: 0 };
+    const sc0 = props.scenario || 'default';
+    this.state = { sel: 'burger', side: sc0 === 'requiredMissing' ? null : 'fries', drink: sc0 === 'requiredMissing' ? null : 'cola', large: false, sideMore: false, drinkMore: false, optTick: 0, added: false, count: 4, cartTick: 0 };
   }
   componentWillUnmount() { clearTimeout(this.t); }
   fmt(n) { return 'Rp ' + String(n).replace(/\B(?=(\d{3})+(?!\d))/g, '.'); }
@@ -162,8 +185,8 @@ class Component extends DCLogic {
   price() {
     const s = this.state;
     const c = this.combos.find((x) => x.id === s.sel);
-    const side = this.sideOpts.find((x) => x.id === s.side);
-    const drink = this.drinkOpts.find((x) => x.id === s.drink);
+    const side = this.sideOpts.find((x) => x.id === s.side) || { up: 0 };
+    const drink = this.drinkOpts.find((x) => x.id === s.drink) || { up: 0 };
     return c.price + (side.up + drink.up + (s.large ? 6000 : 0)) * this.mult();
   }
   opt(patch) { this.setState((st) => Object.assign({}, patch, { optTick: st.optTick + 1, added: false })); }
@@ -174,18 +197,25 @@ class Component extends DCLogic {
     const cp = s.cartTick % 2 ? 'B' : 'A';
     const mult = this.mult();
     const c = this.combos.find((x) => x.id === s.sel);
+    const sc = this.props.scenario || 'default';
+    const soldIds = sc === 'soldOut' ? ['cheese', 'coffee'] : [];
     const side = this.sideOpts.find((x) => x.id === s.side);
     const drink = this.drinkOpts.find((x) => x.id === s.drink);
+    const ready = !!side && !!drink;
     const chips = (list, cur, key) => list.map((o) => ({
       ...o,
       on: cur === o.id,
       ring: cur === o.id ? 'inset 0 0 0 3px #171513' : 'inset 0 0 0 2px #EFE9E0',
       dot: cur === o.id ? '#171513' : 'transparent',
       dotBorder: cur === o.id ? '#171513' : '#D9D2C7',
-      extra: o.up ? '+' + this.fmt(o.up * mult) : 'Included',
-      pick: () => { if (cur !== o.id) this.opt({ [key]: o.id }); }
+      extra: soldIds.indexOf(o.id) >= 0 ? 'Sold out' : (o.up ? '+' + this.fmt(o.up * mult) : 'Included'),
+      off: soldIds.indexOf(o.id) >= 0 ? 'true' : 'false',
+      op: soldIds.indexOf(o.id) >= 0 ? .45 : 1,
+      pick: () => { if (soldIds.indexOf(o.id) >= 0) return; if (cur !== o.id) this.opt({ [key]: o.id }); }
     }));
     return {
+      setIdleLink: this.idleRefFn(),
+      idleTouch: this.idleTouchFn(),
       rootClass: this.props.reduceMotion ? 'rm' : '',
       accent: accent,
       brand: this.props.brand ?? 'Urban Grill',
@@ -204,8 +234,14 @@ class Component extends DCLogic {
           pick: () => { if (!on) this.opt({ sel: x.id }); }
         };
       }),
-      sides: chips(this.sideOpts, s.side, 'side'),
-      drinks: chips(this.drinkOpts, s.drink, 'drink'),
+      sidesVis: chips(this.sideOpts, s.side, 'side').filter((o, i) => i < 3 || s.sideMore || s.side === o.id),
+      drinksVis: chips(this.drinkOpts, s.drink, 'drink').filter((o, i) => i < 3 || s.drinkMore || s.drink === o.id),
+      sideOpen: s.sideMore, drinkOpen: s.drinkMore,
+      sideRot: s.sideMore ? 180 : 0, drinkRot: s.drinkMore ? 180 : 0,
+      sideLabel: s.sideMore ? 'Show fewer' : 'More sides (' + (this.sideOpts.length - 3) + ')',
+      drinkLabel: s.drinkMore ? 'Show fewer' : 'More drinks (' + (this.drinkOpts.length - 3) + ')',
+      sideToggle: () => this.setState((st) => ({ sideMore: !st.sideMore })),
+      drinkToggle: () => this.setState((st) => ({ drinkMore: !st.drinkMore })),
       sizeX: s.large ? 460 : 0,
       isReg: !s.large,
       isLarge: s.large,
@@ -214,15 +250,19 @@ class Component extends DCLogic {
       largeUp: this.fmt(6000 * mult),
       setReg: () => { if (s.large) this.opt({ large: false }); },
       setLarge: () => { if (!s.large) this.opt({ large: true }); },
-      summary: c.short + ' · ' + side.name + ' · ' + drink.name + ' · ' + (s.large ? 'Large' : 'Regular'),
+      sideMissing: !side,
+      drinkMissing: !drink,
+      addOff: ready ? 'false' : 'true',
+      addPE: ready ? 'auto' : 'none',
+      summary: ready ? c.short + ' · ' + side.name + ' · ' + drink.name + ' · ' + (s.large ? 'Large' : 'Regular') : c.short + ' · ' + (!side && !drink ? 'pick a side & drink' : (!side ? 'pick a side' : 'pick a drink')),
       totalFmt: this.fmt(this.price()),
       rollAnim: s.optTick ? 'roll' + op + ' 460ms cubic-bezier(.16,1,.3,1) both' : 'none',
       added: s.added,
-      addLabel: s.added ? 'Added' : 'Add combo',
-      addBg: s.added ? '#FAF8F5' : accent,
-      addFg: s.added ? '#171513' : '#FFFFFF',
+      addLabel: !ready ? (!side && !drink ? 'Pick side & drink' : (!side ? 'Choose a side' : 'Choose a drink')) : (s.added ? 'Added' : 'Add combo'),
+      addBg: !ready ? '#3A3632' : (s.added ? '#FAF8F5' : accent),
+      addFg: !ready ? '#A39C92' : (s.added ? '#171513' : '#FFFFFF'),
       add: () => {
-        if (s.added) return;
+        if (s.added || !ready) return;
         this.setState((st) => ({ added: true, count: st.count + 1, cartTick: st.cartTick + 1 }));
         clearTimeout(this.t);
         this.t = setTimeout(() => this.setState({ added: false }), 1800);

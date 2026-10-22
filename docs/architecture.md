@@ -7,6 +7,7 @@
 | Contract | [`api/api-spec.md`](api/api-spec.md) (E1–E14) |
 | Plan / tests | [`dev-plan.md`](dev-plan.md), [`testing-plan.md`](testing-plan.md) |
 | Decisions | [`adr/`](adr/): ADR-0001 records the stack and module choice |
+| Design | [`ui-design/`](ui-design/): the final "Linen & Paprika" design. `S_<Screen>_<scenario>` boards are the visual spec for every non-default state. |
 
 ## 1. Overview and constraints
 
@@ -81,7 +82,7 @@ flowchart TD
 | `:core:hardware` | `DeviceIdentityProvider`, `PrinterManager` + drivers, receipt/ticket renderers, `CardTerminal` impls | `:core:domain` | Depend on `:core:data` |
 | `:core:testing` | Scriptable fakes, fixtures (menu sample from `api-spec.md` §4), test rules | `:core:domain` | Ship in release (used by `testImplementation`, `androidTestImplementation` and the `debug` source set only) |
 
-**Feature packages in `:app`** (`com.hitachi.kiosk.feature.*`): `splash`, `activation`, `merchant`, `idle`, `ordertype`, `menu`, `item`, `combo`, `budget`, `upsell`, `cart`, `checkout`, `complete`, `inactivity`, `settings`. A feature package never imports another feature package. Shared flow state goes through the domain session (§5), not through ViewModel-to-ViewModel calls.
+**Feature packages in `:app`** (`com.hitachi.kiosk.feature.*`): `splash`, `activation`, `merchant`, `idle`, `ordertype`, `menu`, `item`, `combo`, `budgetplan`, `upsell`, `cart`, `checkout`, `complete`, `inactivity`, `settings` (includes Change PIN). The planner itself is `BudgetPlanner` in `:core:domain` (`planner/`), and the `budgetplan` package is only its UI. A feature package never imports another feature package. Shared flow state goes through the domain session (§5), not through ViewModel-to-ViewModel calls.
 
 ## 4. Layering and data flow
 
@@ -159,7 +160,9 @@ stateDiagram-v2
     TimedOut --> Idle
 ```
 
-- **Owner**: one `OrderSession` per order, held by an app-scoped `OrderSessionHolder` (Hilt `@Singleton`). Feature ViewModels read it and send intents to it. This is how Menu, Item, Combo, Budget Pas and Cart share one cart without passing it through navigation arguments.
+- **Owner**: one `OrderSession` per order, held by an app-scoped `OrderSessionHolder` (Hilt `@Singleton`). Feature ViewModels read it and send intents to it. This is how Menu, Item, Combo, Budget Plan and Cart share one cart without passing it through navigation arguments.
+- **What the session holds**: cart lines, order type, catalog version, the `upsellShown` flag (Upsell appears once per order) and an optional `PlanTag(budget, adults, children)`. It does **not** hold a language: the 1.0 UI is English only (D-29), so there is no per-order language to reset.
+- **Budget Plan hand-off**: `BudgetPlanner` is pure. The two-step screen (step 1 "Your table", step 2 "Your plan") keeps its own state in `BudgetPlanViewModel`: the current step, the Just under / Just over choice, the Customize bottom sheet, swaps, the include-sides/desserts toggles and the Strict / Up to +10% tolerance. Only when the customer taps "Add plan to order" does it send the chosen plan's lines to the session, tagged with `PlanTag`. Payment reads the tag to show the "Budget Plan" row. Editing or removing those lines in the cart clears the tag.
 - **Inactivity** (FR-023) is a separate `InactivityController` that watches the session state and touch events. It is suspended in `Paying`, `Paid` and staff settings.
 - **Menu snapshot**: the session captures the catalog version at `TypeChosen`. A sync that lands mid-order is applied when the session returns to `Idle` (FR-028, A-29).
 
@@ -184,6 +187,7 @@ stateDiagram-v2
 - "You have not been charged" only renders from `Failed` reached via a backend terminal non-paid status, never from `Unknown` or a timeout without a backend answer (FR-019).
 - QR expiry is computed from server `expiresAt` minus a server/device offset measured on the E9 response `Date` header (NFR-017).
 - Polling stops on any terminal state (FR-017 AC5).
+- **Checkout screen states** map from this machine and `DomainError`: "Creating your payment…" (`Creating`), waiting (QR or card prompt, `AwaitingCustomer`), "Checking your payment…" (`Unknown`, `Processing`), and the failure variants expired, cancelled, declined, terminal timeout and offline. Every failure offers Try again, Pay by other method and Cancel order. The checkout screen has no step list, no "Step 3 of 3" indicator and no scan-line animation. Only QRIS and Card are offered (`COUNTER` hidden in 1.0, D-12a).
 
 ### 5.3 Process-death recovery (FR-016, DEV-052)
 
@@ -217,7 +221,7 @@ Upgrades (NFR-014): Room uses explicit `Migration`s from 1.0.0 onward, with `exp
 
 - **Stack**: Retrofit + OkHttp + kotlinx.serialization (`ignoreUnknownKeys = true`, `explicitNulls = false`). One `KioskApi` interface mirrors E1–E14.
 - **Base URL**: `BuildConfig.API_BASE_URL` per flavor-less build config `dev | staging | prod` (DEV-007). The debug Developer options can override it at runtime.
-- **Interceptors**, in order: `Idempotency-Key` (mutating calls take a key from the caller, never generated inside the interceptor, so a retry reuses it) → auth (`Bearer`) → `Accept-Language` / app version headers → logging (debug only, redacted).
+- **Interceptors**, in order: `Idempotency-Key` (mutating calls take a key from the caller, never generated inside the interceptor, so a retry reuses it) → auth (`Bearer`) → `Accept-Language` (fixed `en` in 1.0) / app version headers → logging (debug only, redacted).
 - **Errors**: the response envelope `{code, message, details}` is parsed into `ApiError` and mapped to `DomainError` in the repository. HTTP 401 on any authenticated call → `SessionInvalidator` clears token and binding and routes to SCR-02.
 - **Timeouts and retries** (NFR-010): connect 10 s, read 15 s. Retries (1 s, 2 s, 4 s) only for GETs and for mutations that carry an Idempotency-Key. Retries are written in the repository, not as an OkHttp interceptor, so they stay visible and testable.
 - **Caching**: E5 and E6 send `If-None-Match`. A 304 keeps the Room copy.
@@ -261,11 +265,12 @@ Tests: unit tests construct classes by hand with fakes. Instrumented tests use `
 ## 11. Navigation
 
 - Single `MainActivity`, portrait-locked, `FLAG_KEEP_SCREEN_ON`, edge-to-edge with system bars hidden in lock task.
-- Navigation Compose with type-safe `@Serializable` route objects, one per screen SCR-01…SCR-19 (PRD §4). SCR-13 ("Still there?") is an overlay hosted above the `NavHost`, not a route.
+- Navigation Compose with type-safe `@Serializable` route objects, one per screen SCR-01…SCR-19 (PRD §4), including Upsell and Budget Plan (SCR-19, one route with an internal step state, so Back from step 2 returns to step 1 and Back from step 1 returns to Menu). Change PIN is a route inside the staff settings graph. SCR-13 ("Still there?") is an overlay hosted above the `NavHost`, not a route. The design shows it as its own board with Menu blurred behind it.
 - The **start destination is always Splash**. `StartupRouter` (DEV-011) waits for both the 3.9 s minimum and initialization (≤ 10 s network cap), then replaces the back stack with SCR-02, SCR-03 or SCR-04 (FR-001).
 - The customer flow is a nested graph. Leaving it (Complete auto-return, timeout, cancel) pops to Idle and resets the session.
 - Staff settings are a nested graph entered only through the PIN gate (SCR-14), with their own 120 s timeout [A-22].
 - System Back is disabled on customer screens except where the design shows a Back control.
+- The inactivity timer (`InactivityController`) runs on Menu, Combo, Item, Upsell, Payment and Budget Plan, and shows the overlay after the configured idle time. Splash, Checkout, Complete and staff settings are excluded, and Complete returns to Idle on its own after 20 s.
 
 ## 12. Design system
 
@@ -274,13 +279,15 @@ Tests: unit tests construct classes by hand with fakes. Instrumented tests use `
 - **Accent**: `LocalAccent` is set from merchant config `accentColor` at the theme root [A-38].
 - **Motion**: named easings (`Emphasized`, `Press`, `Spring`, `InOut`, `Fly`) and per-screen duration constants mirror PRD §11.4. `LocalReduceMotion = true` turns every spec into `snap()` (DEV-004).
 - **Components** (PRD §11.3) take plain parameters and lambdas, never ViewModels or domain types, so they can be previewed and screenshot-tested alone.
+- **Visual language**: the "Linen & Paprika" palette (linen `#FAF8F5`, ink `#171513`, accent from merchant config, default `#C8552B`) and Schibsted Grotesk 400–800. Layout is 72 px margins and one accent action per screen in a bottom dock. Components the final design needs beyond the base list: bottom sheet (Budget Plan Customize), expandable row (Item detail, Budget Plan, Payment "Details"), status banner (offline, prices changed, promo nudge), toast ("Maximum 20 per item") and skeleton rows (Merchants loading).
+- **Not in the 1.0 design, so not built**: the promo carousel on Menu, the language segmented control, the QR scan-line animation, the numbered steps and "Step 3 of 3" pill on Checkout, and photos on the Dine in / Takeaway cards (those use the logo mark and icons only).
 
 ## 13. Cross-cutting concerns
 
 ### 13.1 Localization
-- `values/strings.xml` (en) and `values-in/strings.xml` (id). No hardcoded user-visible text (NFR-008).
-- Per-order language (FR-008) uses an app-level `LocaleController`. Whether it is backed by `AppCompatDelegate.setApplicationLocales` or a Compose-local `Configuration` override is decided in DEV-026 and recorded as an ADR. Settings use the default language [A-06].
-- Menu text is `LocalizedText {en, id}` in the domain, resolved in the UI layer.
+- **English only in 1.0** (D-29). `values/strings.xml` is the only string file, so there is no `values-in/`, no `LocaleController`, no per-order language and no language switch on Order type or in Kiosk behaviour settings. No hardcoded user-visible text (NFR-008).
+- Strings stay externalised, with `<plurals>` where needed, so a locale can be added later. To add one: create `values-xx/strings.xml`, add a language control and a per-order or default-language setting, apply the locale with `AppCompatDelegate.setApplicationLocales` or a Compose-local override, and record that in an ADR.
+- Menu text arrives as `LocalizedText {en, id}` (the API can carry both, see `api-spec.md` §2.3). The domain keeps both values, but the UI resolves English only and falls back to `id` when `en` is missing. The app sends `Accept-Language: en`.
 - Money formatting goes through `IdrFormatter` (BR-01), not `NumberFormat` locale defaults.
 
 ### 13.2 Logging and privacy
@@ -308,7 +315,7 @@ Summary only. [`testing-plan.md`](testing-plan.md) is authoritative.
 | Level | Where | Tools | Targets |
 |---|---|---|---|
 | Unit (JVM) | `:core:domain`, `:core:data`, `:core:hardware` (renderers), ViewModels | JUnit 4, Truth, kotlinx-coroutines-test, Turbine, MockWebServer, Room in-memory (Robolectric) | domain ≥ 90 %, data ≥ 70 % (Kover) |
-| Screenshot | `:core:designsystem`, feature screens | Roborazzi (JVM) at 1080 × 1920 @ 160/240/320 dpi | NFR-002, NFR-009 |
+| Screenshot | `:core:designsystem`, feature screens | Roborazzi (JVM) at 1080 × 1920 @ 160/240/320 dpi. One test per `S_<Screen>_<scenario>` board in `docs/ui-design/`, English only | NFR-002, NFR-009 |
 | Instrumented UI | `:app` `androidTest` | Compose UI test, Hilt test modules with fakes | Journeys J1–J9 |
 | Performance | `:benchmark` | Macrobenchmark, baseline profile, JankStats | NFR-003 |
 | Hardware / soak | target iMin device | manual + UI Automator script | NFR-004, NFR-016 |
@@ -323,4 +330,4 @@ Contract tests: MockWebServer fixtures are loaded from the examples in `api-spec
 | OQ-03 EDC transport and result path | `CardTerminal` impl, whether E12 is used | ADR-0003 (0.5.0) |
 | OQ-02 Gateway spec | Backend only, unless push replaces polling | ADR-0003 |
 | OQ-10 Provisioning method | Lock task, install | `docs/provisioning.md` (DEV-101) |
-| Locale switching mechanism | `LocaleController` | ADR during DEV-026 |
+| Second language (Bahasa Indonesia) | Strings, language control, locale mechanism | Deferred after 1.0 (D-29). Needs a new ADR when approved |
