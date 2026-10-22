@@ -263,6 +263,7 @@ Every non-2xx response has this body:
     "defaultFooter": { "en": "Thank you for dining with us!", "id": "Terima kasih telah makan bersama kami!" }
   },
   "upsell": { "categoryIds": ["cat_sides", "cat_desserts"], "maxSuggestions": 4 },
+  "budgetPlanner": { "enabled": true, "overCapPercent": 10, "maxGroupSize": 10, "quickBudgets": [50000, 100000, 150000, 200000] },
   "idlePromos": [
     { "imageUrl": "https://cdn.example/mer_urbangrill/idle1.jpg" },
     { "imageUrl": "https://cdn.example/mer_urbangrill/idle2.jpg" },
@@ -310,11 +311,16 @@ Notes:
       "tags": { "en": "Beef · Contains gluten, dairy", "id": "Sapi · Mengandung gluten, susu" },
       "imageUrl": null,
       "available": true,
-      "modifierGroupIds": ["mg_meal_upgrade", "mg_b2_ingredients", "mg_burger_extras"]
+      "modifierGroupIds": ["mg_meal_upgrade", "mg_b2_ingredients", "mg_burger_extras"],
+      "role": "MAIN",
+      "kidFriendly": false,
+      "servesAdults": 1,
+      "shareable": false,
+      "plannerWeight": 5
     },
-    { "id": "c1", "categoryId": "cat_chicken", "name": { "en": "Crispy Chicken (2 pc)", "id": "Ayam Krispi (2 pcs)" }, "description": { "en": "Original recipe", "id": "Resep original" }, "price": 38000, "kcal": 560, "badge": { "type": "BEST_SELLER", "label": { "en": "Best seller", "id": "Terlaris" } }, "tags": null, "imageUrl": null, "available": true, "modifierGroupIds": [] },
-    { "id": "s1", "categoryId": "cat_sides", "name": { "en": "French Fries", "id": "Kentang Goreng" }, "description": null, "price": 18000, "kcal": 320, "badge": null, "tags": null, "imageUrl": null, "available": true, "modifierGroupIds": ["mg_fries_size"] },
-    { "id": "d1", "categoryId": "cat_drinks", "name": { "en": "Iced Lychee Tea", "id": "Es Teh Leci" }, "description": null, "price": 16000, "kcal": 140, "badge": null, "tags": null, "imageUrl": null, "available": true, "modifierGroupIds": ["mg_ice"] }
+    { "id": "c1", "categoryId": "cat_chicken", "name": { "en": "Crispy Chicken (2 pc)", "id": "Ayam Krispi (2 pcs)" }, "description": { "en": "Original recipe", "id": "Resep original" }, "price": 38000, "kcal": 560, "badge": { "type": "BEST_SELLER", "label": { "en": "Best seller", "id": "Terlaris" } }, "tags": null, "imageUrl": null, "available": true, "modifierGroupIds": [], "role": "MAIN", "kidFriendly": false, "servesAdults": 1, "shareable": false, "plannerWeight": 0 },
+    { "id": "s1", "categoryId": "cat_sides", "name": { "en": "French Fries", "id": "Kentang Goreng" }, "description": null, "price": 18000, "kcal": 320, "badge": null, "tags": null, "imageUrl": null, "available": true, "modifierGroupIds": ["mg_fries_size"], "role": "SIDE", "kidFriendly": true, "servesAdults": 1, "shareable": true, "plannerWeight": 0 },
+    { "id": "d1", "categoryId": "cat_drinks", "name": { "en": "Iced Lychee Tea", "id": "Es Teh Leci" }, "description": null, "price": 16000, "kcal": 140, "badge": null, "tags": null, "imageUrl": null, "available": true, "modifierGroupIds": ["mg_ice"], "role": "DRINK", "kidFriendly": false, "servesAdults": 1, "shareable": false, "plannerWeight": 0 }
   ],
   "modifierGroups": [
     {
@@ -406,6 +412,12 @@ Rules the mock must respect:
 - `ModifierGroup.type`: `SINGLE` (radio) | `MULTI` (checkbox list) | `LEVEL` (None / Regular / Extra per option).
 - Combo price = `price + (side.upcharge + drink.upcharge + (large ? SIZE_LARGE_UPCHARGE : 0)) × serves`.
 - `available: false` → the item is hidden from the menu (PRD A-09).
+- Budget Pas fields (PRD FR-032), required on every product:
+  - `role`: `MAIN` | `SIDE` | `DRINK` | `DESSERT`.
+  - `kidFriendly`: whether the item may be planned for a child.
+  - `servesAdults`: portions; items with > 1 are not planned as mains in 1.0.
+  - `shareable`: whether the item is meant for sharing.
+  - `plannerWeight`: optional merchant preference, higher wins ties.
 
 ---
 
@@ -693,6 +705,12 @@ To make the mock match the design screens one-to-one, include:
 
 Bold items are in "Popular" (`featuredProductIds`). Combos and slot options are as in E6.
 
+**Budget Pas tags for the mock:**
+- `role`: Burgers, Chicken, Rice bowls → `MAIN`; Sides → `SIDE`; Drinks → `DRINK`; Desserts → `DESSERT`.
+- `kidFriendly: true`: b1, c3, r2 (kid mains), s1, s3 (sides), d2, d4 (drinks), e1, e2, e3 (desserts). Everything else is `false`.
+- `servesAdults`: c4 Family Bucket = 4 with `shareable: true`; everything else is 1.
+- With these tags, testing-plan TC-161–TC-163 expect: 2 adults + 1 child at Rp 150.000 → Rp 149.600 / Rp 150.700; 1 adult + 1 child at Rp 99.000 → Rp 99.000; 2 adults + 1 child at Rp 100.000 → Rp 116.600 ("Butuh Rp 16.600 lagi").
+
 **Mock scenarios to support.** A custom mock switches them with the `X-Mock-Scenario` header. With Prism, use the `Prefer` header in the last column.
 
 | Scenario | Effect | Prism `Prefer` header |
@@ -731,4 +749,5 @@ Prism serves fixed example timestamps (e.g. `expiresAt: 2026-10-22T07:20:31Z`), 
 | `modifierGroup.type` | `SINGLE`, `MULTI`, `LEVEL` |
 | `level` | `NONE`, `REGULAR`, `EXTRA` |
 | `badge.type` | `NEW`, `BEST_SELLER`, `SPICY`, `SHARE`, `LOCAL` |
+| `product.role` | `MAIN`, `SIDE`, `DRINK`, `DESSERT` |
 | `rounding.mode` | `UP` |

@@ -96,6 +96,10 @@ schemas = {
         "staffPin": ref("StaffPin"),
         "receipt": obj({"address": nstr(), "npwp": nstr(), "defaultFooter": L}),
         "upsell": obj({"categoryIds": arr(STR), "maxSuggestions": INT}),
+        "budgetPlanner": obj({"enabled": BOOL,
+                              "overCapPercent": {"type": "integer", "minimum": 0, "maximum": 100, "default": 10},
+                              "maxGroupSize": {"type": "integer", "minimum": 1, "default": 10},
+                              "quickBudgets": arr(MONEY)}, ["enabled"]),
         "idlePromos": arr(obj({"imageUrl": nstr()}))},
         ["configVersion", "merchantId", "mode", "brandName", "tax", "orderTypes", "paymentMethods", "staffPin"]),
     "Category": obj({"id": STR, "name": L, "sort": INT, "tone": STR}, ["id", "name", "sort"]),
@@ -103,8 +107,10 @@ schemas = {
     "Product": obj({
         "id": STR, "categoryId": STR, "name": L, "description": nref("LocalizedText"), "price": MONEY,
         "kcal": {"type": "integer", "nullable": True}, "badge": ref("Badge"), "tags": nref("LocalizedText"),
-        "imageUrl": nstr(), "available": BOOL, "modifierGroupIds": arr(STR)},
-        ["id", "categoryId", "name", "price", "available", "modifierGroupIds"]),
+        "imageUrl": nstr(), "available": BOOL, "modifierGroupIds": arr(STR),
+        "role": enum("MAIN", "SIDE", "DRINK", "DESSERT"), "kidFriendly": BOOL,
+        "servesAdults": {"type": "integer", "minimum": 1}, "shareable": BOOL, "plannerWeight": INT},
+        ["id", "categoryId", "name", "price", "available", "modifierGroupIds", "role", "kidFriendly", "servesAdults"]),
     "ModifierOption": obj({
         "id": STR, "name": L, "description": L, "note": L, "priceDelta": {"type": "integer"},
         "default": BOOL, "imageUrl": nstr(),

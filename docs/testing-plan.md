@@ -14,7 +14,7 @@ A feature is **not** done because it compiles or looks right. It is done when it
 ## 1. Strategy
 
 ### 1.1 Objectives
-1. Prove every MVP functional requirement (FR-001…FR-031) meets its acceptance criteria.
+1. Prove every MVP functional requirement (FR-001…FR-032) meets its acceptance criteria.
 2. Guarantee money correctness: pricing, order creation and payment state, with zero tolerance for wrong charges.
 3. Prove kiosk robustness: lifecycle, process death, connectivity loss, hardware faults, 72 h unattended operation.
 4. Prove fidelity to the approved light design (layout, copy, motion) and to accessibility and localization rules.
@@ -97,7 +97,7 @@ Every defect records: build, device, steps, expected/actual, evidence (screensho
 
 ## 4. Test case conventions
 
-- IDs `TC-001…TC-160` are stable. New cases append after TC-160 and are never renumbered.
+- IDs `TC-001…TC-168` are stable. New cases append after TC-168 and are never renumbered.
 - **Type:** U = unit, I = integration, C = contract, UI = Compose UI test, S = screenshot, E2E, M = manual, D = manual on the iMin device/hardware, B = benchmark.
 - **Pri:** H / M / L (test priority, distinct from defect severity).
 - **Auto:** Y = automated in CI; P = partly automated; N = manual.
@@ -193,6 +193,21 @@ Every defect records: build, device, steps, expected/actual, evidence (screensho
 | TC-065 | FR-015 | Methods shown | Card disabled in settings | Open SCR-10 | Only the QRIS tile; never "At counter" | UI | H | Y |
 | TC-066 | FR-015 | Pay label | Any cart | Change qty | Pay label always equals the formatted total | UI | H | Y |
 | TC-067 | FR-015 | No method available | All methods unavailable (config) | Open SCR-10 | "Payments are unavailable…" and Pay disabled | UI | M | Y |
+
+### 5.4b Budget Pas group meal planner (FR-032)
+
+Test data: the tagged sample menu from `api-spec.md` §4 (kid-friendly mains b1, c3, r2), with promo Rp 10.000 off ≥ Rp 100.000, PB1 10 %, rounding none, and `overCapPercent` 10. Expected values below were computed by exhaustive search over that menu.
+
+| ID | Req | Scenario | Preconditions / data | Steps | Expected | Type | Pri | Auto |
+|---|---|---|---|---|---|---|---|---|
+| TC-161 | FR-032 | Under/over bracket | 2 adults + 1 child, budget Rp 150.000 | Run planner | Under total **Rp 149.600** ("sisa Rp 400"); over total **Rp 150.700** ("+Rp 700") ≤ cap Rp 165.000; each adult has 1 main + 1 drink (or a combo); the child has a kid-friendly main + drink | U | H | Y |
+| TC-162 | FR-032 | Promo-threshold twist and tie-break | 1 adult + 1 child, budget Rp 99.000 | Run planner | Under total **Rp 99.000** with subtotal **Rp 100.000** (promo applied), chosen over the Rp 90.000-subtotal plan with the same total | U | H | Y |
+| TC-163 | FR-032 | Infeasible budget | 2 adults + 1 child, budget Rp 100.000 | Run planner; open SCR-19 | One plan, total **Rp 116.600**, message "Butuh Rp 16.600 lagi"; no over card | U/UI | H | Y |
+| TC-164 | FR-032 | Large budget and over cap | (a) 1 adult, budget Rp 1.000.000; (b) any case where the nearest over plan is > cap | Run planner | (a) never more than 1 main per person; "Budget lebih dari cukup"; (b) over card hidden | U | M | Y |
+| TC-165 | FR-032 | Children's meals | (a) sample menu; (b) menu with no `kidFriendly` main | 1 adult + 2 children, budget Rp 120.000 | (a) both children get only b1, c3 or r2; (b) children get the cheapest main and the "Menu anak tidak tersedia" note | U | H | Y |
+| TC-166 | FR-032 | Group limits and inputs | `maxGroupSize` 10 | Set 8 adults + 3 children; set adults 0; clear budget | 11 people → "Silakan pesan per kelompok", no plans; adults minimum 1; empty budget → button disabled | UI | M | Y |
+| TC-167 | FR-032 | Use plan, swap, toggle | Mock default; then `budgetPlanner.enabled=false` | Open via Menu card, pick the under plan; swap one drink; then disable in config and reopen Menu | Cart lines and totals on SCR-10 equal the plan; swap keeps the plan the nearest valid under plan; with the toggle off, no entry card | UI | H | Y |
+| TC-168 | FR-032 | Performance | iMin device; 10 adults, sample menu, budget Rp 600.000 | Benchmark 50 runs | P95 ≤ 100 ms | B | M | Y |
 
 ### 5.5 Order submission and payment (FR-016 – FR-019)
 
@@ -374,11 +389,11 @@ Each milestone runs: (a) its new TCs, (b) the full automated regression of all e
 | **0.1.0** | Build, modules, design units/tokens, navigation skeleton, network skeleton, fakes | TC-140, TC-141 (skeleton screen), TC-154 (partial), TC-155, TC-156 (fakes compile) + navigation edge walk | — | Build/CI failure; scaling wrong | CI run link; emulator screenshots of placeholders | dev-plan 0.1.0 exit |
 | **0.2.0** | Splash, routing, SN, activation, merchants | TC-001–TC-019, TC-146 | 0.1.0 | Wrong routing; duplicate activation; token in plain text | CI; SN spike notes (ADR-0002) with device photo; J5/J6 recordings | All pass; SN source decided |
 | **0.3.0** | Idle, order type, language, menu, item, combo, sync/cache, images, perf baseline | TC-020–TC-049, TC-121, TC-124, TC-125, TC-142 (baseline), TC-157 | 0.1–0.2 | Wrong item/combo price; crash in browse; menu not cached | Screenshot diffs vs design; `docs/perf/baseline-0.3.0.md` | All pass; baseline recorded |
-| **0.4.0** | Cart, pricing, review, methods, upsell, inactivity | TC-050–TC-067, TC-101–TC-104, TC-135, TC-139 | 0.1–0.3 | Any pricing mismatch; overlay during payment | `docs/pricing-cases.md`; coverage report (domain ≥ 90 %) | All pass |
+| **0.4.0** | Cart, pricing, Budget Pas, review, methods, upsell, inactivity | TC-050–TC-067, TC-101–TC-104, TC-135, TC-139, TC-161–TC-167 | 0.1–0.3 | Any pricing mismatch; overlay during payment; a Budget Pas plan above budget shown as "under" or a person left without a meal | `docs/pricing-cases.md`; `docs/budget-pas-cases.md`; coverage report (domain ≥ 90 %) | All pass |
 | **0.5.0** | Order creation, QRIS, card (fake), failures, offline gate, recovery, clock skew | TC-068–TC-087 (TC-083 deferred to 0.9.0), TC-122, TC-123, TC-132–TC-134, TC-137, TC-138, TC-154, TC-160 | 0.1–0.4 | Duplicate order; "not charged" shown on unknown status; paid without PAID | Recordings of J1–J3 with fakes; mock-scenario run log | All pass; gateway/EDC spec status recorded |
 | **0.6.0** | Complete, printing, printer management | TC-088–TC-100, TC-159 (printers subset) | 0.1–0.5 + J1 with print | No print on paid order; print failure blocks Complete | Photos of 58/80 mm receipts and kitchen tickets for each connection type | All pass on real printers |
 | **0.7.0** | PIN, settings, lock task, sound, logging | TC-105–TC-131, TC-136 | 0.1–0.6 + J1–J8 | Lock-task escape; PIN bypass; lockout not persisted | Device videos of escape attempts and reboot; provisioning run log | All pass on iMin device |
-| **0.8.0** | L10n, a11y, motion, performance, larger text, screenshots | TC-032, TC-116, TC-142–TC-144, TC-150–TC-153 | Full suite | Missing translations on customer screens; perf below NFR-003; a11y errors | Perf report; a11y report; translation sign-off; motion checklist | Targets met or accepted |
+| **0.8.0** | L10n, a11y, motion, performance, larger text, screenshots | TC-032, TC-116, TC-142–TC-144, TC-150–TC-153, TC-168 | Full suite | Missing translations on customer screens; perf below NFR-003; a11y errors | Perf report; a11y report; translation sign-off; motion checklist | Targets met or accepted |
 | **0.9.0** | Real backend/gateway/EDC, matrix, soak, security, release build, pilot | TC-083, TC-145, TC-147–TC-149, TC-158, TC-159 + **all MVP TCs re-run on device against staging** | Full suite on device | Any P1/P2; contract mismatch; soak failure | Contract run vs staging; soak report; security checklist; pilot report | Release checklist complete except sign-off |
 | **1.0.0** | Release build against prod | Full regression (automated + manual priority H) on the signed APK; DEV-102 real transactions | Full | Any P1/P2; any P3 on checkout/payment screens | Signed test report; APK checksum; release checklist signed | Rollout approved |
 
@@ -419,6 +434,7 @@ Each milestone runs: (a) its new TCs, (b) the full automated regression of all e
 | FR-029 | DEV-071, DEV-101 | TC-126–TC-128 | 0.7.0 |
 | FR-030 | DEV-072 | TC-129 | 0.7.0 |
 | FR-031 | DEV-067, DEV-073 | TC-130–TC-131 | 0.7.0 |
+| FR-032 | DEV-042, DEV-043, DEV-044 | TC-161–TC-168 | 0.4.0 / 0.8.0 |
 | NFR-001 | DEV-001 | TC-140 | 0.1.0 |
 | NFR-002 | DEV-003, DEV-084 | TC-141 | 0.1.0 / 0.8.0 |
 | NFR-003 | DEV-031, DEV-082 | TC-142–TC-144 | 0.3.0 / 0.8.0 |

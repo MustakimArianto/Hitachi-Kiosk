@@ -6,7 +6,7 @@
 | Requirements | [`prd.md`](prd.md) (FR-xxx, NFR-xxx, D-xx, A-xx, OQ-xx) |
 | Tests | [`testing-plan.md`](testing-plan.md) (TC-xxx) |
 | Team | One Android developer (with AI coding agents) [D-25] |
-| Horizon | ~13 weeks to `1.0.0` |
+| Horizon | ~14.75 weeks to `1.0.0` (includes Budget Pas, D-26) |
 
 ## 1. Starting point
 
@@ -32,7 +32,7 @@ Everything below is therefore greenfield. No existing code is changed or migrate
 | 0.1.0 | Foundation | 1 | NFR-001/002/011/012, contract | — |
 | 0.2.0 | Device activation & setup | 1 | FR-001–005 | iMin device for SN spike (DEP-4) |
 | 0.3.0 | Catalog: idle, order type, menu, item, combo | 2 | FR-006–011, FR-028 (sync), NFR-013 | — |
-| 0.4.0 | Cart, pricing, upsell & inactivity | 1.5 | FR-012–015, FR-023 | Upsell design (DEP-5) |
+| 0.4.0 | Cart, pricing, Budget Pas, upsell & inactivity | 2.75 | FR-012–015, FR-023, FR-032 | Upsell design (DEP-5), Budget Pas design (OQ-14), menu role tags in mock (DEP-8) |
 | 0.5.0 | Order submission & payments (fakes) | 2 | FR-016–019, FR-028 (offline gate), NFR-017 | Gateway + EDC specs (DEP-2/3) |
 | 0.6.0 | Printing & completion | 1.5 | FR-020–022, NFR-016 | Test printers (DEP-7) |
 | 0.7.0 | Staff settings & kiosk lockdown | 1.5 | FR-024–027, FR-029–031 | MDM/provisioning answer (OQ-10) |
@@ -40,7 +40,10 @@ Everything below is therefore greenfield. No existing code is changed or migrate
 | 0.9.0 | Release candidate: real integrations & pilot | 1.5 | FR-017/018 real, NFR-004/005/006/014/015 | Real backend, gateway sandbox, EDC (DEP-1/2/3), pilot content (DEP-6) |
 | 1.0.0 | Release | 0.5 | All MVP | Sign-off |
 
-Total ≈ 13.5 weeks. The extra half week over the 3-month target is visible on purpose. If the date is fixed, the first cuts (with PO approval) are: Bluetooth printers → 1.0.1, and upsell visuals limited to design-system components.
+Total ≈ 14.75 weeks. That is about 1.75 weeks over the 3-month target, shown on purpose: Budget Pas (D-26) adds ~1.25 weeks. If the date is fixed, the first cuts (with PO approval) are:
+1. Budget Pas per-item "swap" → 1.0.1 (the two plan cards still ship).
+2. Bluetooth printers → 1.0.1.
+3. Upsell visuals limited to design-system components.
 
 ### 3.1 Dependency graph
 ```
@@ -270,13 +273,17 @@ All listed TCs pass. The perf baseline is recorded, and any screen > 16 ms P90 f
 
 ---
 
-## Version 0.4.0 — Cart, pricing, upsell & inactivity
+## Version 0.4.0 — Cart, pricing, Budget Pas, upsell & inactivity
 
 ### Objective
-Complete the ordering half of the journey: a correct, tested pricing engine, the order review screen with payment method choice, the upsell step, and the inactivity protection.
+Complete the ordering half of the journey:
+- a correct, tested pricing engine;
+- the **Budget Pas** group meal planner (the 1.0.0 differentiator, D-26), built on that engine;
+- the order review screen with payment method choice;
+- the upsell step and the inactivity protection.
 
 ### Scope
-**Included:** PricingEngine, full cart management, the OrderSession state machine, SCR-10 Your order (totals, methods, empty state), SCR-09 Upsell, the SCR-13 inactivity overlay.
+**Included:** PricingEngine, full cart management, the OrderSession state machine, the Budget Pas optimizer + SCR-19 + Menu entry card + menu data fields, SCR-10 Your order (totals, methods, empty state), SCR-09 Upsell, the SCR-13 inactivity overlay.
 **Excluded:** Order submission and payment (0.5.0), the offline gate on Pay (0.5.0; Pay navigates to the 0.5.0 placeholder).
 
 ### TODO checklist
@@ -298,21 +305,47 @@ Complete the ordering half of the journey: a correct, tested pricing engine, the
   - Excluded on Checkout pending/processing, Complete and settings. The empty-cart rule on SCR-05 applies [A-23].
   - *Verify:* TC-101–TC-104 using a test clock.
 
+**Budget Pas (FR-032)**
+- [ ] **DEV-044** Menu and config data for the planner (prereq: DEV-020, DEV-022).
+  - Add `role`, `kidFriendly`, `servesAdults`, `shareable` and `plannerWeight` to the Product domain model and its DTO mapper.
+  - Add the `budgetPlanner` block (`enabled`, `overCapPercent` default 10, `maxGroupSize` default 10, `quickBudgets`) to MerchantConfig.
+  - Default missing values: role → MAIN for categories with no tag [logged as a data warning], kidFriendly → false, servesAdults → 1.
+  - Update the `:core:testing` fixtures to the tagged sample menu in `api-spec.md` §4.
+  - *Verify:* mapper unit tests, fixture equality with `api-spec.md`.
+- [ ] **DEV-042** `BudgetPlanner` in `:core:domain` (prereq: DEV-035, DEV-036, DEV-044).
+  - Input: budget, adults, children, menu, config. Output: `under` and `over` plans (each a list of cart lines grouped per person + shared) plus the edge-case outcome.
+  - Algorithm:
+    1. Build per-person slot candidates per BR-13/BR-14 (adult: main + drink or a combo; child: kid-friendly main + drink, falling back to the cheapest main).
+    2. Run a bounded best-first search with pruning on the running final total via `PricingEngine`.
+    3. Add optional side/dessert (max 1 per person) only while it moves the total toward the target.
+    4. Apply the ranking/tie-breaks from FR-032, and cap the over plan by `overCapPercent`.
+    5. Return `swap(plan, slot)` → next-best alternative in the same role.
+  - Pure Kotlin, deterministic (stable ordering), no Android dependency.
+  - *Verify:* TC-161–TC-166 (exact values: Rp 149.600 / Rp 150.700; the Rp 99.000 promo twist; Rp 116.600 infeasible). Property test (1,000 random groups/budgets): under ≤ budget, budget < over ≤ cap, every person covered, ≤ 1 main per person. A JVM micro-benchmark for the 10-person worst case.
+- [ ] **DEV-043** SCR-19 Budget Pas UI + the Menu entry card (prereq: DEV-042, DEV-027).
+  - Budget number pad + quick chips, adult/child steppers with the group limit, two plan cards (per-person grouping, final total, "sisa"/"+Rp" label), swap per item, edge-case messages, Back.
+  - "Use this plan" loads the lines into `Cart` and navigates to SCR-10.
+  - Built from design-system components until OQ-14 is answered. EN/ID strings are added to both resource files.
+  - The entry card is hidden when `budgetPlanner.enabled` is false.
+  - *Verify:* TC-167 (Compose UI), screenshot tests in both languages, TC-168 benchmark on the device in 0.8.0.
+
 ### Acceptance criteria
-FR-012 AC1–AC3, FR-013 AC1–AC3 (AC4 deferred to 0.5.0), FR-014 AC1–AC3, FR-015 AC1–AC3 and FR-023 AC1–AC4 pass.
+FR-012 AC1–AC3, FR-013 AC1–AC3 (AC4 deferred to 0.5.0), FR-014 AC1–AC3, FR-015 AC1–AC3, FR-023 AC1–AC4 and FR-032 AC1–AC5 + AC7 pass. FR-032 AC6 is measured on the emulator here and confirmed on the iMin device in 0.8.0.
 
 ### Testing requirements
-- Unit: pricing (≥ 90 % coverage on `:core:domain`), cart, session.
-- UI: review screen, upsell, overlay.
-- Manual: pricing spot checks against a spreadsheet of 20 carts produced from the design samples.
-- TCs: TC-050–TC-067, TC-101–TC-104.
+- Unit: pricing (≥ 90 % coverage on `:core:domain`), cart, session, BudgetPlanner (exact cases + property test).
+- UI: review screen, upsell, overlay, Budget Pas screen.
+- Manual: pricing spot checks against a spreadsheet of 20 carts produced from the design samples. Plan sanity review of 10 budget/group combinations by the PO.
+- TCs: TC-050–TC-067, TC-101–TC-104, TC-161–TC-167.
 - Regression: 0.3.0 menu suite.
 
 ### Deliverables
-A pricing engine with a test table (`docs/pricing-cases.md`, generated from the tests); a complete ordering flow up to Pay.
+- A pricing engine with a test table (`docs/pricing-cases.md`, generated from the tests).
+- The Budget Pas planner with its case table (`docs/budget-pas-cases.md`, generated from the tests).
+- A complete ordering flow up to Pay.
 
 ### Exit criteria
-All TCs pass. Domain coverage ≥ 90 %. The PO has reviewed the upsell interim UI, or the design has arrived.
+All TCs pass. Domain coverage ≥ 90 %. The PO has reviewed the upsell and Budget Pas interim UIs, or their designs have arrived.
 
 ---
 
@@ -492,9 +525,10 @@ Audit and finish the cross-cutting qualities so the app is ready for a real-worl
 - [ ] **DEV-081** Accessibility (NFR-007).
   - TalkBack labels matching the design aria labels, a focus order per screen, role semantics (radio, toggle, button), contrast check of every text/background token pair (fix any < 4.5:1 with the PO), and touch targets ≥ 88 dpx.
   - *Verify:* TC-150, TC-151.
-- [ ] **DEV-082** Performance on the target device (NFR-003).
+- [ ] **DEV-082** Performance on the target device (NFR-003, FR-032 AC6).
   - Run the macrobenchmarks on the iMin device; fix regressions (image sizes, recomposition hot spots, `graphicsLayer` for animated layers); update the baseline profile.
-  - *Verify:* TC-142–TC-144, with results in `docs/perf/0.8.0.md`.
+  - Run the Budget Pas planner benchmark (10-person worst case).
+  - *Verify:* TC-142–TC-144 and TC-168, with results in `docs/perf/0.8.0.md`.
 - [ ] **DEV-083** Motion fidelity audit (NFR-009): screen-by-screen comparison against PRD §11.4 (screen recordings next to the design prototype), and confirm reduce motion collapses everything.
   - *Verify:* TC-153 checklist signed.
 - [ ] **DEV-084** Complete the screenshot test suite (Paparazzi or Roborazzi; pick the one that runs on JVM CI) for every screen and state in PRD §7 at 1080×1920, in both languages and with larger text.
@@ -507,7 +541,7 @@ NFR-003, NFR-007, NFR-008 and NFR-009 acceptance criteria pass on the target dev
 
 ### Testing requirements
 - Screenshot regression; accessibility scanner + manual TalkBack J1; on-device benchmarks; native-speaker review sign-off.
-- TCs: TC-032, TC-116, TC-142–TC-144, TC-150–TC-153.
+- TCs: TC-032, TC-116, TC-142–TC-144, TC-150–TC-153, TC-168.
 - Regression: full automated suite.
 
 ### Deliverables
@@ -650,6 +684,9 @@ Rolled out to pilot kiosks with no P1/P2 issues in 48 h. The full rollout is app
 | DEV-039 | 0.4.0 | FR-014 |
 | DEV-040 | 0.4.0 | FR-023 |
 | DEV-041 | 0.4.0 | FR-012, FR-023, FR-008 |
+| DEV-042 | 0.4.0 | FR-032 |
+| DEV-043 | 0.4.0 | FR-032 |
+| DEV-044 | 0.4.0 | FR-032 |
 | DEV-045 | 0.5.0 | FR-016 |
 | DEV-046 | 0.5.0 | FR-016, FR-013 |
 | DEV-047 | 0.5.0 | FR-017, NFR-017 |

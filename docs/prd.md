@@ -86,6 +86,7 @@ Let any restaurant on the Hitachi Kiosk platform put an attractive, fast, biling
 19. Android lock-task kiosk lockdown as device owner [D-20, D-22].
 20. English and Bahasa Indonesia localization [D-09].
 21. Accessibility options: reduce motion, larger text (+15 %), sound effects.
+22. **Budget Pas** group meal planner: budget + adults + children → closest-under and closest-over complete meal plans [D-26].
 
 ### 3.2 Explicit non-goals for 1.0.0
 | Item | Reason / when |
@@ -129,6 +130,7 @@ All screens are 1080 × 1920 dpx portrait, background `#FAF8F5`, font Schibsted 
 | SCR-16 | `SettingsPayment.dc.html` | Payment | Methods, terminal, QRIS, tax/rounding info | FR-025 |
 | SCR-17 | `SettingsKiosk.dc.html` | Kiosk behaviour | Ordering, screen, accessibility | FR-026 |
 | SCR-18 | `SettingsDevice.dc.html` | Device & network | Network, menu sync, device, PIN, restart | FR-027 |
+| SCR-19 | *(not designed, OQ-14)* | Budget Pas | Plan meals for a group within a budget | FR-032 |
 | — | `Photo.dc.html` | Photo slot component | Image container with tone placeholder when no image | NFR-013 |
 | — | `Logos.dc.html` | Logos | Brand mark reference | §11 |
 
@@ -165,6 +167,7 @@ SCR-04 Idle ──(hold bottom-right 2 s)──► SCR-14 Staff PIN ──► Se
                                                          └─(Exit)──► SCR-04
 
 SCR-06 Menu ─┬─(product card)──► SCR-08 Item ──(Keep ordering)──► SCR-06
+             ├─(Atur budget card)──► SCR-19 Budget Pas ──(pick a plan)──► SCR-10 (Back ──► SCR-06)
              ├─(Meals pill / combo promo)──► SCR-07 Combo ──(Menu)──► SCR-06
              ├─(Change order type)──► SCR-05 (cart kept)
              ├─(Cancel)──► SCR-04 (cart cleared)
@@ -211,6 +214,15 @@ On Idle, staff press and hold the bottom-right 160 × 160 dpx corner for 2 s. Th
 
 ### 5.9 Journey J8 — Network lost
 The kiosk loses connectivity while a customer is on the Menu. Browsing continues from the cache. Tapping "Pay" (or arriving on Your order) shows an "Ordering is paused — reconnecting" state, with the Pay button disabled. Connectivity returns and the button re-enables automatically (FR-028).
+
+### 5.10 Journey J9 — Family plans by budget (Budget Pas)
+1. A family of 2 adults and 1 child picks Dine in, then taps the "Atur budget / Plan by budget" card on the Menu.
+2. On SCR-19 they tap the Rp 150.000 chip, set Adults 2 and Children 1, and see two plans:
+   - "Pas di bawah budget · Rp 149.600 · sisa Rp 400"
+   - "Sedikit di atas · Rp 150.700 · +Rp 700"
+   Each plan lists meals per person (the child's meal comes from kid-friendly items) and shows the final total including PB1.
+3. They swap one adult's drink, and the plan re-totals and stays nearest the budget.
+4. They tap the under plan. The cart is filled and they land on Your order (SCR-10) with every line editable, then continue as J1 step 6.
 
 ---
 
@@ -683,6 +695,52 @@ Priority: **MVP** = required for 1.0.0. **Post-1.0** = specified for later, not 
   - AC1: Unplugging the receipt printer shows "Offline" on Settings home within 5 s.
   - AC2: The log directory never exceeds 10 MB.
 
+### FR-032 Budget Pas group meal planner — MVP
+- **Description:** The customer enters a budget and the number of adults and children. The kiosk proposes complete meal plans whose **final** total comes closest under and closest over the budget [D-26].
+- **Rationale:** Self-order kiosks usually push upsell. Planning a fair meal for a whole group within a stated budget is rare, fits Indonesian family and group dining, and is the launch differentiator.
+- **Entry:** a card "Atur budget / Plan by budget" at the top of the Menu grid (SCR-06), shown when merchant config `budgetPlanner.enabled` is true. It opens SCR-19. The screen is not designed yet (OQ-14), so it is built with design-system components (§11.3) until the design arrives.
+- **Inputs:**
+  - Budget: number pad (IDR, multiples of Rp 1.000), plus quick chips from config `quickBudgets` (default 50.000 / 100.000 / 150.000 / 200.000).
+  - Adults: 1–10. Children: 0–10.
+  - Adults + children ≤ config `maxGroupSize` (default 10).
+- **Outputs:** up to two plan cards.
+  - **"Pas di bawah budget" / "Just under budget"**: the plan with the highest final total ≤ budget, labelled "sisa Rp X".
+  - **"Sedikit di atas" / "Just over budget"**: the plan with the lowest final total > budget **and** ≤ budget × (1 + `overCapPercent` / 100), labelled "+Rp X". `overCapPercent` is merchant-set, default 10 [D-27]. If no plan fits the cap, this card is not shown.
+  - Each card lists items grouped per person ("Adult 1", "Adult 2", "Child 1") plus "Shared" items, and the final total including discount, PB1 and rounding.
+- **Plan rules (BR-13 – BR-15):**
+  - Every adult gets exactly 1 main + 1 drink. A combo (main + side + drink) counts as one adult's main and drink. A combo with `serves` = 2 covers two adults.
+  - Every child gets exactly 1 main with `kidFriendly = true` + 1 drink. If the merchant has no kid-friendly main, the cheapest available main is used and the card notes "Menu anak tidak tersedia" [D-28].
+  - Sides and desserts are added only while they bring the total closer to the target, at most one per person per plan.
+  - A plan never contains more than one main per person.
+  - Products with `servesAdults` > 1 (e.g. Family Bucket) are not used as plan mains in 1.0. Group sharing comes from combos with `serves` > 1.
+  - Sold-out items (`available = false`) are excluded.
+- **Pricing:** every candidate is priced with the same `PricingEngine` as checkout (FR-013). A plan whose raw subtotal crosses a promo threshold can therefore land **under** the budget.
+- **Ranking:** among candidates with the same final total, prefer, in order:
+  1. The higher subtotal (more food for the same price).
+  2. Variety (fewest repeated mains).
+  3. Merchant `plannerWeight`.
+  4. Featured items.
+- **Actions:**
+  - Tap a card → its items are added to the cart (merged with existing lines per FR-010 rules) → SCR-10.
+  - "Ganti / Swap" on an item replaces it with the next-best alternative in the same role and re-totals, keeping the plan nearest its target.
+  - "Back" returns to the Menu with the cart unchanged.
+- **Edge cases:**
+  - Budget below the cheapest complete plan → show that cheapest plan with "Butuh Rp X lagi / Rp X more needed".
+  - Budget ≥ the most generous allowed plan → show that plan with "Budget lebih dari cukup / Your budget covers more than enough".
+  - Group above `maxGroupSize` → "Silakan pesan per kelompok / Please order in smaller groups"; no plans shown.
+  - Budget empty or Rp 0 → plan button disabled.
+  - A menu sync during the order does not change plans until the order ends (FR-028).
+- **Performance:** both plans are computed on-device in ≤ 100 ms on the target iMin device for the design sample menu (23 products + 4 combos) and the maximum group of 10.
+- **Acceptance criteria:**
+  - AC1: Sample menu, 2 adults + 1 child, budget Rp 150.000 → under plan total **Rp 149.600**, over plan total **Rp 150.700** (cap Rp 165.000). Both plans cover all three people under BR-13/BR-14.
+  - AC2: Sample menu, 1 adult + 1 child, budget Rp 99.000 → the under plan totals **Rp 99.000** and has subtotal **Rp 100.000**: it uses the promo threshold and wins the tie against a Rp 90.000 subtotal plan with the same total.
+  - AC3: 2 adults + 1 child, budget Rp 100.000 → one plan, total Rp 116.600 (the cheapest complete plan), with "Butuh Rp 16.600 lagi".
+  - AC4: A menu with no kid-friendly main gives the child the cheapest main and shows the "Menu anak tidak tersedia" note. Otherwise only kid-friendly mains are chosen for children.
+  - AC5: Tapping a plan makes the cart lines and totals on SCR-10 equal the plan exactly.
+  - AC6: Plan computation ≤ 100 ms on the target device (benchmark).
+  - AC7: With `budgetPlanner.enabled = false` the Menu shows no entry card.
+- **Screens/flows:** SCR-06, SCR-19, SCR-10; J9.
+
 ---
 
 ## 7. Screen states and interaction details
@@ -698,6 +756,7 @@ Priority: **MVP** = required for 1.0.0. **Post-1.0** = specified for later, not 
 | SCR-10 Your order | — | "Your tray is empty" [V] | — | PRICE_CHANGED / ITEM_UNAVAILABLE messages | Banner, Pay disabled |
 | SCR-11 Checkout | "Creating your payment…" before the QR appears [A-34] | — | Processing → Complete | Failed state (FR-019) | Checking status (FR-019) |
 | SCR-12 Complete | — | — | Ticket + print animation | Print fallback text | Unaffected (already paid) |
+| SCR-19 Budget Pas | Computing (≤ 100 ms, no spinner) | Group too large / budget empty messages | Under and over plan cards | "Butuh Rp X lagi" plan | Works from cache; checkout gated by FR-028 |
 | SCR-14–18 Settings | Action busy labels [V] | No printers: "Add a printer" | Done labels [V] | Inline error per row | Offline badges; PIN change blocked |
 
 ### 7.1 Interaction primitives [V]
@@ -728,6 +787,9 @@ Complete per-screen motion inventory: §11.4.
 | BR-10 | Checkout requires connectivity. Browsing does not. | [D-11] |
 | BR-11 | At least one order type and one payment method stay enabled. | FR-025, FR-026 |
 | BR-12 | One printer per role. | FR-022 |
+| BR-13 | Budget Pas: each adult gets 1 main + 1 drink; a combo covers its `serves` adults. | FR-032, D-26 |
+| BR-14 | Budget Pas: each child gets 1 kid-friendly main + 1 drink, falling back to the cheapest main. | FR-032, D-28 |
+| BR-15 | Budget Pas: plans are compared on the final total (after promo, tax, rounding). "Over" plans are capped at the merchant's `overCapPercent` (default 10 %). | FR-032, D-27 |
 
 ---
 
@@ -775,7 +837,7 @@ No backend exists yet [D-06]. The app **defines** the contract below, which the 
 | E2 | `GET /v1/devices/{id}/merchants` → `[{id, name, cuisine, logoUrl, photoUrl, status: live\|coming_soon, isOpen}]` | Merchant list | FR-004 |
 | E3 | `PUT /v1/devices/{id}/binding` `{merchantId}` | Bind kiosk | FR-004 |
 | E4 | `DELETE /v1/devices/{id}/binding` | Log out / unbind | FR-004 |
-| E5 | `GET /v1/merchants/{id}/config` (ETag) → `{mode, accentColor, brandName, logoUrl, taxRate, taxLabel, roundingStepsAllowed, promos[], paymentMethods[], qrisMerchantIdMasked, staffPin: {hash, salt, algo}, receipt: {address, npwp}, upsell: {categoryIds[]}, idlePromos[]}` | Merchant config | FR-006, FR-013, FR-015, FR-024 |
+| E5 | `GET /v1/merchants/{id}/config` (ETag) → `{mode, accentColor, brandName, logoUrl, taxRate, taxLabel, roundingStepsAllowed, promos[], paymentMethods[], qrisMerchantIdMasked, staffPin: {hash, salt, algo}, receipt: {address, npwp}, upsell: {categoryIds[]}, budgetPlanner: {enabled, overCapPercent, maxGroupSize, quickBudgets[]}, idlePromos[]}` | Merchant config | FR-006, FR-013, FR-015, FR-024, FR-032 |
 | E6 | `GET /v1/merchants/{id}/menu` (ETag) → `{menuVersion, categories[], products[], modifierGroups[], combos[], featured[], promoBanners[]}` | Menu | FR-009–FR-011, FR-028 |
 | E7 | `POST /v1/orders` (Idempotency-Key) → `{orderId, orderNumber, totals}` or `PRICE_CHANGED` / `ITEM_UNAVAILABLE` | Create order | FR-016 |
 | E8 | `POST /v1/orders/{id}/cancel` | Abandon order | FR-016 |
@@ -788,7 +850,7 @@ No backend exists yet [D-06]. The app **defines** the contract below, which the 
 
 ### 10.3 Menu data model (minimum)
 - **Category** `{id, name{en,id}, sort, tone}`
-- **Product** `{id, categoryId, name{en,id}, description{en,id}, price, kcal?, badge?{type,label{en,id}}, tags{en,id}?, imageUrl?, available, modifierGroupIds[]}`
+- **Product** `{id, categoryId, name{en,id}, description{en,id}, price, kcal?, badge?{type,label{en,id}}, tags{en,id}?, imageUrl?, available, modifierGroupIds[], role: MAIN|SIDE|DRINK|DESSERT, kidFriendly, servesAdults, shareable, plannerWeight?}`. The last five fields drive Budget Pas (FR-032).
 - **ModifierGroup** `{id, name{en,id}, type: SINGLE|MULTI|LEVEL, required, min, max, options[]}`
   - **Option** `{id, name{en,id}, priceDelta, default, imageUrl?}`
   - For LEVEL groups, each option has levels `[None, Regular, Extra]` with per-level `priceDelta`.
@@ -879,6 +941,7 @@ Sized for one developer. Features live as packages inside `:app` rather than sep
 | DEP-5 | Upsell screen design | 0.4.0 | Product owner [OQ-05] |
 | DEP-6 | Real menu content + images for one pilot merchant | 0.9.0 | Merchant |
 | DEP-7 | USB and Bluetooth ESC/POS test printers (58 and 80 mm) | 0.6.0 | Hitachi |
+| DEP-8 | Menu items tagged with `role` and `kidFriendly` (dashboard field + merchant data) | Mock from 0.4.0; real by 0.9.0 | Backend team + merchant |
 
 ### 13.2 Constraints
 - One Android developer, about 3 months to 1.0.0 [D-25].
@@ -894,8 +957,9 @@ Sized for one developer. Features live as packages inside `:app` rather than sep
 | R-4 | iMin device OS is older than expected | Low | minSdk issue | minSdk 30 chosen for margin [D-04]. |
 | R-5 | Bluetooth printer variety (non-standard ESC/POS) | Medium | Print failures | Support the ESC/POS baseline. Certify a named list of printers. |
 | R-6 | Animation-heavy UI janks on kiosk SoC | Medium | Poor UX | Macrobenchmark from 0.3.0. Reduce-motion escape hatch. Profile on device in 0.8.0. |
-| R-7 | Scope (≈18 screens + 3 hardware integrations) for one developer in 3 months | High | Date slip | Strict milestone exit criteria. Defer list (§3.2). Weekly burn-down. |
+| R-7 | Scope (≈19 screens including Budget Pas + 3 hardware integrations) for one developer in about 3 months; the estimate is ~14.75 weeks | High | Date slip | Strict milestone exit criteria. Defer list (§3.2). Weekly burn-down. Budget Pas "swap" can move to 1.0.1 if the date is fixed. |
 | R-8 | Upsell design not delivered | Medium | FR-014 visual gap | Build with design-system components. Swap visuals when the design arrives. |
+| R-9 | Merchants tag menu roles or kid-friendly items poorly, so Budget Pas plans look wrong | Medium | Bad first impression of the differentiator | Dashboard validation (every product needs a role). Kiosk falls back per BR-14. Per-merchant `budgetPlanner.enabled` lets the feature stay off until the data is ready. |
 
 ---
 
@@ -930,6 +994,9 @@ Sized for one developer. Features live as packages inside `:app` rather than sep
 | D-23 | No crash reporting or telemetry in 1.0.0. |
 | D-24 | Stack: Kotlin + Jetpack Compose. |
 | D-25 | Team/timeline: solo developer, about 3 months. |
+| D-26 | Budget Pas group meal planner (budget + adults + children → closest under / closest over) ships in 1.0.0 as the differentiator. |
+| D-27 | The "just over" plan is capped by a merchant-set percentage, default 10 %. |
+| D-28 | Children's meals use only kid-tagged items, falling back to the cheapest main when none exist. |
 
 ## 15. Assumptions (unconfirmed)
 
@@ -992,6 +1059,7 @@ Sized for one developer. Features live as packages inside `:app` rather than sep
 | OQ-11 | Legal receipt requirements (NPWP, tax invoice wording) for Indonesia. | FR-021 | 0.6.0 |
 | OQ-12 | Should brightness control system brightness? | FR-026 | 0.7.0 |
 | OQ-13 | Change-PIN UI design. | FR-027 | 0.7.0 |
+| OQ-14 | Budget Pas screen (SCR-19) and Menu entry-card design. | FR-032 visuals | 0.4.0 |
 
 ## 17. Requirement traceability
 
@@ -1030,6 +1098,7 @@ Development tasks: `dev-plan.md`. Test cases: `testing-plan.md`. The full matrix
 | FR-029 | 0.7.0 | DEV-071, DEV-101 | TC-126–TC-128 |
 | FR-030 | 0.7.0 | DEV-072 | TC-129 |
 | FR-031 | 0.7.0 | DEV-067, DEV-073 | TC-130–TC-131 |
+| FR-032 | 0.4.0 | DEV-042, DEV-043, DEV-044 | TC-161–TC-168 |
 | NFR-001 | 0.1.0 | DEV-001 | TC-140 |
 | NFR-002 | 0.1.0 | DEV-003, DEV-084 | TC-141 |
 | NFR-003 | 0.3.0, 0.8.0 | DEV-031, DEV-082 | TC-142–TC-144 |

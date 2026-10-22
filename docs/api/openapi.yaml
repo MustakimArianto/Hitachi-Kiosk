@@ -396,6 +396,15 @@ paths:
                         - "cat_sides"
                         - "cat_desserts"
                       maxSuggestions: 4
+                    budgetPlanner:
+                      enabled: true
+                      overCapPercent: 10
+                      maxGroupSize: 10
+                      quickBudgets:
+                        - 50000
+                        - 100000
+                        - 150000
+                        - 200000
                     idlePromos:
                       - imageUrl: "https://cdn.example/mer_urbangrill/idle1.jpg"
                       - imageUrl: "https://cdn.example/mer_urbangrill/idle2.jpg"
@@ -467,6 +476,15 @@ paths:
                         - "cat_sides"
                         - "cat_desserts"
                       maxSuggestions: 4
+                    budgetPlanner:
+                      enabled: true
+                      overCapPercent: 10
+                      maxGroupSize: 10
+                      quickBudgets:
+                        - 50000
+                        - 100000
+                        - 150000
+                        - 200000
                     idlePromos:
                       - imageUrl: "https://cdn.example/mer_urbangrill/idle1.jpg"
                       - imageUrl: "https://cdn.example/mer_urbangrill/idle2.jpg"
@@ -622,6 +640,11 @@ paths:
                           - "mg_meal_upgrade"
                           - "mg_b2_ingredients"
                           - "mg_burger_extras"
+                        role: "MAIN"
+                        kidFriendly: false
+                        servesAdults: 1
+                        shareable: false
+                        plannerWeight: 5
                       - id: "c1"
                         categoryId: "cat_chicken"
                         name:
@@ -641,6 +664,11 @@ paths:
                         imageUrl: null
                         available: true
                         modifierGroupIds: []
+                        role: "MAIN"
+                        kidFriendly: false
+                        servesAdults: 1
+                        shareable: false
+                        plannerWeight: 0
                       - id: "s1"
                         categoryId: "cat_sides"
                         name:
@@ -655,6 +683,11 @@ paths:
                         available: true
                         modifierGroupIds:
                           - "mg_fries_size"
+                        role: "SIDE"
+                        kidFriendly: true
+                        servesAdults: 1
+                        shareable: true
+                        plannerWeight: 0
                       - id: "d1"
                         categoryId: "cat_drinks"
                         name:
@@ -669,6 +702,11 @@ paths:
                         available: true
                         modifierGroupIds:
                           - "mg_ice"
+                        role: "DRINK"
+                        kidFriendly: false
+                        servesAdults: 1
+                        shareable: false
+                        plannerWeight: 0
                     modifierGroups:
                       - id: "mg_meal_upgrade"
                         name:
@@ -2065,6 +2103,28 @@ components:
                 type: "string"
             maxSuggestions:
               type: "integer"
+        budgetPlanner:
+          type: "object"
+          properties:
+            enabled:
+              type: "boolean"
+            overCapPercent:
+              type: "integer"
+              minimum: 0
+              maximum: 100
+              default: 10
+            maxGroupSize:
+              type: "integer"
+              minimum: 1
+              default: 10
+            quickBudgets:
+              type: "array"
+              items:
+                type: "integer"
+                minimum: 0
+                description: "Integer Rupiah (IDR)."
+          required:
+            - "enabled"
         idlePromos:
           type: "array"
           items:
@@ -2156,6 +2216,22 @@ components:
           type: "array"
           items:
             type: "string"
+        role:
+          type: "string"
+          enum:
+            - "MAIN"
+            - "SIDE"
+            - "DRINK"
+            - "DESSERT"
+        kidFriendly:
+          type: "boolean"
+        servesAdults:
+          type: "integer"
+          minimum: 1
+        shareable:
+          type: "boolean"
+        plannerWeight:
+          type: "integer"
       required:
         - "id"
         - "categoryId"
@@ -2163,6 +2239,9 @@ components:
         - "price"
         - "available"
         - "modifierGroupIds"
+        - "role"
+        - "kidFriendly"
+        - "servesAdults"
     ModifierOption:
       type: "object"
       properties:
