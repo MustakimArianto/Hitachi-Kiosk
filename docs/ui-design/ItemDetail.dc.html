@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Hitachi Kiosk · Item</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#FAF8F5}
+*{box-sizing:border-box}
+a{color:inherit;text-decoration:none}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent}
+h1,h2{text-wrap:balance}
+p{text-wrap:pretty}
+.press{transition:transform 140ms cubic-bezier(.2,0,0,1)}
+.press:active{transform:scale(.96)}
+.scroller{scrollbar-width:none}
+.scroller::-webkit-scrollbar{display:none}
+@keyframes heroIn{0%{transform:scale(1.08)}100%{transform:none}}
+@keyframes fadeIn{0%{opacity:0}100%{opacity:1}}
+@keyframes titleRise{0%{transform:translateY(105%)}100%{transform:none}}
+@keyframes fadeUp{0%{opacity:0;transform:translateY(24px)}100%{opacity:1;transform:none}}
+@keyframes sheetUp{0%{transform:translateY(320px)}100%{transform:none}}
+@keyframes checkIn{0%{opacity:0;transform:scale(.4) rotate(-45deg)}100%{opacity:1;transform:none}}
+@keyframes ringOut{0%{opacity:.8;transform:scale(1)}100%{opacity:0;transform:scale(1.8)}}
+@keyframes rollA{0%{opacity:0;transform:translateY(60%)}100%{opacity:1;transform:none}}
+@keyframes rollB{0%{opacity:0;transform:translateY(60%)}100%{opacity:1;transform:none}}
+@keyframes qupA{0%{opacity:0;transform:translateY(-60%)}100%{opacity:1;transform:none}}
+@keyframes qupB{0%{opacity:0;transform:translateY(-60%)}100%{opacity:1;transform:none}}
+@keyframes qdnA{0%{opacity:0;transform:translateY(60%)}100%{opacity:1;transform:none}}
+@keyframes qdnB{0%{opacity:0;transform:translateY(60%)}100%{opacity:1;transform:none}}
+@keyframes bump{0%{transform:scale(1)}40%{transform:scale(1.25)}100%{transform:scale(1)}}
+@keyframes fly{0%{opacity:1;transform:translate(0,0) scale(1)}80%{opacity:1}100%{opacity:0;transform:translate(560px,-1640px) scale(.15)}}
+@keyframes dockIn{0%{transform:translateY(140%)}100%{transform:none}}
+@keyframes swapIn{0%{opacity:0;transform:translateY(24px)}100%{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:1ms!important;animation-delay:0ms!important;animation-iteration-count:1!important;transition-duration:1ms!important}}
+.rm *,.rm *::before,.rm *::after{animation-duration:1ms!important;animation-delay:0ms!important;animation-iteration-count:1!important;transition-duration:1ms!important}
+</style>
+</helmet>
+<div class="{{rootClass}}" style="position: relative; width: 1080px; height: 1920px; overflow: hidden; background: #FAF8F5; color: #171513; font-family: 'Schibsted Grotesk', 'Helvetica Neue', Arial, sans-serif">
+
+  <div aria-hidden="true" style="position: absolute; left: 0; top: 0; width: 1080px; height: 760px; overflow: hidden; background: #E9DED0">
+    <div style="animation: heroIn 1200ms cubic-bezier(.16,1,.3,1) both"><dc-import name="Photo" src="{{img}}" label="" tone="#E9DED0" plate="{{ false }}" w="{{ 1080 }}" h="{{ 760 }}" radius="{{ 0 }}" hint-size="1080px,760px"></dc-import></div>
+  </div>
+
+  <a href="Menu.dc.html" class="press" style="position: absolute; left: 72px; top: 48px; z-index: 3; height: 96px; padding: 0 34px 0 24px; border-radius: 999px; background: #FFFFFF; display: flex; align-items: center; gap: 10px; font-size: 30px; font-weight: 600; box-shadow: 0 24px 48px rgba(23,21,19,.10); animation: fadeIn 500ms cubic-bezier(.16,1,.3,1) 100ms both">
+    <svg aria-hidden="true" viewBox="0 0 24 24" style="width: 40px; height: 40px"><path d="M15 5l-7 7 7 7" fill="none" stroke="#171513" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+    Menu
+  </a>
+  <a href="Payment.dc.html" aria-label="Your order, {{count}} items" class="press" style="position: absolute; right: 72px; top: 48px; z-index: 3; height: 96px; padding: 0 14px 0 30px; border-radius: 999px; background: #FFFFFF; display: flex; align-items: center; gap: 14px; font-size: 28px; font-weight: 600; box-shadow: 0 24px 48px rgba(23,21,19,.10); animation: fadeIn 500ms cubic-bezier(.16,1,.3,1) 160ms both">
+    <svg aria-hidden="true" viewBox="0 0 24 24" style="width: 40px; height: 40px"><path d="M5 8h14l-1.2 12.2a1 1 0 0 1-1 .8H7.2a1 1 0 0 1-1-.8L5 8zM9 8V6a3 3 0 0 1 6 0v2" fill="none" stroke="#171513" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+    My order
+    <span style="min-width: 64px; height: 64px; padding: 0 16px; border-radius: 999px; background: {{accent}}; color: #FFFFFF; display: flex; align-items: center; justify-content: center; font-size: 28px; font-weight: 700; animation: {{cartBump}}">{{count}}</span>
+  </a>
+
+  <section class="scroller" style="position: absolute; left: 0; right: 0; top: 700px; bottom: 0; z-index: 2; border-radius: 48px 48px 0 0; background: #FAF8F5; overflow-y: auto; padding: 56px 72px 280px; display: flex; flex-direction: column; gap: 64px; animation: sheetUp 800ms cubic-bezier(.16,1,.3,1) 120ms both">
+    <div style="display: flex; flex-direction: column; gap: 16px">
+      <div style="display: flex; gap: 12px; flex-wrap: wrap; animation: fadeUp 600ms cubic-bezier(.16,1,.3,1) 320ms both">
+        <span style="padding: 10px 20px; border-radius: 999px; background: #F1EDE7; color: {{accent}}; font-size: 24px; font-weight: 700">New</span>
+        <span style="padding: 10px 20px; border-radius: 999px; background: #F1EDE7; color: #6F6961; font-size: 24px; font-weight: 600">780 kcal</span>
+        <span style="padding: 10px 20px; border-radius: 999px; background: #F1EDE7; color: #6F6961; font-size: 24px; font-weight: 600">Beef · Contains gluten, dairy</span>
+      </div>
+      <div style="overflow: hidden; padding-bottom: 6px; margin-top: 8px"><h1 style="margin: 0; font-size: 80px; font-weight: 700; letter-spacing: -2.4px; line-height: 1.0; animation: titleRise 900ms cubic-bezier(.16,1,.3,1) 300ms both">Smoky Double Burger</h1></div>
+      <span style="font-size: 48px; font-weight: 700; letter-spacing: -1px; animation: fadeUp 600ms cubic-bezier(.16,1,.3,1) 420ms both">Rp 52.000</span>
+      <p style="margin: 8px 0 0; max-width: 860px; font-size: 30px; line-height: 1.4; color: #6F6961; animation: fadeUp 600ms cubic-bezier(.16,1,.3,1) 480ms both">Two flame-grilled beef patties, smoked cheddar, pickles, onion and smoky house sauce on a toasted sesame bun.</p>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 24px; animation: fadeUp 650ms cubic-bezier(.16,1,.3,1) 560ms both">
+      <h2 style="margin: 0; font-size: 44px; font-weight: 700; letter-spacing: -.9px">Make it a meal?</h2>
+      <div role="radiogroup" aria-label="Meal option" style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px">
+        <sc-for list="{{meals}}" as="m" hint-placeholder-count="2">
+          <button role="radio" aria-checked="{{m.on}}" onClick="{{m.pick}}" class="press" style="position: relative; width: 100%; height: 176px; border-radius: 40px; background: #FFFFFF; padding: 16px 24px 16px 16px; display: flex; align-items: center; gap: 22px; box-shadow: {{m.shadow}}; transition: box-shadow 320ms cubic-bezier(.16,1,.3,1), transform 140ms">
+            <dc-import name="Photo" src="{{m.img}}" label="" tone="{{m.tone}}" w="{{ 120 }}" h="{{ 144 }}" radius="{{ 28 }}" hint-size="120px,144px"></dc-import>
+            <span style="display: flex; flex-direction: column; gap: 4px; min-width: 0">
+              <span style="font-size: 32px; font-weight: 600; line-height: 1.15">{{m.name}}</span>
+              <span style="font-size: 24px; color: #6F6961; line-height: 1.3">{{m.sub}}</span>
+              <span style="font-size: 28px; font-weight: 700; margin-top: 4px">{{m.price}}</span>
+            </span>
+            <sc-if value="{{m.on}}" hint-placeholder-val="{{ false }}">
+              <span aria-hidden="true" style="position: absolute; right: 20px; bottom: 20px; width: 40px; height: 40px; border-radius: 50%; background: {{accent}}; display: flex; align-items: center; justify-content: center; animation: checkIn 420ms cubic-bezier(.3,1.4,.5,1) both"><svg viewBox="0 0 24 24" style="width: 26px; height: 26px"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></path></svg></span>
+            </sc-if>
+          </button>
+        </sc-for>
+      </div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 24px; animation: fadeUp 650ms cubic-bezier(.16,1,.3,1) 640ms both">
+      <h2 style="margin: 0; font-size: 44px; font-weight: 700; letter-spacing: -.9px">Customize</h2>
+      <div style="border-radius: 40px; background: #FFFFFF; padding: 8px 24px 8px 32px; box-shadow: inset 0 0 0 2px #EFE9E0">
+        <sc-for list="{{ings}}" as="g" hint-placeholder-count="4">
+          <div style="height: 128px; display: flex; align-items: center; justify-content: space-between; gap: 24px; border-bottom: {{g.line}}">
+            <span style="display: flex; flex-direction: column; gap: 4px; min-width: 0">
+              <span style="font-size: 32px; font-weight: 600">{{g.name}}</span>
+              <span style="font-size: 24px; color: #6F6961">{{g.note}}</span>
+            </span>
+            <div role="group" aria-label="{{g.name}} amount" style="position: relative; flex-shrink: 0; width: 457px; height: 88px; padding: 8px; border-radius: 44px; background: #F1EDE7; display: flex">
+              <span aria-hidden="true" style="position: absolute; left: 8px; top: 8px; width: 147px; height: 72px; border-radius: 36px; background: {{g.indBg}}; box-shadow: 0 2px 6px rgba(23,21,19,.06); transform: translateX({{g.x}}px); transition: transform 550ms cubic-bezier(.3,1.15,.4,1), background-color 320ms; display: block"></span>
+              <sc-for list="{{g.levels}}" as="lv" hint-placeholder-count="3">
+                <button onClick="{{lv.pick}}" aria-pressed="{{lv.on}}" style="position: relative; width: 147px; height: 72px; display: flex; align-items: center; justify-content: center; font-size: 28px; font-weight: 600; color: {{lv.color}}; transition: color 300ms">{{lv.label}}</button>
+              </sc-for>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 24px; animation: fadeUp 650ms cubic-bezier(.16,1,.3,1) 720ms both">
+      <h2 style="margin: 0; font-size: 44px; font-weight: 700; letter-spacing: -.9px">Add extras</h2>
+      <div style="display: flex; flex-direction: column; gap: 12px">
+        <sc-for list="{{extras}}" as="e" hint-placeholder-count="3">
+          <button onClick="{{e.toggle}}" aria-pressed="{{e.on}}" class="press" style="width: 100%; height: 120px; border-radius: 32px; background: #FFFFFF; padding: 0 32px 0 16px; display: flex; align-items: center; gap: 22px; box-shadow: {{e.shadow}}; transition: box-shadow 320ms cubic-bezier(.16,1,.3,1), transform 140ms">
+            <dc-import name="Photo" src="{{e.img}}" label="" tone="{{e.tone}}" w="{{ 88 }}" h="{{ 88 }}" radius="{{ 24 }}" hint-size="88px,88px"></dc-import>
+            <span style="flex-grow: 1; font-size: 32px; font-weight: 600">{{e.name}}</span>
+            <span style="font-size: 28px; font-weight: 600; color: #6F6961">{{e.priceFmt}}</span>
+            <span aria-hidden="true" style="width: 48px; height: 48px; flex-shrink: 0; border-radius: 50%; background: {{e.dot}}; border: 3px solid {{e.dotBorder}}; display: flex; align-items: center; justify-content: center; transition: background-color 300ms, border-color 300ms">
+              <sc-if value="{{e.on}}" hint-placeholder-val="{{ false }}"><svg viewBox="0 0 24 24" style="width: 28px; height: 28px; animation: checkIn 380ms cubic-bezier(.3,1.4,.5,1) both"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></path></svg></sc-if>
+            </span>
+          </button>
+        </sc-for>
+      </div>
+    </div>
+  </section>
+
+  <div aria-hidden="true" style="position: absolute; left: 0; right: 0; bottom: 0; height: 300px; z-index: 3; background: linear-gradient(180deg, rgba(250,248,245,0) 0%, #FAF8F5 55%); pointer-events: none"></div>
+
+  <sc-if value="{{flying}}" hint-placeholder-val="{{ false }}">
+    <div aria-hidden="true" style="position: absolute; left: 380px; top: 1700px; width: 180px; height: 180px; border-radius: 50%; overflow: hidden; box-shadow: 0 24px 48px rgba(23,21,19,.18); z-index: 6; animation: fly 820ms cubic-bezier(.55,0,.75,.2) both">
+      <dc-import name="Photo" src="{{img}}" label="" tone="#E9DED0" w="{{ 180 }}" h="{{ 180 }}" radius="{{ 90 }}" hint-size="180px,180px"></dc-import>
+    </div>
+  </sc-if>
+
+  <section style="position: absolute; left: 72px; right: 72px; bottom: 48px; height: 168px; border-radius: 48px; background: #171513; color: #FAF8F5; padding: 0 16px; display: flex; align-items: center; gap: 16px; box-shadow: 0 24px 48px rgba(23,21,19,.10); z-index: 4; animation: dockIn 800ms cubic-bezier(.16,1,.3,1) 300ms both">
+    <sc-if value="{{notAdded}}" hint-placeholder-val="{{ true }}">
+      <div style="display: flex; align-items: center; gap: 16px; flex-grow: 1">
+        <div role="group" aria-label="Quantity" style="height: 136px; padding: 12px; border-radius: 36px; background: #2A2724; display: flex; align-items: center; gap: 4px">
+          <button onClick="{{dec}}" aria-label="Decrease quantity" class="press" style="width: 112px; height: 112px; border-radius: 28px; background: {{decBg}}; display: flex; align-items: center; justify-content: center; transition: background-color 300ms, transform 140ms"><svg aria-hidden="true" viewBox="0 0 24 24" style="width: 40px; height: 40px"><path d="M5 12h14" fill="none" stroke="{{decFg}}" stroke-width="2.2" stroke-linecap="round"></path></svg></button>
+          <span aria-live="polite" style="width: 72px; height: 80px; overflow: hidden; display: flex; align-items: center; justify-content: center"><span style="display: inline-block; font-size: 44px; font-weight: 700; animation: {{qtyAnim}}">{{qty}}</span></span>
+          <button onClick="{{inc}}" aria-label="Increase quantity" class="press" style="width: 112px; height: 112px; border-radius: 28px; background: #FAF8F5; display: flex; align-items: center; justify-content: center"><svg aria-hidden="true" viewBox="0 0 24 24" style="width: 40px; height: 40px"><path d="M12 5v14M5 12h14" fill="none" stroke="#171513" stroke-width="2.2" stroke-linecap="round"></path></svg></button>
+        </div>
+        <button onClick="{{add}}" class="press" style="flex-grow: 1; height: 136px; border-radius: 36px; background: {{accent}}; color: #FFFFFF; display: flex; align-items: center; justify-content: space-between; padding: 0 36px; font-size: 34px; font-weight: 700">
+          <span>Add to order</span>
+          <span style="height: 48px; overflow: hidden; display: block"><span style="display: inline-block; font-size: 32px; font-weight: 600; line-height: 48px; animation: {{priceRoll}}">{{totalFmt}}</span></span>
+        </button>
+      </div>
+    </sc-if>
+    <sc-if value="{{added}}" hint-placeholder-val="{{ false }}">
+      <div style="display: flex; align-items: center; gap: 16px; flex-grow: 1; animation: swapIn 480ms cubic-bezier(.16,1,.3,1) both">
+        <span style="position: relative; width: 104px; height: 104px; margin-left: 16px; flex-shrink: 0; border-radius: 50%; background: {{accent}}; display: flex; align-items: center; justify-content: center">
+          <span aria-hidden="true" style="position: absolute; inset: 0; border-radius: 50%; border: 3px solid {{accent}}; animation: ringOut 800ms cubic-bezier(.2,0,0,1) both"></span>
+          <svg aria-hidden="true" viewBox="0 0 24 24" style="width: 52px; height: 52px; animation: checkIn 460ms cubic-bezier(.3,1.4,.5,1) both"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="#FFFFFF" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+        </span>
+        <a href="Menu.dc.html" class="press" style="flex: 1; height: 136px; border-radius: 36px; border: 2px solid #3A3632; display: flex; align-items: center; justify-content: center; font-size: 32px; font-weight: 600">Keep ordering</a>
+        <a href="Payment.dc.html" class="press" style="flex: 1.1; height: 136px; border-radius: 36px; background: #FAF8F5; color: #171513; display: flex; align-items: center; justify-content: center; font-size: 34px; font-weight: 700">View order</a>
+      </div>
+    </sc-if>
+  </section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#C8552B","options":["#C8552B","#2F5D4A","#3A4C7A","#171513"]},"brand":{"editor":"text","default":"Urban Grill"},"reduceMotion":{"editor":"boolean","default":false},"$preview":{"width":1080,"height":1920}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.IMG = { double: '', meal: '', bacon: '', egg: '', jalapeno: '' };
+    this.extrasDef = [
+      { id: 'bacon', name: 'Beef bacon', price: 8000, img: this.IMG.bacon, tone: '#EADCCB' },
+      { id: 'egg', name: 'Fried egg', price: 6000, img: this.IMG.egg, tone: '#E9DED0' },
+      { id: 'jala', name: 'Jalapeños', price: 4000, img: this.IMG.jalapeno, tone: '#DFE3DC' }
+    ];
+    this.ingDef = [
+      { id: 'cheese', name: 'Smoked cheddar', note: 'Extra +Rp 5.000', extra: 5000 },
+      { id: 'onion', name: 'Onion', note: 'Fresh, diced', extra: 0 },
+      { id: 'pickles', name: 'Pickles', note: 'Dill', extra: 0 },
+      { id: 'sauce', name: 'Smoky sauce', note: 'House recipe', extra: 0 }
+    ];
+    this.state = { meal: true, ing: { cheese: 2, onion: 0, pickles: 1, sauce: 1 }, extras: {}, qty: 1, qtyDir: 1, qtyTick: 0, priceTick: 0, added: false, count: 4, cartTick: 0, flying: false };
+  }
+  componentWillUnmount() { clearTimeout(this.t); }
+  fmt(n) { return 'Rp ' + String(n).replace(/\B(?=(\d{3})+(?!\d))/g, '.'); }
+  unit() {
+    const s = this.state;
+    let u = 52000 + (s.meal ? 18000 : 0);
+    this.ingDef.forEach((g) => { if (s.ing[g.id] === 2) u += g.extra; });
+    this.extrasDef.forEach((e) => { if (s.extras[e.id]) u += e.price; });
+    return u;
+  }
+  bp(patch) { this.setState((st) => Object.assign({}, typeof patch === 'function' ? patch(st) : patch, { priceTick: st.priceTick + 1 })); }
+  renderVals() {
+    const s = this.state;
+    const accent = this.props.accent ?? '#C8552B';
+    const pp = s.priceTick % 2 ? 'B' : 'A';
+    const selShadow = 'inset 0 0 0 3px ' + accent;
+    const offShadow = 'inset 0 0 0 2px #EFE9E0';
+    return {
+      rootClass: this.props.reduceMotion ? 'rm' : '',
+      accent: accent,
+      img: this.IMG.double,
+      count: s.count,
+      cartBump: s.cartTick ? 'bump 520ms cubic-bezier(.3,1.4,.5,1) 760ms both' : 'none',
+      meals: [
+        { id: false, name: 'Burger only', sub: 'Just the burger', price: 'Rp 52.000', img: this.IMG.double, tone: '#E9DED0' },
+        { id: true, name: 'Make it a meal', sub: 'Adds fries & a drink', price: '+Rp 18.000', img: this.IMG.meal, tone: '#E3D4C2' }
+      ].map((m) => ({ ...m, on: s.meal === m.id, shadow: s.meal === m.id ? selShadow : offShadow, pick: () => { if (s.meal !== m.id) this.bp({ meal: m.id }); } })),
+      ings: this.ingDef.map((g, i) => {
+        const v = s.ing[g.id];
+        return {
+          ...g,
+          line: i < this.ingDef.length - 1 ? '2px solid #F1EDE7' : 'none',
+          x: v * 147,
+          indBg: v === 0 ? '#FFFFFF' : (v === 2 ? accent : '#171513'),
+          levels: ['None', 'Regular', 'Extra'].map((label, li) => ({
+            label: label,
+            on: v === li,
+            color: v === li ? (li === 0 ? '#171513' : '#FFFFFF') : '#6F6961',
+            pick: () => this.bp((st) => ({ ing: Object.assign({}, st.ing, { [g.id]: li }) }))
+          }))
+        };
+      }),
+      extras: this.extrasDef.map((e) => {
+        const on = !!s.extras[e.id];
+        return {
+          ...e,
+          on: on,
+          priceFmt: '+' + this.fmt(e.price),
+          shadow: on ? selShadow : offShadow,
+          dot: on ? accent : 'transparent',
+          dotBorder: on ? accent : '#D9D2C7',
+          toggle: () => this.bp((st) => ({ extras: Object.assign({}, st.extras, { [e.id]: !st.extras[e.id] }) }))
+        };
+      }),
+      qty: s.qty,
+      qtyAnim: s.qtyTick ? (s.qtyDir > 0 ? 'qup' : 'qdn') + (s.qtyTick % 2 ? 'B' : 'A') + ' 340ms cubic-bezier(.16,1,.3,1) both' : 'none',
+      decBg: s.qty > 1 ? '#FAF8F5' : '#3A3632',
+      decFg: s.qty > 1 ? '#171513' : '#8A837A',
+      inc: () => this.bp((st) => ({ qty: Math.min(20, st.qty + 1), qtyDir: 1, qtyTick: st.qtyTick + 1 })),
+      dec: () => { if (s.qty > 1) this.bp((st) => ({ qty: st.qty - 1, qtyDir: -1, qtyTick: st.qtyTick + 1 })); },
+      totalFmt: this.fmt(this.unit() * s.qty),
+      priceRoll: s.priceTick ? 'roll' + pp + ' 420ms cubic-bezier(.16,1,.3,1) both' : 'none',
+      added: s.added,
+      notAdded: !s.added,
+      flying: s.flying,
+      add: () => {
+        this.setState((st) => ({ added: true, flying: true, count: st.count + st.qty, cartTick: st.cartTick + 1 }));
+        this.t = setTimeout(() => this.setState({ flying: false }), 860);
+      }
+    };
+  }
+}
+</script>
+</body>
+</html>

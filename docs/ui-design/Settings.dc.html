@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Hitachi Kiosk · Settings</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#FAF8F5}
+*{box-sizing:border-box}
+a{color:inherit;text-decoration:none}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent}
+.press{transition:transform 140ms cubic-bezier(.2,0,0,1),background-color 200ms}
+.press:active{transform:scale(.96)}
+.key:active{background:#F1EDE7;transform:scale(.95)}
+.row:active{background:#F7F4EF}
+@keyframes fade{0%{opacity:0}100%{opacity:1}}
+@keyframes up{0%{opacity:0;transform:translateY(24px)}100%{opacity:1;transform:none}}
+@keyframes rise{0%{transform:translateY(100%)}100%{transform:none}}
+@keyframes rowIn{0%{opacity:0;transform:translateY(24px)}100%{opacity:1;transform:none}}
+@keyframes dotIn{0%{transform:scale(.3)}60%{transform:scale(1.25)}100%{transform:scale(1)}}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(47,122,80,.45)}100%{box-shadow:0 0 0 14px rgba(47,122,80,0)}}
+@keyframes lockIn{0%{opacity:0;transform:scale(.7) rotate(-8deg)}100%{opacity:1;transform:none}}
+@keyframes keyIn{0%{opacity:0;transform:translateY(20px) scale(.96)}100%{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:1ms!important;animation-delay:0ms!important;animation-iteration-count:1!important;transition-duration:1ms!important}}
+</style>
+</helmet>
+<div style="position: relative; width: 1080px; height: 1920px; overflow: hidden; background: #FAF8F5; color: #171513; font-family: 'Schibsted Grotesk', 'Helvetica Neue', Arial, sans-serif">
+
+  <sc-if value="{{locked}}" hint-placeholder-val="{{ false }}">
+    <div style="position: absolute; inset: 0; background: #FAF8F5">
+      <header style="position: absolute; left: 0; right: 0; top: 0; height: 168px; padding: 48px 72px 0; display: flex; align-items: flex-start; justify-content: space-between; animation: fade 400ms ease both">
+        <div style="height: 96px; display: flex; align-items: center; gap: 20px">
+          <span style="width: 80px; height: 80px; border-radius: 24px; background: #171513; display: flex; align-items: center; justify-content: center"><span style="width: 26px; height: 26px; border-radius: 50%; background: {{accent}}"></span></span>
+          <span style="font-size: 34px; font-weight: 700; letter-spacing: -0.01em">Staff only</span>
+        </div>
+        <a href="Idle.dc.html" class="press" style="height: 96px; padding: 0 44px; border-radius: 999px; border: 2px solid #E9E4DC; display: flex; align-items: center; font-size: 30px; font-weight: 600">Cancel</a>
+      </header>
+      <div style="position: absolute; left: 72px; right: 72px; top: 280px; display: flex; flex-direction: column; align-items: center; text-align: center">
+        <span style="width: 144px; height: 144px; border-radius: 40px; background: #F1EDE7; display: flex; align-items: center; justify-content: center; animation: lockIn 700ms cubic-bezier(.3,1.15,.4,1) 80ms both">
+          <svg aria-hidden="true" viewBox="0 0 24 24" style="width: 64px; height: 64px"><path d="M7 11V8a5 5 0 0 1 10 0v3M5.5 11h13v10h-13zM12 15v2.5" fill="none" stroke="#171513" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+        </span>
+        <div style="overflow: hidden; margin-top: 48px"><h1 style="margin: 0; font-size: 80px; font-weight: 700; letter-spacing: -0.03em; line-height: 1.02; animation: rise 900ms cubic-bezier(.16,1,.3,1) 120ms both">Staff access</h1></div>
+        <p style="margin: 16px 0 0; font-size: 30px; color: #6F6961; animation: up 600ms cubic-bezier(.16,1,.3,1) 220ms both">Enter the 4-digit staff PIN</p>
+        <div role="status" aria-label="PIN digits entered" style="display: flex; gap: 32px; margin: 64px 0">
+          <sc-for list="{{dots}}" as="d" hint-placeholder-count="4">
+            <span style="width: 32px; height: 32px; border-radius: 50%; border: 3px solid #171513; background: {{d.bg}}; transition: background-color 200ms; {{d.anim}}"></span>
+          </sc-for>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; width: 744px">
+          <sc-for list="{{keys}}" as="k" hint-placeholder-count="12">
+            <sc-if value="{{k.isNum}}" hint-placeholder-val="{{ true }}">
+              <button onClick="{{k.press}}" aria-label="{{k.t}}" class="press key" style="height: 152px; border-radius: 40px; background: #FFFFFF; border: 2px solid #EFE9E0; display: flex; align-items: center; justify-content: center; font-size: 60px; font-weight: 500; animation: keyIn 600ms cubic-bezier(.16,1,.3,1) {{k.delay}}ms backwards">{{k.t}}</button>
+            </sc-if>
+            <sc-if value="{{k.isDel}}" hint-placeholder-val="{{ false }}">
+              <button onClick="{{k.press}}" aria-label="Delete" class="press key" style="height: 152px; border-radius: 40px; display: flex; align-items: center; justify-content: center"><svg aria-hidden="true" viewBox="0 0 24 24" style="width: 56px; height: 56px"><path d="M9 5h11v14H9l-6-7zM12 9.5l5 5M17 9.5l-5 5" fill="none" stroke="#171513" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path></svg></button>
+            </sc-if>
+            <sc-if value="{{k.isBlank}}" hint-placeholder-val="{{ false }}"><span></span></sc-if>
+          </sc-for>
+        </div>
+      </div>
+      <p style="position: absolute; left: 72px; right: 72px; bottom: 72px; margin: 0; text-align: center; font-size: 24px; color: #6F6961">Prototype: any 4 digits unlock</p>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{unlocked}}" hint-placeholder-val="{{ true }}">
+    <div style="position: absolute; inset: 0">
+      <header style="position: absolute; left: 0; right: 0; top: 0; height: 168px; padding: 48px 72px 0; display: flex; align-items: flex-start; justify-content: space-between; animation: fade 400ms ease both">
+        <div style="height: 96px; display: flex; align-items: center; gap: 20px">
+          <span style="width: 80px; height: 80px; border-radius: 24px; background: #171513; display: flex; align-items: center; justify-content: center"><span style="width: 26px; height: 26px; border-radius: 50%; background: {{accent}}"></span></span>
+          <span style="font-size: 34px; font-weight: 700; letter-spacing: -0.01em">Kiosk settings</span>
+        </div>
+        <div style="display: flex; gap: 16px">
+          <button onClick="{{lock}}" class="press" style="height: 96px; padding: 0 36px 0 30px; border-radius: 999px; background: #F1EDE7; display: flex; align-items: center; gap: 12px; font-size: 30px; font-weight: 600">
+            <svg aria-hidden="true" viewBox="0 0 24 24" style="width: 36px; height: 36px"><path d="M7 11V8a5 5 0 0 1 10 0v3M5.5 11h13v10h-13z" fill="none" stroke="#171513" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+            Lock
+          </button>
+          <a href="Idle.dc.html" class="press" style="height: 96px; padding: 0 44px; border-radius: 999px; background: #171513; color: #FAF8F5; display: flex; align-items: center; font-size: 30px; font-weight: 600">Exit</a>
+        </div>
+      </header>
+
+      <main style="position: absolute; left: 72px; right: 72px; top: 168px; bottom: 0; padding-top: 48px; display: flex; flex-direction: column; gap: 64px">
+        <div style="display: flex; flex-direction: column; gap: 12px">
+          <span style="font-size: 26px; font-weight: 500; color: #6F6961; animation: up 600ms cubic-bezier(.16,1,.3,1) 40ms both">{{brand}} · Kiosk 3</span>
+          <div style="display: flex; align-items: center; gap: 24px">
+            <div style="overflow: hidden"><h1 style="margin: 0; font-size: 80px; font-weight: 700; letter-spacing: -0.03em; line-height: 1.02; animation: rise 900ms cubic-bezier(.16,1,.3,1) 80ms both">All systems ready</h1></div>
+            <span aria-hidden="true" style="width: 24px; height: 24px; flex-shrink: 0; border-radius: 50%; background: #2F7A50; animation: pulse 2s cubic-bezier(.2,0,0,1) infinite"></span>
+          </div>
+        </div>
+
+        <nav aria-label="Settings sections" style="display: flex; flex-direction: column; gap: 24px">
+          <sc-for list="{{sections}}" as="s" hint-placeholder-count="4">
+            <a href="{{s.href}}" class="press row" style="min-height: 208px; border-radius: 40px; background: #FFFFFF; border: 2px solid #EFE9E0; padding: 32px 40px 32px 32px; display: flex; align-items: center; gap: 32px; animation: rowIn 700ms cubic-bezier(.16,1,.3,1) {{s.delay}}ms backwards">
+              <span style="width: 128px; height: 128px; flex-shrink: 0; border-radius: 36px; background: #F1EDE7; display: flex; align-items: center; justify-content: center">
+                <svg aria-hidden="true" viewBox="0 0 24 24" style="width: 56px; height: 56px"><path d="{{s.icon}}" fill="none" stroke="#171513" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+              </span>
+              <span style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 8px">
+                <span style="font-size: 36px; font-weight: 600; letter-spacing: -0.01em; line-height: 1.15">{{s.title}}</span>
+                <span style="font-size: 26px; color: #6F6961; line-height: 1.3">{{s.summary}}</span>
+              </span>
+              <span style="display: flex; align-items: center; gap: 10px; flex-shrink: 0; height: 60px; padding: 0 24px; border-radius: 999px; background: #EAF3EC; font-size: 26px; font-weight: 600; color: {{s.statusColor}}">
+                <span style="width: 12px; height: 12px; border-radius: 50%; background: {{s.statusColor}}"></span>{{s.status}}
+              </span>
+              <svg aria-hidden="true" viewBox="0 0 24 24" style="width: 40px; height: 40px; flex-shrink: 0"><path d="M9 5l7 7-7 7" fill="none" stroke="#A39C92" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+            </a>
+          </sc-for>
+        </nav>
+
+        <p style="margin: auto 0 72px; text-align: center; font-size: 24px; color: #6F6961">Hitachi Kiosk 1.0.0 · Changes apply immediately</p>
+      </main>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#C8552B","options":["#C8552B","#2F5D4A","#3A4C7A","#171513"]},"brand":{"editor":"text","default":"Urban Grill"},"$preview":{"width":1080,"height":1920}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { pin: '', unlocked: true };
+  }
+  componentWillUnmount() { clearTimeout(this.t); }
+  key(d) {
+    if (d === 'del') { this.setState((s) => ({ pin: s.pin.slice(0, -1) })); return; }
+    const pin = (this.state.pin + d).slice(0, 4);
+    this.setState({ pin });
+    if (pin.length === 4) this.t = setTimeout(() => this.setState({ unlocked: true }), 350);
+  }
+  renderVals() {
+    const s = this.state;
+    const ok = '#2F7A50';
+    return {
+      accent: this.props.accent ?? '#C8552B',
+      brand: this.props.brand ?? 'Urban Grill',
+      locked: !s.unlocked,
+      unlocked: s.unlocked,
+      lock: () => this.setState({ unlocked: false, pin: '' }),
+      dots: [0, 1, 2, 3].map((i) => ({ bg: i < s.pin.length ? '#171513' : 'transparent', anim: i === s.pin.length - 1 ? 'animation: dotIn 360ms cubic-bezier(.3,1.15,.4,1) both' : '' })),
+      keys: ['1', '2', '3', '4', '5', '6', '7', '8', '9', '', '0', 'del'].map((k, i) => ({
+        t: k, isNum: k !== '' && k !== 'del', isDel: k === 'del', isBlank: k === '', delay: 260 + i * 30, press: () => this.key(k)
+      })),
+      sections: [
+        { title: 'Receipt printer', summary: 'Thermal 80 mm · receipts & kitchen tickets', status: 'Ready', href: 'SettingsPrinter.dc.html', icon: 'M7 8V3h10v5M7 17H5a1 1 0 0 1-1-1v-6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v6a1 1 0 0 1-1 1h-2M7 14h10v7H7z' },
+        { title: 'Payment', summary: 'QRIS, card terminal, pay at counter', status: 'Connected', href: 'SettingsPayment.dc.html', icon: 'M3 6.5A1.5 1.5 0 0 1 4.5 5h15A1.5 1.5 0 0 1 21 6.5v11a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 17.5zM3 9.5h18M6.5 15h4' },
+        { title: 'Kiosk behaviour', summary: 'Idle timeout, language, order types, sound', status: 'Set', href: 'SettingsKiosk.dc.html', icon: 'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-2.7 1.1V21a2 2 0 1 1-4 0v-.1a1.6 1.6 0 0 0-2.7-1.1l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0-1.1-2.7H3a2 2 0 1 1 0-4h.1a1.6 1.6 0 0 0 1.1-2.7l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 2.7-1.1V3a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 2.7 1.1l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0 1.1 2.7H21a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1.3z' },
+        { title: 'Device & network', summary: 'Wi-Fi, menu sync, kiosk ID, staff PIN', status: 'Online', href: 'SettingsDevice.dc.html', icon: 'M5 12.5a10 10 0 0 1 14 0M8.5 16a5 5 0 0 1 7 0M2 9a14.5 14.5 0 0 1 20 0M12 19.5h.01' }
+      ].map((x, i) => ({ ...x, statusColor: ok, delay: 200 + i * 80 }))
+    };
+  }
+}
+</script>
+</body>
+</html>

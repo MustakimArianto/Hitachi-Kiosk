@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Hitachi Kiosk · Combo</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#FAF8F5}
+*{box-sizing:border-box}
+a{color:inherit;text-decoration:none}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;cursor:pointer;text-align:left;-webkit-tap-highlight-color:transparent}
+h1,h2{text-wrap:balance}
+.press{transition:transform 140ms cubic-bezier(.2,0,0,1)}
+.press:active{transform:scale(.97)}
+.scroller{scrollbar-width:none}
+.scroller::-webkit-scrollbar{display:none}
+@keyframes titleRise{0%{transform:translateY(105%)}100%{transform:none}}
+@keyframes fadeIn{0%{opacity:0}100%{opacity:1}}
+@keyframes fadeUp{0%{opacity:0;transform:translateY(24px)}100%{opacity:1;transform:none}}
+@keyframes radioIn{0%{transform:scale(0)}100%{transform:scale(1)}}
+@keyframes rollA{0%{opacity:0;transform:translateY(60%)}100%{opacity:1;transform:none}}
+@keyframes rollB{0%{opacity:0;transform:translateY(60%)}100%{opacity:1;transform:none}}
+@keyframes bumpA{0%{transform:scale(1)}40%{transform:scale(1.2)}100%{transform:scale(1)}}
+@keyframes bumpB{0%{transform:scale(1)}40%{transform:scale(1.2)}100%{transform:scale(1)}}
+@keyframes checkIn{0%{opacity:0;transform:scale(.4) rotate(-45deg)}100%{opacity:1;transform:none}}
+@keyframes dockIn{0%{transform:translateY(140%)}100%{transform:none}}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:1ms!important;animation-delay:0ms!important;animation-iteration-count:1!important;transition-duration:1ms!important}}
+.rm *,.rm *::before,.rm *::after{animation-duration:1ms!important;animation-delay:0ms!important;animation-iteration-count:1!important;transition-duration:1ms!important}
+</style>
+</helmet>
+<div class="{{rootClass}}" style="position: relative; width: 1080px; height: 1920px; overflow: hidden; background: #FAF8F5; color: #171513; font-family: 'Schibsted Grotesk', 'Helvetica Neue', Arial, sans-serif">
+
+  <header style="position: absolute; left: 72px; right: 72px; top: 48px; height: 96px; display: flex; align-items: center; justify-content: space-between; z-index: 3; animation: fadeIn 500ms cubic-bezier(.16,1,.3,1) both">
+    <a href="Menu.dc.html" class="press" style="height: 96px; padding: 0 34px 0 24px; border-radius: 999px; background: #F1EDE7; display: flex; align-items: center; gap: 10px; font-size: 30px; font-weight: 600">
+      <svg aria-hidden="true" viewBox="0 0 24 24" style="width: 40px; height: 40px"><path d="M15 5l-7 7 7 7" fill="none" stroke="#171513" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+      Menu
+    </a>
+    <a href="Payment.dc.html" aria-label="Your order, {{count}} items" class="press" style="height: 96px; padding: 0 14px 0 30px; border-radius: 999px; border: 2px solid #E9E4DC; display: flex; align-items: center; gap: 14px; font-size: 28px; font-weight: 600">
+      <svg aria-hidden="true" viewBox="0 0 24 24" style="width: 40px; height: 40px"><path d="M5 8h14l-1.2 12.2a1 1 0 0 1-1 .8H7.2a1 1 0 0 1-1-.8L5 8zM9 8V6a3 3 0 0 1 6 0v2" fill="none" stroke="#171513" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+      My order
+      <span style="min-width: 64px; height: 64px; padding: 0 16px; border-radius: 999px; background: {{accent}}; color: #FFFFFF; display: flex; align-items: center; justify-content: center; font-size: 28px; font-weight: 700; animation: {{bumpAnim}}">{{count}}</span>
+    </a>
+  </header>
+
+  <div style="position: absolute; left: 72px; right: 72px; top: 208px; z-index: 2">
+    <p style="margin: 0 0 12px; font-size: 26px; font-weight: 500; color: #6F6961; animation: fadeUp 700ms cubic-bezier(.16,1,.3,1) 80ms both">A main, a side and a drink, for less</p>
+    <div style="overflow: hidden; padding-bottom: 6px"><h1 style="margin: 0; font-size: 80px; font-weight: 700; letter-spacing: -2.4px; line-height: 1.0; animation: titleRise 900ms cubic-bezier(.16,1,.3,1) 80ms both">Combos</h1></div>
+  </div>
+
+  <main class="scroller" style="position: absolute; left: 0; right: 0; top: 376px; bottom: 0; overflow-y: auto; padding: 24px 72px 280px">
+    <div role="radiogroup" aria-label="Combos" style="display: flex; flex-direction: column; gap: 16px">
+      <sc-for list="{{combos}}" as="c" hint-placeholder-count="4">
+        <button role="radio" aria-checked="{{c.on}}" onClick="{{c.pick}}" class="press" style="width: 100%; height: 160px; border-radius: 40px; background: #FFFFFF; padding: 16px 32px 16px 16px; display: flex; align-items: center; gap: 28px; box-shadow: {{c.shadow}}; transition: box-shadow 320ms cubic-bezier(.16,1,.3,1), transform 140ms; animation: fadeUp 700ms cubic-bezier(.16,1,.3,1) {{c.delay}}ms backwards">
+          <dc-import name="Photo" src="{{c.img}}" label="" tone="{{c.tone}}" w="{{ 176 }}" h="{{ 128 }}" radius="{{ 28 }}" hint-size="176px,128px"></dc-import>
+          <span style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px">
+            <span style="font-size: 36px; font-weight: 600; letter-spacing: -.4px; line-height: 1.15">{{c.name}}</span>
+            <span style="font-size: 26px; color: #6F6961">{{c.includes}}</span>
+          </span>
+          <span style="flex-shrink: 0; display: flex; flex-direction: column; align-items: flex-end; gap: 6px">
+            <span style="font-size: 34px; font-weight: 700; letter-spacing: -.3px">{{c.priceFmt}}</span>
+            <span style="font-size: 24px; font-weight: 600; color: #2F7A50">Save {{c.saveFmt}}</span>
+          </span>
+          <span aria-hidden="true" style="width: 52px; height: 52px; flex-shrink: 0; border-radius: 50%; border: 3px solid {{c.radio}}; display: flex; align-items: center; justify-content: center; transition: border-color 300ms">
+            <sc-if value="{{c.on}}" hint-placeholder-val="{{ false }}"><span style="display: block; width: 26px; height: 26px; border-radius: 50%; background: {{accent}}; animation: radioIn 420ms cubic-bezier(.3,1.4,.5,1) both"></span></sc-if>
+          </span>
+        </button>
+      </sc-for>
+    </div>
+
+    <div style="margin-top: 64px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; animation: fadeUp 700ms cubic-bezier(.16,1,.3,1) 480ms both">
+      <div role="group" aria-label="Side" style="display: flex; flex-direction: column; gap: 12px">
+        <h2 style="margin: 0 0 8px; font-size: 44px; font-weight: 700; letter-spacing: -.9px">Side</h2>
+        <sc-for list="{{sides}}" as="o" hint-placeholder-count="4">
+          <button onClick="{{o.pick}}" aria-pressed="{{o.on}}" class="press" style="width: 100%; height: 112px; border-radius: 32px; background: #FFFFFF; box-shadow: {{o.ring}}; padding: 0 24px 0 16px; display: flex; align-items: center; gap: 18px; transition: box-shadow 320ms cubic-bezier(.16,1,.3,1), transform 140ms">
+            <dc-import name="Photo" src="{{o.img}}" label="" tone="#E6DCD3" w="{{ 80 }}" h="{{ 80 }}" radius="{{ 40 }}" hint-size="80px,80px"></dc-import>
+            <span style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px">
+              <span style="font-size: 30px; font-weight: 600; line-height: 1.15">{{o.name}}</span>
+              <span style="font-size: 24px; color: #6F6961">{{o.extra}}</span>
+            </span>
+            <span aria-hidden="true" style="width: 44px; height: 44px; flex-shrink: 0; border-radius: 50%; background: {{o.dot}}; border: 3px solid {{o.dotBorder}}; display: flex; align-items: center; justify-content: center; transition: background-color 300ms, border-color 300ms">
+              <sc-if value="{{o.on}}" hint-placeholder-val="{{ false }}"><svg viewBox="0 0 24 24" style="width: 26px; height: 26px; animation: checkIn 380ms cubic-bezier(.3,1.4,.5,1) both"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></path></svg></sc-if>
+            </span>
+          </button>
+        </sc-for>
+      </div>
+      <div role="group" aria-label="Drink" style="display: flex; flex-direction: column; gap: 12px">
+        <h2 style="margin: 0 0 8px; font-size: 44px; font-weight: 700; letter-spacing: -.9px">Drink</h2>
+        <sc-for list="{{drinks}}" as="o" hint-placeholder-count="4">
+          <button onClick="{{o.pick}}" aria-pressed="{{o.on}}" class="press" style="width: 100%; height: 112px; border-radius: 32px; background: #FFFFFF; box-shadow: {{o.ring}}; padding: 0 24px 0 16px; display: flex; align-items: center; gap: 18px; transition: box-shadow 320ms cubic-bezier(.16,1,.3,1), transform 140ms">
+            <dc-import name="Photo" src="{{o.img}}" label="" tone="#DFE3DC" w="{{ 80 }}" h="{{ 80 }}" radius="{{ 40 }}" hint-size="80px,80px"></dc-import>
+            <span style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px">
+              <span style="font-size: 30px; font-weight: 600; line-height: 1.15">{{o.name}}</span>
+              <span style="font-size: 24px; color: #6F6961">{{o.extra}}</span>
+            </span>
+            <span aria-hidden="true" style="width: 44px; height: 44px; flex-shrink: 0; border-radius: 50%; background: {{o.dot}}; border: 3px solid {{o.dotBorder}}; display: flex; align-items: center; justify-content: center; transition: background-color 300ms, border-color 300ms">
+              <sc-if value="{{o.on}}" hint-placeholder-val="{{ false }}"><svg viewBox="0 0 24 24" style="width: 26px; height: 26px; animation: checkIn 380ms cubic-bezier(.3,1.4,.5,1) both"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></path></svg></sc-if>
+            </span>
+          </button>
+        </sc-for>
+      </div>
+    </div>
+
+    <div style="margin-top: 64px; display: flex; flex-direction: column; gap: 20px; animation: fadeUp 700ms cubic-bezier(.16,1,.3,1) 560ms both">
+      <h2 style="margin: 0; font-size: 44px; font-weight: 700; letter-spacing: -.9px">Size</h2>
+      <div role="group" aria-label="Size" style="position: relative; height: 104px; padding: 8px; border-radius: 52px; background: #F1EDE7; display: flex">
+        <span aria-hidden="true" style="position: absolute; left: 8px; top: 8px; width: 460px; height: 88px; border-radius: 44px; background: #FFFFFF; box-shadow: 0 2px 6px rgba(23,21,19,.06); transform: translateX({{sizeX}}px); transition: transform 550ms cubic-bezier(.3,1.15,.4,1); display: block"></span>
+        <button onClick="{{setReg}}" aria-pressed="{{isReg}}" style="position: relative; flex: 1; height: 88px; display: flex; align-items: center; justify-content: center; font-size: 30px; font-weight: 600; color: {{regColor}}; transition: color 300ms">Regular</button>
+        <button onClick="{{setLarge}}" aria-pressed="{{isLarge}}" style="position: relative; flex: 1; height: 88px; display: flex; align-items: center; justify-content: center; font-size: 30px; font-weight: 600; color: {{largeColor}}; transition: color 300ms">Large +{{largeUp}}</button>
+      </div>
+    </div>
+  </main>
+
+  <div aria-hidden="true" style="position: absolute; left: 0; right: 0; bottom: 0; height: 320px; background: linear-gradient(180deg, rgba(250,248,245,0) 0%, #FAF8F5 55%); pointer-events: none; z-index: 3"></div>
+
+  <section style="position: absolute; left: 72px; right: 72px; bottom: 48px; height: 168px; border-radius: 48px; background: #171513; color: #FAF8F5; padding: 0 16px 0 40px; display: flex; align-items: center; gap: 24px; box-shadow: 0 24px 48px rgba(23,21,19,.10); z-index: 4; animation: dockIn 800ms cubic-bezier(.16,1,.3,1) 300ms both">
+    <div style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px">
+      <span style="font-size: 26px; font-weight: 500; color: #B9B2A8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{summary}}</span>
+      <span style="height: 56px; overflow: hidden; display: block"><span style="display: inline-block; font-size: 44px; font-weight: 700; line-height: 56px; letter-spacing: -.8px; animation: {{rollAnim}}">{{totalFmt}}</span></span>
+    </div>
+    <button onClick="{{add}}" class="press" style="flex-shrink: 0; width: 360px; height: 136px; border-radius: 36px; background: {{addBg}}; color: {{addFg}}; display: flex; align-items: center; justify-content: center; gap: 14px; font-size: 34px; font-weight: 700; transition: background-color 360ms cubic-bezier(.16,1,.3,1), color 360ms, transform 140ms">
+      <sc-if value="{{added}}" hint-placeholder-val="{{ false }}">
+        <svg aria-hidden="true" viewBox="0 0 24 24" style="width: 42px; height: 42px; animation: checkIn 420ms cubic-bezier(.3,1.4,.5,1) both"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="{{accent}}" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+      </sc-if>
+      {{addLabel}}
+    </button>
+  </section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#C8552B","options":["#C8552B","#2F5D4A","#3A4C7A","#171513"]},"brand":{"editor":"text","default":"Urban Grill"},"reduceMotion":{"editor":"boolean","default":false},"$preview":{"width":1080,"height":1920}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    const IMG = { meal: '', chickenmeal: '', bowlmeal: '', feast: '', fries: '', cheesefries: '', nuggets: '', corn: '', cola: '', icedtea: '', coffee: '', water: '' };
+    this.combos = [
+      { id: 'burger', name: 'Cheeseburger Meal', short: 'Cheeseburger Meal', includes: 'Cheeseburger, side, drink', price: 56000, sep: 70000, img: IMG.meal, tone: '#E9DED0' },
+      { id: 'chicken', name: 'Crispy Chicken Meal', short: 'Chicken Meal', includes: '2 pc chicken, side, drink', price: 59000, sep: 70000, img: IMG.chickenmeal, tone: '#E3D4C2' },
+      { id: 'bowl', name: 'Rice Bowl Combo', short: 'Rice Bowl Combo', includes: 'Sambal matah bowl, side, drink', price: 52000, sep: 64000, img: IMG.bowlmeal, tone: '#EADCCB' },
+      { id: 'feast', name: 'Feast for Two', short: 'Feast for Two', includes: '2 burgers, 2 sides, 2 drinks', price: 109000, sep: 140000, img: IMG.feast, tone: '#E6DCD3' }
+    ];
+    this.sideOpts = [
+      { id: 'fries', name: 'Fries', up: 0, img: IMG.fries },
+      { id: 'cheese', name: 'Cheese fries', up: 8000, img: IMG.cheesefries },
+      { id: 'nuggets', name: 'Nuggets', up: 4000, img: IMG.nuggets },
+      { id: 'corn', name: 'Corn cup', up: 0, img: IMG.corn }
+    ];
+    this.drinkOpts = [
+      { id: 'cola', name: 'Cola', up: 0, img: IMG.cola },
+      { id: 'tea', name: 'Lychee tea', up: 2000, img: IMG.icedtea },
+      { id: 'coffee', name: 'Iced latte', up: 4000, img: IMG.coffee },
+      { id: 'water', name: 'Water', up: 0, img: IMG.water }
+    ];
+    this.state = { sel: 'burger', side: 'fries', drink: 'cola', large: false, optTick: 0, added: false, count: 4, cartTick: 0 };
+  }
+  componentWillUnmount() { clearTimeout(this.t); }
+  fmt(n) { return 'Rp ' + String(n).replace(/\B(?=(\d{3})+(?!\d))/g, '.'); }
+  mult() { return this.state.sel === 'feast' ? 2 : 1; }
+  price() {
+    const s = this.state;
+    const c = this.combos.find((x) => x.id === s.sel);
+    const side = this.sideOpts.find((x) => x.id === s.side);
+    const drink = this.drinkOpts.find((x) => x.id === s.drink);
+    return c.price + (side.up + drink.up + (s.large ? 6000 : 0)) * this.mult();
+  }
+  opt(patch) { this.setState((st) => Object.assign({}, patch, { optTick: st.optTick + 1, added: false })); }
+  renderVals() {
+    const s = this.state;
+    const accent = this.props.accent ?? '#C8552B';
+    const op = s.optTick % 2 ? 'B' : 'A';
+    const cp = s.cartTick % 2 ? 'B' : 'A';
+    const mult = this.mult();
+    const c = this.combos.find((x) => x.id === s.sel);
+    const side = this.sideOpts.find((x) => x.id === s.side);
+    const drink = this.drinkOpts.find((x) => x.id === s.drink);
+    const chips = (list, cur, key) => list.map((o) => ({
+      ...o,
+      on: cur === o.id,
+      ring: cur === o.id ? 'inset 0 0 0 3px #171513' : 'inset 0 0 0 2px #EFE9E0',
+      dot: cur === o.id ? '#171513' : 'transparent',
+      dotBorder: cur === o.id ? '#171513' : '#D9D2C7',
+      extra: o.up ? '+' + this.fmt(o.up * mult) : 'Included',
+      pick: () => { if (cur !== o.id) this.opt({ [key]: o.id }); }
+    }));
+    return {
+      rootClass: this.props.reduceMotion ? 'rm' : '',
+      accent: accent,
+      brand: this.props.brand ?? 'Urban Grill',
+      count: s.count,
+      bumpAnim: s.cartTick ? 'bump' + cp + ' 460ms cubic-bezier(.3,1.4,.5,1) both' : 'none',
+      combos: this.combos.map((x, i) => {
+        const on = x.id === s.sel;
+        return {
+          ...x,
+          on: on,
+          priceFmt: this.fmt(x.price),
+          saveFmt: this.fmt(x.sep - x.price),
+          shadow: on ? 'inset 0 0 0 3px ' + accent : 'inset 0 0 0 2px #EFE9E0',
+          radio: on ? accent : '#D9D2C7',
+          delay: 200 + i * 60,
+          pick: () => { if (!on) this.opt({ sel: x.id }); }
+        };
+      }),
+      sides: chips(this.sideOpts, s.side, 'side'),
+      drinks: chips(this.drinkOpts, s.drink, 'drink'),
+      sizeX: s.large ? 460 : 0,
+      isReg: !s.large,
+      isLarge: s.large,
+      regColor: s.large ? '#6F6961' : '#171513',
+      largeColor: s.large ? '#171513' : '#6F6961',
+      largeUp: this.fmt(6000 * mult),
+      setReg: () => { if (s.large) this.opt({ large: false }); },
+      setLarge: () => { if (!s.large) this.opt({ large: true }); },
+      summary: c.short + ' · ' + side.name + ' · ' + drink.name + ' · ' + (s.large ? 'Large' : 'Regular'),
+      totalFmt: this.fmt(this.price()),
+      rollAnim: s.optTick ? 'roll' + op + ' 460ms cubic-bezier(.16,1,.3,1) both' : 'none',
+      added: s.added,
+      addLabel: s.added ? 'Added' : 'Add combo',
+      addBg: s.added ? '#FAF8F5' : accent,
+      addFg: s.added ? '#171513' : '#FFFFFF',
+      add: () => {
+        if (s.added) return;
+        this.setState((st) => ({ added: true, count: st.count + 1, cartTick: st.cartTick + 1 }));
+        clearTimeout(this.t);
+        this.t = setTimeout(() => this.setState({ added: false }), 1800);
+      }
+    };
+  }
+}
+</script>
+</body>
+</html>

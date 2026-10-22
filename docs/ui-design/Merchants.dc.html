@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Hitachi Kiosk · Merchants</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#FAF8F5}
+*{box-sizing:border-box}
+a{color:inherit;text-decoration:none}
+button{font-family:inherit}
+h1,h2{text-wrap:balance}
+p{text-wrap:pretty}
+.card{transition:transform 160ms cubic-bezier(.2,0,0,1)}
+.card:active{transform:scale(.98)}
+.press{transition:transform 140ms cubic-bezier(.2,0,0,1)}
+.press:active{transform:scale(.96)}
+@keyframes up{0%{opacity:0;transform:translateY(24px)}100%{opacity:1;transform:none}}
+@keyframes fade{0%{opacity:0}100%{opacity:1}}
+@keyframes rise{0%{transform:translateY(105%)}100%{transform:none}}
+@keyframes nudge{0%,100%{transform:translateX(0)}50%{transform:translateX(8px)}}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(47,122,80,.45)}100%{box-shadow:0 0 0 12px rgba(47,122,80,0)}}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:1ms!important;animation-delay:0ms!important;animation-iteration-count:1!important;transition-duration:1ms!important}}
+.rm *,.rm *::before,.rm *::after{animation-duration:1ms!important;animation-delay:0ms!important;animation-iteration-count:1!important;transition-duration:1ms!important}
+</style>
+</helmet>
+<div class="{{rootClass}}" style="position: relative; width: 1080px; height: 1920px; overflow: hidden; background: #FAF8F5; color: #171513; font-family: 'Schibsted Grotesk', 'Helvetica Neue', Arial, sans-serif">
+
+  <header style="position: absolute; left: 72px; right: 72px; top: 48px; height: 96px; display: flex; align-items: center; justify-content: space-between; animation: fade 600ms ease both">
+    <span style="display: flex; align-items: center; gap: 20px; font-size: 34px; font-weight: 700; letter-spacing: -0.01em">
+      <span style="width: 80px; height: 80px; border-radius: 24px; background: #171513; display: flex; align-items: center; justify-content: center"><span style="width: 26px; height: 26px; border-radius: 50%; background: {{accent}}; display: block"></span></span>
+      Hitachi Kiosk
+    </span>
+    <a href="Login.dc.html" class="press" style="height: 96px; padding: 0 36px 0 28px; border-radius: 999px; border: 2px solid #E9E4DC; display: flex; align-items: center; gap: 14px; font-size: 28px; font-weight: 600">
+      <svg aria-hidden="true" viewBox="0 0 24 24" style="width: 36px; height: 36px"><path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3M10 17l-5-5 5-5M5 12h11" fill="none" stroke="#171513" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+      Log out
+    </a>
+  </header>
+
+  <main style="position: absolute; left: 72px; right: 72px; top: 216px; display: flex; flex-direction: column; gap: 64px">
+    <div style="display: flex; flex-direction: column; gap: 24px">
+      <p style="margin: 0; font-size: 26px; font-weight: 500; color: #6F6961; animation: up 600ms cubic-bezier(.16,1,.3,1) 80ms both">Step 1 of 2 · Set up this kiosk</p>
+      <div style="overflow: hidden; padding-bottom: 8px"><h1 style="margin: 0; font-size: 80px; line-height: 1; letter-spacing: -0.03em; font-weight: 700; animation: rise 900ms cubic-bezier(.16,1,.3,1) 80ms both">Choose a restaurant</h1></div>
+      <p style="margin: 0; font-size: 30px; line-height: 1.4; color: #6F6961; animation: up 700ms cubic-bezier(.16,1,.3,1) 160ms both">Select the merchant this kiosk will serve.</p>
+    </div>
+
+    <a class="card" href="OrderType.dc.html" aria-label="{{brand}}, open" style="height: 320px; border-radius: 40px; background: #FFFFFF; padding: 24px 40px 24px 24px; display: flex; align-items: center; gap: 40px; box-shadow: 0 0 0 3px {{accent}}, 0 24px 48px rgba(23,21,19,.10); animation: up 700ms cubic-bezier(.16,1,.3,1) 220ms backwards">
+      <div style="position: relative; flex: none">
+        <dc-import name="Photo" src="" label="{{brand}}" tone="#E9DED0" w="{{ 272 }}" h="{{ 272 }}" radius="{{ 32 }}" hint-size="272px,272px"></dc-import>
+        <span style="position: absolute; left: 16px; top: 16px; width: 72px; height: 72px; border-radius: 22px; background: #FFFFFF; display: flex; align-items: center; justify-content: center">
+          <svg role="img" aria-label="{{brand}} logo" viewBox="0 0 48 48" style="width: 52px; height: 52px"><circle cx="24" cy="24" r="21" fill="none" stroke="#171513" stroke-width="1.8"></circle><path d="M24 35c-5.2 0-8.5-3.4-8.5-8 0-4.5 3-7.3 5.2-10.2.4 2.6 1.7 4.2 3.3 4.9.2-4.4 1.8-7.7 4.6-10.2-.5 4.2 1.4 6.7 3.1 9 1.3 1.8 1.8 3.8 1.8 5.6 0 5-3.6 8.9-9.5 8.9z" fill="none" stroke="{{accent}}" stroke-width="2" stroke-linejoin="round"></path></svg>
+        </span>
+      </div>
+      <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 16px">
+        <div style="font-size: 48px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.05">{{brand}}</div>
+        <div style="font-size: 28px; color: #6F6961">Burgers &amp; grill</div>
+        <span style="align-self: flex-start; height: 56px; padding: 0 22px; border-radius: 999px; background: #EAF3EC; color: #2F7A50; display: flex; align-items: center; gap: 12px; font-size: 24px; font-weight: 600"><span aria-hidden="true" style="width: 12px; height: 12px; border-radius: 50%; background: #2F7A50; animation: pulse 1.8s cubic-bezier(.2,0,0,1) infinite; display: block"></span>Open now</span>
+      </div>
+      <span aria-hidden="true" style="width: 112px; height: 112px; flex: none; border-radius: 50%; background: {{accent}}; display: flex; align-items: center; justify-content: center"><svg viewBox="0 0 24 24" style="width: 48px; height: 48px; animation: nudge 1.8s ease-in-out 1.4s infinite"><path d="M5 12h14M13 6l6 6-6 6" fill="none" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg></span>
+    </a>
+
+    <div style="display: flex; flex-direction: column; gap: 24px">
+      <p style="margin: 0; font-size: 30px; font-weight: 600; color: #6F6961; animation: up 600ms cubic-bezier(.16,1,.3,1) 300ms backwards">Coming soon</p>
+      <sc-for list="{{soon}}" as="m" hint-placeholder-count="4">
+        <div aria-disabled="true" style="height: 176px; border-radius: 40px; background: #F1EDE7; padding: 0 32px 0 24px; display: flex; align-items: center; gap: 32px; animation: up 700ms cubic-bezier(.16,1,.3,1) {{m.delay}} backwards">
+          <div style="width: 104px; height: 104px; flex: none; border-radius: 28px; background: #FFFFFF; display: flex; align-items: center; justify-content: center; font-size: 40px; font-weight: 700; color: #6F6961">{{m.initial}}</div>
+          <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px">
+            <div style="font-size: 36px; font-weight: 600; letter-spacing: -0.01em; white-space: nowrap">{{m.name}}</div>
+            <div style="font-size: 26px; font-weight: 500; color: #6F6961">{{m.type}}</div>
+          </div>
+          <span style="height: 64px; padding: 0 26px; border-radius: 999px; background: #FFFFFF; display: flex; align-items: center; font-size: 24px; font-weight: 600; color: #6F6961; flex: none">Soon</span>
+        </div>
+      </sc-for>
+    </div>
+  </main>
+  <p style="position: absolute; left: 72px; right: 72px; bottom: 56px; margin: 0; text-align: center; font-size: 24px; font-weight: 500; color: #6F6961; animation: fade 600ms ease 700ms both">More merchants will appear here as they join Hitachi Kiosk</p>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#C8552B","options":["#C8552B","#2F5D4A","#3A4C7A","#171513"]},"brand":{"editor":"text","default":"Urban Grill"},"reduceMotion":{"editor":"boolean","default":false},"$preview":{"width":1080,"height":1920}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.soon = [
+      { name: 'Bella Pasta', type: 'Italian kitchen' },
+      { name: 'Sakura Ramen', type: 'Japanese noodles' },
+      { name: 'Taco Loco', type: 'Mexican street food' },
+      { name: 'Fresh Bowl', type: 'Salads & healthy bowls' }
+    ];
+  }
+  renderVals() {
+    return {
+      rootClass: this.props.reduceMotion ? 'rm' : '',
+      accent: this.props.accent ?? '#C8552B',
+      brand: this.props.brand ?? 'Urban Grill',
+      soon: this.soon.map((m, i) => ({ ...m, initial: m.name[0], delay: (360 + i * 60) + 'ms' }))
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,220 @@
+{
+  "v": 3,
+  "attachments": {},
+  "boards": {
+    "Checkout.dc.html": {
+      "h": 1920,
+      "is_interactive": true,
+      "title": "9 · Checkout",
+      "w": 1080,
+      "x": 0,
+      "y": 4800
+    },
+    "Combo.dc.html": {
+      "h": 1920,
+      "is_interactive": true,
+      "title": "6 · Combo",
+      "w": 1080,
+      "x": 1160,
+      "y": 2400
+    },
+    "Complete.dc.html": {
+      "h": 1920,
+      "is_interactive": true,
+      "title": "10 · Transaction complete",
+      "w": 1080,
+      "x": 1160,
+      "y": 4800
+    },
+    "Idle.dc.html": {
+      "h": 1920,
+      "is_interactive": true,
+      "title": "Idle (after inactivity)",
+      "w": 1080,
+      "x": 2320,
+      "y": 4800
+    },
+    "ItemDetail.dc.html": {
+      "h": 1920,
+      "is_interactive": true,
+      "title": "7 · Item",
+      "w": 1080,
+      "x": 2320,
+      "y": 2400
+    },
+    "Login.dc.html": {
+      "h": 1920,
+      "is_interactive": true,
+      "title": "2 · Login",
+      "w": 1080,
+      "x": 1160,
+      "y": 0
+    },
+    "Logos.dc.html": {
+      "h": 960,
+      "title": "Logos",
+      "w": 1440,
+      "x": 600,
+      "y": 7200
+    },
+    "Main.dc.html": {
+      "h": 1920,
+      "is_interactive": true,
+      "title": "1 · Splash",
+      "w": 1080,
+      "x": 0,
+      "y": 0
+    },
+    "Menu.dc.html": {
+      "h": 1920,
+      "is_interactive": true,
+      "title": "5 · Menu",
+      "w": 1080,
+      "x": 0,
+      "y": 2400
+    },
+    "Merchants.dc.html": {
+      "h": 1920,
+      "is_interactive": true,
+      "title": "3 · Merchant selection",
+      "w": 1080,
+      "x": 2320,
+      "y": 0
+    },
+    "OrderType.dc.html": {
+      "h": 1920,
+      "is_interactive": true,
+      "title": "4 · Onboard: dine in / takeaway",
+      "w": 1080,
+      "x": 3480,
+      "y": 0
+    },
+    "Payment.dc.html": {
+      "h": 1920,
+      "is_interactive": true,
+      "title": "8 · Payment",
+      "w": 1080,
+      "x": 3480,
+      "y": 2400
+    },
+    "Photo.dc.html": {
+      "h": 360,
+      "title": "Photo slot component",
+      "w": 480,
+      "x": 0,
+      "y": 7200
+    },
+    "Settings.dc.html": {
+      "h": 1920,
+      "is_interactive": true,
+      "title": "Settings home (hold bottom-right corner on Idle)",
+      "w": 1080,
+      "x": 0,
+      "y": 9600
+    },
+    "SettingsDevice.dc.html": {
+      "h": 1920,
+      "is_interactive": true,
+      "title": "Settings · Device & network",
+      "w": 1080,
+      "x": 4640,
+      "y": 9600
+    },
+    "SettingsKiosk.dc.html": {
+      "h": 1920,
+      "is_interactive": true,
+      "title": "Settings · Kiosk behaviour",
+      "w": 1080,
+      "x": 3480,
+      "y": 9600
+    },
+    "SettingsPayment.dc.html": {
+      "h": 1920,
+      "is_interactive": true,
+      "title": "Settings · Payment",
+      "w": 1080,
+      "x": 2320,
+      "y": 9600
+    },
+    "SettingsPrinter.dc.html": {
+      "h": 1920,
+      "is_interactive": true,
+      "title": "Settings · Receipt printer",
+      "w": 1080,
+      "x": 1160,
+      "y": 9600
+    }
+  },
+  "createdOnFiles": {
+    "at": "2026-10-22T09:00:00Z",
+    "v": 1
+  },
+  "designSystems": [],
+  "launch": {
+    "view": "canvas"
+  },
+  "notes": {
+    "row1": {
+      "kind": "title1",
+      "maxW": 4560,
+      "text": "Sign in, pick merchant & start",
+      "w": 240,
+      "x": 0,
+      "y": -300
+    },
+    "row2": {
+      "kind": "title1",
+      "maxW": 4560,
+      "text": "Browse, customize & pay",
+      "w": 240,
+      "x": 0,
+      "y": 2100
+    },
+    "row3": {
+      "kind": "title1",
+      "maxW": 3400,
+      "text": "Finish & idle",
+      "w": 240,
+      "x": 0,
+      "y": 4500
+    },
+    "row4": {
+      "kind": "title1",
+      "maxW": 2040,
+      "text": "Components & brand",
+      "w": 240,
+      "x": 0,
+      "y": 6900
+    },
+    "row5": {
+      "kind": "title1",
+      "maxW": 5720,
+      "text": "Staff settings",
+      "w": 240,
+      "x": 0,
+      "y": 9300
+    }
+  },
+  "order": [
+    "Main.dc.html",
+    "Login.dc.html",
+    "Merchants.dc.html",
+    "OrderType.dc.html",
+    "Menu.dc.html",
+    "Combo.dc.html",
+    "ItemDetail.dc.html",
+    "Payment.dc.html",
+    "Checkout.dc.html",
+    "Complete.dc.html",
+    "Idle.dc.html",
+    "Photo.dc.html",
+    "Logos.dc.html",
+    "Settings.dc.html",
+    "SettingsPrinter.dc.html",
+    "SettingsPayment.dc.html",
+    "SettingsKiosk.dc.html",
+    "SettingsDevice.dc.html"
+  ],
+  "pages": [],
+  "title": "Hitachi Kiosk"
+}

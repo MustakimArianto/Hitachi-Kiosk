@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Hitachi Kiosk · Idle</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#FAF8F5}
+*{box-sizing:border-box}
+a{color:inherit;text-decoration:none}
+@keyframes kbA{0%{transform:scale(1.06)}100%{transform:scale(1)}}
+@keyframes kbB{0%{transform:scale(1)}100%{transform:scale(1.06)}}
+@keyframes progA{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+@keyframes progB{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+@keyframes ring{0%{opacity:.5;transform:scale(1)}100%{opacity:0;transform:scale(1.05,1.3)}}
+@keyframes tap{0%,100%{transform:translateY(0) scale(1)}45%{transform:translateY(6px) scale(.94)}}
+@keyframes fade{0%{opacity:0}100%{opacity:1}}
+@keyframes sheetUp{0%{transform:translateY(100%)}100%{transform:none}}
+@keyframes up{0%{opacity:0;transform:translateY(32px)}100%{opacity:1;transform:none}}
+@keyframes rise{0%{transform:translateY(105%)}100%{transform:none}}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:1ms!important;animation-delay:0ms!important;animation-iteration-count:1!important;transition-duration:1ms!important}}
+.rm *,.rm *::before,.rm *::after{animation-duration:1ms!important;animation-delay:0ms!important;animation-iteration-count:1!important;transition-duration:1ms!important}
+</style>
+</helmet>
+<div class="{{rootClass}}" style="position: relative; width: 1080px; height: 1920px; overflow: hidden; background: #FAF8F5; color: #171513; font-family: 'Schibsted Grotesk', 'Helvetica Neue', Arial, sans-serif">
+
+  <sc-for list="{{slides}}" as="s" hint-placeholder-count="3">
+    <div style="position: absolute; inset: 0; opacity: {{s.opacity}}; transition: opacity 1400ms cubic-bezier(.4,0,.2,1)">
+      <div style="width: 1080px; height: 1920px; {{s.kb}}">
+        <dc-import name="Photo" src="{{s.img}}" label="" tone="{{s.tone}}" plate="{{ false }}" w="{{ 1080 }}" h="{{ 1920 }}" radius="{{ 0 }}" hint-size="1080px,1920px"></dc-import>
+      </div>
+      <sc-if value="{{s.empty}}" hint-placeholder-val="{{ true }}">
+        <span style="position: absolute; left: 72px; bottom: 664px; display: flex; align-items: center; gap: 12px; font-size: 24px; font-weight: 500; color: #6F6961">
+          <svg aria-hidden="true" viewBox="0 0 24 24" style="width: 32px; height: 32px"><path d="M4 5h16v14H4zM4 15l4.5-4.5 4 4 3-3L20 16M15.5 9.5h.01" fill="none" stroke="#6F6961" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+          {{s.name}} · 1080 × 1920
+        </span>
+      </sc-if>
+    </div>
+  </sc-for>
+
+  <a href="OrderType.dc.html" aria-label="Tap to order" style="position: absolute; inset: 0"></a>
+
+  <header style="position: absolute; left: 72px; right: 72px; top: 48px; display: flex; align-items: center; justify-content: space-between; pointer-events: none; animation: fade 700ms ease both">
+    <div style="height: 112px; padding: 0 40px 0 16px; border-radius: 999px; background: #FFFFFF; display: flex; align-items: center; gap: 18px; box-shadow: 0 24px 48px rgba(23,21,19,.10)">
+      <span aria-hidden="true" style="width: 80px; height: 80px; border-radius: 24px; background: #171513; display: flex; align-items: center; justify-content: center"><span style="width: 26px; height: 26px; border-radius: 50%; background: {{accent}}"></span></span>
+      <span style="font-size: 34px; font-weight: 700; letter-spacing: -0.01em">{{brand}}</span>
+    </div>
+    <div style="height: 72px; padding: 0 28px; border-radius: 999px; background: #FFFFFF; display: flex; align-items: center; gap: 10px; box-shadow: 0 24px 48px rgba(23,21,19,.10)">
+      <sc-for list="{{dots}}" as="d" hint-placeholder-count="3">
+        <span style="display: block; width: 56px; height: 8px; border-radius: 4px; background: #E9E4DC; overflow: hidden"><span style="display: block; width: 100%; height: 100%; background: #171513; transform-origin: left; {{d.fill}}"></span></span>
+      </sc-for>
+    </div>
+  </header>
+
+  <section style="position: absolute; left: 0; right: 0; bottom: 0; height: 620px; border-radius: 56px 56px 0 0; background: #FAF8F5; padding: 64px 72px 48px; display: flex; flex-direction: column; pointer-events: none; box-shadow: 0 -24px 48px rgba(23,21,19,.06); animation: sheetUp 900ms cubic-bezier(.16,1,.3,1) 100ms both">
+    <div style="overflow: hidden"><h1 style="margin: 0; font-size: 112px; font-weight: 800; letter-spacing: -0.035em; line-height: 1.0; animation: rise 1000ms cubic-bezier(.16,1,.3,1) 250ms both">Hungry?</h1></div>
+    <div style="overflow: hidden"><p style="margin: 12px 0 0; font-size: 34px; font-weight: 500; color: #6F6961; animation: rise 1000ms cubic-bezier(.16,1,.3,1) 360ms both">Order here and skip the queue.</p></div>
+    <div style="position: relative; margin-top: auto; animation: up 900ms cubic-bezier(.16,1,.3,1) 450ms both">
+      <div aria-hidden="true" style="position: absolute; inset: 0; border-radius: 48px; border: 3px solid {{accent}}; animation: ring 2.8s cubic-bezier(.2,0,0,1) 1.4s infinite"></div>
+      <div style="position: relative; height: 168px; border-radius: 48px; background: {{accent}}; color: #FFFFFF; display: flex; align-items: center; justify-content: center; gap: 24px; box-shadow: 0 24px 48px {{accentShadow}}">
+        <svg aria-hidden="true" viewBox="0 0 24 24" style="width: 60px; height: 60px; animation: tap 1.8s ease-in-out infinite"><path d="M9 11V5.5a1.5 1.5 0 0 1 3 0V11m0-1.5a1.5 1.5 0 0 1 3 0V12m0-1a1.5 1.5 0 0 1 3 0v4.5a5.5 5.5 0 0 1-5.5 5.5h-.8a5 5 0 0 1-3.9-1.9L5 15.4a1.5 1.5 0 0 1 2.3-1.9L9 15" fill="none" stroke="#FFFFFF" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+        <span style="font-size: 52px; font-weight: 700; letter-spacing: -0.02em">Tap to order</span>
+      </div>
+    </div>
+    <p style="margin: 24px 0 0; text-align: center; font-size: 26px; font-weight: 500; color: #6F6961">Sentuh layar untuk memesan</p>
+  </section>
+
+  <button onPointerDown="{{holdStart}}" onPointerUp="{{holdEnd}}" onPointerLeave="{{holdEnd}}" aria-label="Staff settings, press and hold" style="position: absolute; right: 0; bottom: 0; width: 160px; height: 160px; border: 0; background: transparent; opacity: 0; z-index: 5"></button>
+  <a ref="{{setLink}}" href="Settings.dc.html" aria-hidden="true" tabindex="-1" style="position: absolute; width: 1px; height: 1px; overflow: hidden; opacity: 0">Settings</a>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#C8552B","options":["#C8552B","#2F5D4A","#3A4C7A","#171513"]},"brand":{"editor":"text","default":"Urban Grill"},"reduceMotion":{"editor":"boolean","default":false},"$preview":{"width":1080,"height":1920}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    const IMG = { promo1: '', promo2: '', promo3: '' };
+    this.slides = [
+      { name: 'Promo photo 1', img: IMG.promo1, tone: '#EADCCB' },
+      { name: 'Promo photo 2', img: IMG.promo2, tone: '#E3D4C2' },
+      { name: 'Promo photo 3', img: IMG.promo3, tone: '#DFE3DC' }
+    ];
+    this.state = { idx: 0, tick: 0 };
+  }
+  componentDidMount() { this.t = setInterval(() => this.setState((s) => ({ idx: (s.idx + 1) % 3, tick: s.tick + 1 })), 7000); }
+  componentWillUnmount() { clearInterval(this.t); clearTimeout(this.hold); }
+  hexA(hex, a) {
+    const h = hex.replace('#', '');
+    const n = parseInt(h.length === 3 ? h.split('').map((c) => c + c).join('') : h, 16);
+    return 'rgba(' + ((n >> 16) & 255) + ',' + ((n >> 8) & 255) + ',' + (n & 255) + ',' + a + ')';
+  }
+  renderVals() {
+    const s = this.state;
+    const p = s.tick % 2 ? 'B' : 'A';
+    const accent = this.props.accent ?? '#C8552B';
+    return {
+      rootClass: this.props.reduceMotion ? 'rm' : '',
+      accent: accent,
+      accentShadow: this.hexA(accent, .28),
+      brand: this.props.brand ?? 'Urban Grill',
+      setLink: (el) => { this.link = el; },
+      holdStart: () => { clearTimeout(this.hold); this.hold = setTimeout(() => { if (this.link) this.link.click(); }, 2000); },
+      holdEnd: () => clearTimeout(this.hold),
+      slides: this.slides.map((x, i) => ({ ...x, empty: !x.img, opacity: i === s.idx ? 1 : 0, kb: i === s.idx ? 'animation: kb' + (i % 2 ? 'B' : 'A') + ' 8000ms linear both' : '' })),
+      dots: this.slides.map((x, i) => ({ fill: i < s.idx ? 'transform: scaleX(1)' : (i === s.idx ? 'animation: prog' + p + ' 7000ms linear both' : 'transform: scaleX(0)') }))
+    };
+  }
+}
+</script>
+</body>
+</html>
