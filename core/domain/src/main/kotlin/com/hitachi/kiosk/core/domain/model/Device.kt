@@ -23,7 +23,10 @@ data class Activation(
     override fun toString(): String = "Activation(deviceId=$deviceId, kioskCode=$kioskCode, deviceToken=•••)"
 }
 
-/** A merchant this kiosk may serve (E1, E2; FR-004). */
+/**
+ * A merchant this kiosk may serve (E1, E2; FR-004). [opensAt] is when a closed merchant opens next, or `null` when
+ * it is open or the backend doesn't know (api-spec E2).
+ */
 data class Merchant(
     val id: String,
     val name: String,
@@ -32,7 +35,11 @@ data class Merchant(
     val photoUrl: String?,
     val status: MerchantStatus,
     val isOpen: Boolean,
-)
+    val opensAt: Instant? = null,
+) {
+    /** Only a live merchant that is open now can be bound (FR-004, A-03). */
+    val isBindable: Boolean get() = status == MerchantStatus.LIVE && isOpen
+}
 
 /** Only [LIVE] merchants can be bound (api-spec E2). */
 enum class MerchantStatus { LIVE, COMING_SOON }

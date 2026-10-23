@@ -14,10 +14,14 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.navigation
 import com.hitachi.kiosk.R
+import com.hitachi.kiosk.feature.activation.SignInRoute as SignInFeatureRoute
+import com.hitachi.kiosk.feature.merchant.MerchantsRoute as MerchantsFeatureRoute
+import com.hitachi.kiosk.feature.splash.SplashRoute as SplashFeatureRoute
 
 /**
- * The navigation graph of architecture §11 with every edge of PRD §5.1 (DEV-010a). Each destination is a
- * [PlaceholderScreen] until its milestone replaces it with the feature's `XxxRoute`.
+ * The navigation graph of architecture §11 with every edge of PRD §5.1 (DEV-010a). Splash, Sign in and Choose a
+ * restaurant are the real screens (0.2.0); every other destination is a [PlaceholderScreen] until its milestone
+ * replaces it with the feature's `XxxRoute`.
  *
  * @param onInactivity shows the SCR-13 overlay; offered on the screens where the inactivity timer runs (FR-023).
  * @param onBrandMarkClick taps on the splash mark (5 taps open Developer options in debug builds, DEV-009).
@@ -49,40 +53,21 @@ private fun NavGraphBuilder.setupDestinations(
     onBrandMarkClick: () -> Unit,
 ) {
     composable<SplashRoute> {
-        // StartupRouter (DEV-011) picks one of these automatically from 0.2.0.
-        PlaceholderScreen(
-            screenId = "SCR-01",
-            title = R.string.screen_splash,
+        SplashFeatureRoute(
+            onNavigate = { destination -> navController.replaceStack(destination.route()) },
             onMarkClick = onBrandMarkClick,
-            actions =
-                listOf(
-                    PlaceholderAction(R.string.nav_not_activated) { navController.replaceStack(SignInRoute) },
-                    PlaceholderAction(
-                        R.string.nav_activated_no_merchant,
-                    ) { navController.replaceStack(MerchantsRoute) },
-                    PlaceholderAction(R.string.nav_merchant_bound) { navController.replaceStack(IdleRoute) },
-                ),
         )
     }
     composable<SignInRoute> {
-        PlaceholderScreen(
-            screenId = "SCR-02",
-            title = R.string.screen_sign_in,
-            actions =
-                listOf(
-                    PlaceholderAction(R.string.nav_activation_ok) { navController.replaceStack(MerchantsRoute) },
-                ),
+        SignInFeatureRoute(
+            onNavigateToMerchants = { navController.replaceStack(MerchantsRoute) },
+            onNavigateToIdle = { navController.replaceStack(IdleRoute) },
         )
     }
     composable<MerchantsRoute> {
-        PlaceholderScreen(
-            screenId = "SCR-03",
-            title = R.string.screen_merchants,
-            actions =
-                listOf(
-                    PlaceholderAction(R.string.nav_pick_merchant) { navController.replaceStack(IdleRoute) },
-                    PlaceholderAction(R.string.nav_log_out) { navController.replaceStack(SignInRoute) },
-                ),
+        MerchantsFeatureRoute(
+            onNavigateToIdle = { navController.replaceStack(IdleRoute) },
+            onNavigateToSignIn = { navController.replaceStack(SignInRoute) },
         )
     }
     composable<IdleRoute> {
@@ -327,9 +312,16 @@ private inline fun <reified T : Any> NavGraphBuilder.settingsPage(
 }
 
 /** Replaces the whole back stack, as after startup routing, activation, binding and Log out (FR-001, FR-004). */
-private fun NavHostController.replaceStack(route: Any) {
+internal fun NavHostController.replaceStack(route: Any) {
     navigate(route) { popUpTo(graph.id) { inclusive = true } }
 }
+
+private fun StartDestination.route(): Any =
+    when (this) {
+        StartDestination.SIGN_IN -> SignInRoute
+        StartDestination.MERCHANTS -> MerchantsRoute
+        StartDestination.IDLE -> IdleRoute
+    }
 
 /** Opens Your order with Menu below it, so "Add more" and Back return to Menu (PRD §5.1). */
 private fun NavHostController.navigateToYourOrder() {

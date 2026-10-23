@@ -2,6 +2,11 @@
 <!-- Debug only (DEV-009). Release builds must not contain this activity (scripts/check-release-apk.sh). -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
+    <!-- DEV-012 spike only (ADR-0002): lets the Build.getSerial() fallback be tested on the iMin device. Not approved
+         for release (PRD §12.3, A-02, R-3); the release manifest gets it only if the PO approves ADR-0002. Grant it
+         with `adb shell pm grant com.hitachi.kiosk android.permission.READ_PHONE_STATE`, or as device owner with
+         setPermissionGrantState. -->
+    <uses-permission android:name="android.permission.READ_PHONE_STATE" />
     <application>
         <activity
             android:name="com.hitachi.kiosk.debug.DeveloperOptionsActivity"

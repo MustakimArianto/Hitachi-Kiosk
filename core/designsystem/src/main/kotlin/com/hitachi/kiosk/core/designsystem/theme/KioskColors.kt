@@ -29,6 +29,12 @@ data class KioskColors(
     val dockDisabled: Color = KioskPalette.DockDisabled,
     val dockDisabledText: Color = KioskPalette.DockDisabledText,
     val floatingShadow: Color = KioskPalette.FloatingShadow,
+    val errorBg: Color = KioskPalette.ErrorBg,
+    val errorBorder: Color = KioskPalette.ErrorBorder,
+    val errorText: Color = KioskPalette.ErrorText,
+    val closedDot: Color = KioskPalette.ClosedDot,
+    val skeletonHighlight: Color = KioskPalette.SkeletonHighlight,
+    val photoTone: Color = KioskPalette.PhotoTone,
 )
 
 /** The [KioskColors] of the current [KioskTheme] (DEV-004). */

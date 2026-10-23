@@ -19,6 +19,8 @@ dependencies {
     api(libs.androidx.compose.foundation)
     api(libs.androidx.compose.animation.core)
     implementation(libs.androidx.compose.material3)
+    // Entrance animations and loops run in LaunchedEffect coroutines.
+    implementation(libs.kotlinx.coroutines.core)
     implementation(libs.androidx.compose.ui.tooling.preview)
     debugImplementation(libs.androidx.compose.ui.tooling)
 

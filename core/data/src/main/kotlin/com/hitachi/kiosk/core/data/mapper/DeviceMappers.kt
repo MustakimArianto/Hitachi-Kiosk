@@ -52,6 +52,7 @@ internal fun MerchantDto.toDomain(): Merchant =
                 }
             },
         isOpen = isOpen,
+        opensAt = opensAt.toInstantOrNull(),
     )
 
 internal fun BindingDto.toDomain(): Binding =

@@ -13,7 +13,8 @@
       "logoUrl": "https://cdn.example/mer_urbangrill/logo.png",
       "photoUrl": "https://cdn.example/mer_urbangrill/cover.jpg",
       "status": "live",
-      "isOpen": true
+      "isOpen": true,
+      "opensAt": null
     }
   ]
 }

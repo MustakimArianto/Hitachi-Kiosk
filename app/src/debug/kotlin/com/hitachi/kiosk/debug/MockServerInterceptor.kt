@@ -52,6 +52,7 @@ class MockServerInterceptor(
         val path: Regex,
     ) {
         ACTIVATE("POST", Regex("/v1/devices/activate")),
+        MERCHANTS("GET", Regex("/v1/devices/[^/]+/merchants")),
         CREATE_ORDER("POST", Regex("/v1/orders")),
         START_PAYMENT("POST", Regex("/v1/orders/[^/]+/payments")),
         PAYMENT_STATUS("GET", Regex("/v1/orders/[^/]+/payments/[^/]+")),
@@ -70,6 +71,8 @@ private val PREFER: Map<Pair<FakeScenario, MockServerInterceptor.Endpoint>, Stri
     mapOf(
         (FakeScenario.ACTIVATE_UNREGISTERED to MockServerInterceptor.Endpoint.ACTIVATE) to "code=404",
         (FakeScenario.ACTIVATE_DISABLED to MockServerInterceptor.Endpoint.ACTIVATE) to "code=403",
+        (FakeScenario.MERCHANTS_EMPTY to MockServerInterceptor.Endpoint.MERCHANTS) to "example=empty",
+        (FakeScenario.MERCHANT_CLOSED to MockServerInterceptor.Endpoint.MERCHANTS) to "example=closed",
         (FakeScenario.ORDER_PRICE_CHANGED to MockServerInterceptor.Endpoint.CREATE_ORDER) to
             "code=409, example=priceChanged",
         (FakeScenario.ORDER_ITEM_UNAVAILABLE to MockServerInterceptor.Endpoint.CREATE_ORDER) to

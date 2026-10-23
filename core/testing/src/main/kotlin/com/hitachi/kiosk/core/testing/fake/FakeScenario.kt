@@ -26,6 +26,18 @@ enum class FakeScenario(
         override fun applyTo(api: FakeBackendApi) =
             api.activate.fail(DomainError.Server(code = "DEVICE_DISABLED", httpStatus = 403))
     },
+    MERCHANTS_EMPTY("merchants_empty") {
+        override fun applyTo(api: FakeBackendApi) = api.merchants.succeed(emptyList())
+    },
+    MERCHANT_CLOSED("merchant_closed") {
+        override fun applyTo(api: FakeBackendApi) = api.merchants.succeed(SampleData.merchantsWithClosed)
+    },
+
+    /** E3 and E5 succeed, E6 keeps failing with 503, so the menu download fails after binding (FR-004 AC4). */
+    MENU_DOWNLOAD_FAILED("menu_download_failed") {
+        override fun applyTo(api: FakeBackendApi) =
+            api.menu.fail(DomainError.Server(code = "SERVER_ERROR", httpStatus = 503))
+    },
     ORDER_PRICE_CHANGED("order_price_changed") {
         override fun applyTo(api: FakeBackendApi) =
             api.createOrder.fail(

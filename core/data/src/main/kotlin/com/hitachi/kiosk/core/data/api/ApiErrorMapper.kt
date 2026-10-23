@@ -74,7 +74,7 @@ class ApiErrorMapper
                 Outcome.Failure(DomainError.Unknown)
             }
 
-        private fun httpError(
+        private suspend fun httpError(
             endpoint: String,
             response: Response<*>,
         ): DomainError {

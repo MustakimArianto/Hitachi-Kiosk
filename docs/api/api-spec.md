@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Version | v1 draft (2026-10-23) — state conflicts on E3, E8 and E9 have their own 409 codes; E6 is the full design menu, with required choices on b2 (size, FR-010), c4, r1 and d2 |
+| Version | v1 draft (2026-10-23) — merchants carry an optional `opensAt` for the closed badge (E1/E2, FR-004); state conflicts on E3, E8 and E9 have their own 409 codes; E6 is the full design menu, with required choices on b2 (size, FR-010), c4, r1 and d2 |
 | Consumer | Hitachi Kiosk Android app |
 | Requirements | [`../product-requirement.md`](../product-requirement.md) §10 (endpoints E1–E14) |
 | Status | **Proposed.** Build the mock server from this document. The real backend implements the same contract (PRD D-06). |
@@ -148,7 +148,8 @@ Every non-2xx response has this body:
       "logoUrl": "https://cdn.example/mer_urbangrill/logo.png",
       "photoUrl": "https://cdn.example/mer_urbangrill/cover.jpg",
       "status": "live",
-      "isOpen": true
+      "isOpen": true,
+      "opensAt": null
     }
   ]
 }
@@ -177,7 +178,8 @@ Every non-2xx response has this body:
       "logoUrl": "https://cdn.example/mer_urbangrill/logo.png",
       "photoUrl": "https://cdn.example/mer_urbangrill/cover.jpg",
       "status": "live",
-      "isOpen": true
+      "isOpen": true,
+      "opensAt": null
     },
     { "id": "mer_bellapasta", "name": "Bella Pasta",  "cuisine": { "en": "Italian kitchen",        "id": "Dapur Italia" },        "logoUrl": null, "photoUrl": null, "status": "coming_soon", "isOpen": false },
     { "id": "mer_sakura",     "name": "Sakura Ramen", "cuisine": { "en": "Japanese noodles",       "id": "Mi Jepang" },           "logoUrl": null, "photoUrl": null, "status": "coming_soon", "isOpen": false },
@@ -187,6 +189,8 @@ Every non-2xx response has this body:
 }
 ```
 `status`: `live` | `coming_soon`. Only `live` merchants can be bound.
+
+`isOpen` is whether the merchant takes orders right now. `opensAt` (optional, ISO-8601 UTC) is when a closed `live` merchant opens next; it is `null` or absent while the merchant is open, for `coming_soon` merchants, and when the backend doesn't know. The kiosk shows a closed merchant as "Closed · opens {time}" in device-local time, or "Closed" when `opensAt` is missing (FR-004). E1 carries the same merchant object.
 
 ---
 
@@ -783,6 +787,9 @@ Bold items are in "Popular" (`featuredProductIds`). Combos and slot options are 
 |---|---|---|
 | `activate_unregistered` | E1 → 404 DEVICE_NOT_REGISTERED | `code=404` |
 | `activate_disabled` | E1 → 403 DEVICE_DISABLED | `code=403` |
+| `merchants_empty` | E2 → `{"merchants": []}` | `example=empty` |
+| `merchant_closed` | E2 → Urban Grill `isOpen: false`, `opensAt: 2026-10-23T03:00:00Z` (10:00 in Jakarta) | `example=closed` |
+| `menu_download_failed` | E6 → 503 SERVER_ERROR (E3 and E5 succeed) | not possible per endpoint with one header; use the in-app fakes |
 | `order_price_changed` | E7 → 409 PRICE_CHANGED | `code=409, example=priceChanged` |
 | `order_item_unavailable` | E7 → 409 ITEM_UNAVAILABLE (c1) | `code=409, example=itemUnavailable` |
 | `qris_paid_after_5s` | E10 → PENDING for 5 s, then PAID | `example=pending`, then `example=paid` (switched by the app's debug options) |

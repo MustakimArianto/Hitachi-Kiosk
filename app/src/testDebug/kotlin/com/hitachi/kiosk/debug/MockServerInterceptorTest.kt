@@ -50,6 +50,12 @@ class MockServerInterceptorTest {
 
         settings = DeveloperSettings(BackendMode.MOCK_SERVER, FakeScenario.CARD_DECLINED)
         assertThat(call(get("/v1/orders/o/payments/p")).headers["Prefer"]).isEqualTo("example=declined")
+
+        settings = DeveloperSettings(BackendMode.MOCK_SERVER, FakeScenario.MERCHANTS_EMPTY)
+        assertThat(call(get("/v1/devices/dev_0003/merchants")).headers["Prefer"]).isEqualTo("example=empty")
+
+        settings = DeveloperSettings(BackendMode.MOCK_SERVER, FakeScenario.MERCHANT_CLOSED)
+        assertThat(call(get("/v1/devices/dev_0003/merchants")).headers["Prefer"]).isEqualTo("example=closed")
     }
 
     @Test

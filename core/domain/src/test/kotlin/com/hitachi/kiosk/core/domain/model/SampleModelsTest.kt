@@ -20,6 +20,15 @@ class SampleModelsTest {
     }
 
     @Test
+    fun `only a live merchant that is open can be bound`() {
+        assertThat(SampleData.urbanGrill.isBindable).isTrue()
+        assertThat(SampleData.urbanGrillClosed.isBindable).isFalse()
+        assertThat(SampleData.merchants.filter { it.status == MerchantStatus.COMING_SOON }.none { it.isBindable })
+            .isTrue()
+        assertThat(SampleData.urbanGrill.copy(status = MerchantStatus.COMING_SOON, isOpen = true).isBindable).isFalse()
+    }
+
+    @Test
     fun `only final payment statuses end polling`() {
         val final = PaymentStatus.entries.filter { it.isFinal }
 

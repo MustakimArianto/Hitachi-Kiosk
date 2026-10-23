@@ -70,6 +70,27 @@ object KioskPalette {
     /** `surface`: cards, rows, sheets. */
     val Surface = Color(0xFFFFFFFF)
 
+    /** `errorBg`: background of error and failure panels (`Login.dc.html`, `Merchants.dc.html`). */
+    val ErrorBg = Color(0xFFFBEEE8)
+
+    /** `errorBorder`: outline of error and failure panels. */
+    val ErrorBorder = Color(0xFFF0CDBF)
+
+    /** `errorText`: body text inside error and failure panels. */
+    val ErrorText = Color(0xFF4F4A44)
+
+    /** `closedDot`: the status dot of a closed merchant ("Closed · opens 10:00", `S_Merchants_closed`). */
+    val ClosedDot = Color(0xFFA39C92)
+
+    /** `skeletonHighlight`: shimmer highlight on skeleton blocks that sit on [SurfaceAlt] (Merchants loading). */
+    val SkeletonHighlight = Color(0xFFF6F3EE)
+
+    /** `photoTone`: default tone of an empty photo slot (`Photo.dc.html`, NFR-013). */
+    val PhotoTone = Color(0xFFE9DED0)
+
+    /** The photo slot tone used instead of a requested tone that is too dark (luminance below 0.7, `Photo.dc.html`). */
+    val PhotoToneFallback = Color(0xFFE6DCD3)
+
     /** The floating elevation's shadow color, `rgba(23,21,19,.10)` (PRD §11.1). */
     val FloatingShadow = Ink.copy(alpha = 0.10f)
 

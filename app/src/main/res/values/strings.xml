@@ -6,9 +6,6 @@
     <string name="placeholder_caption">Placeholder screen</string>
     <string name="placeholder_developer_mark">Brand mark</string>
 
-    <string name="screen_splash">Splash</string>
-    <string name="screen_sign_in">Sign in</string>
-    <string name="screen_merchants">Choose a restaurant</string>
     <string name="screen_idle">Idle</string>
     <string name="screen_order_type">Dine in or takeaway</string>
     <string name="screen_menu">Menu</string>
@@ -32,12 +29,6 @@
     <string name="budget_plan_step_plan">Your plan</string>
 
     <!-- Edges of PRD §5.1 -->
-    <string name="nav_not_activated">Not activated</string>
-    <string name="nav_activated_no_merchant">Activated, no merchant</string>
-    <string name="nav_merchant_bound">Activated and bound</string>
-    <string name="nav_activation_ok">Activation OK</string>
-    <string name="nav_pick_merchant">Pick a live merchant</string>
-    <string name="nav_log_out">Log out</string>
     <string name="nav_tap_anywhere">Tap anywhere</string>
     <string name="nav_hold_staff_entry">Hold bottom right for 2 s</string>
     <string name="nav_pick_order_type">Pick an order type</string>
@@ -67,4 +58,67 @@
     <string name="nav_simulate_inactivity">Simulate inactivity</string>
     <string name="nav_still_here">I\'m still here</string>
     <string name="nav_no_response">No response</string>
+
+    <!-- Shared header (Login.dc.html, Merchants.dc.html) -->
+    <string name="brand_name">Hitachi Kiosk</string>
+
+    <!-- SCR-01 Splash (Main.dc.html, FR-001) -->
+    <string name="splash_title_brand">Hitachi</string>
+    <string name="splash_title_product">Kiosk</string>
+    <string name="splash_tagline">Self-ordering for restaurants</string>
+    <string name="splash_preparing">Preparing your kiosk</string>
+    <string name="splash_brand_mark_description">Hitachi Kiosk logo</string>
+
+    <!-- SCR-02 Sign in (Login.dc.html, FR-002, FR-003) -->
+    <string name="sign_in_version">Version %1$s</string>
+    <string name="sign_in_mark_description">Hitachi Kiosk logo</string>
+    <string name="sign_in_welcome">Welcome back</string>
+    <string name="sign_in_title_line1">Sign in to start</string>
+    <string name="sign_in_title_line2">taking orders.</string>
+    <string name="sign_in_intro">Use your Hitachi Kiosk account to load the restaurants this kiosk can serve.</string>
+    <string name="sign_in_button_log_in">Log in</string>
+    <string name="sign_in_button_signing_in">Signing in…</string>
+    <string name="sign_in_button_try_again">Try again</string>
+    <string name="sign_in_help">Need help? Contact your Hitachi Kiosk administrator.</string>
+    <string name="sign_in_help_error">Still stuck? Contact your Hitachi Kiosk administrator.</string>
+    <string name="sign_in_error_not_registered_title">This kiosk isn\'t registered yet</string>
+    <string name="sign_in_error_not_registered_body">Its serial number is not linked to a merchant account. Ask your administrator to register it, then try again.</string>
+    <string name="sign_in_error_serial_label">Serial number</string>
+    <string name="sign_in_error_disabled_title">This kiosk has been disabled</string>
+    <string name="sign_in_error_disabled_body">Contact your administrator.</string>
+    <string name="sign_in_error_network_title">Can\'t reach Hitachi Kiosk</string>
+    <string name="sign_in_error_network_body">The connection timed out. Check the network cable or Wi-Fi, then try again.</string>
+    <string name="sign_in_error_serial_unreadable_title">Can\'t read this device\'s serial number</string>
+    <string name="sign_in_error_serial_unreadable_body">Restart the kiosk. If it keeps happening, contact your administrator.</string>
+    <string name="sign_in_error_generic_title">Couldn\'t sign in</string>
+    <string name="sign_in_error_generic_body">Something went wrong. Try again. If it keeps happening, contact your administrator.</string>
+
+    <!-- SCR-03 Choose a restaurant (Merchants.dc.html, FR-004) -->
+    <string name="merchants_log_out">Log out</string>
+    <string name="merchants_step">Step 1 of 2 · Set up this kiosk</string>
+    <string name="merchants_title">Choose a restaurant</string>
+    <string name="merchants_subtitle">Select the merchant this kiosk will serve.</string>
+    <string name="merchants_loading">Loading restaurants…</string>
+    <string name="merchants_loading_description">Loading restaurants</string>
+    <string name="merchants_empty_title">No restaurants yet</string>
+    <string name="merchants_empty_body">This account isn\'t linked to any merchant. Ask your administrator to add one, then refresh.</string>
+    <string name="merchants_empty_refresh">Refresh list</string>
+    <string name="merchants_failure_bind_title">Couldn\'t connect this kiosk</string>
+    <string name="merchants_failure_bind_body">This kiosk could not be linked to %1$s. Check the connection and retry.</string>
+    <string name="merchants_failure_menu_download_title">Couldn\'t download the menu</string>
+    <string name="merchants_failure_menu_download_body">The menu for %1$s did not finish downloading. Check the connection and retry.</string>
+    <string name="merchants_failure_load_title">Couldn\'t load restaurants</string>
+    <string name="merchants_failure_load_body">Check the connection and retry.</string>
+    <string name="merchants_failure_merchant_fallback">this restaurant</string>
+    <string name="merchants_retry">Retry</string>
+    <string name="merchants_open_now">Open now</string>
+    <string name="merchants_closed">Closed</string>
+    <string name="merchants_closed_opens">Closed · opens %1$s</string>
+    <string name="merchants_card_open_description">%1$s, open</string>
+    <string name="merchants_card_closed_description">%1$s, %2$s</string>
+    <string name="merchants_logo_description">%1$s logo</string>
+    <string name="merchants_coming_soon">Coming soon</string>
+    <string name="merchants_soon_pill">Soon</string>
+    <string name="merchants_soon_row_description">%1$s, %2$s, coming soon</string>
+    <string name="merchants_footer">More merchants will appear here as they join Hitachi Kiosk</string>
 </resources>

@@ -29,14 +29,19 @@ dependencies {
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.core.splashscreen)
     implementation(libs.androidx.navigation.compose)
+    implementation(libs.androidx.lifecycle.runtime.compose)
+    implementation(libs.androidx.lifecycle.viewmodel.compose)
+    implementation(libs.androidx.hilt.lifecycle.viewmodel.compose)
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.timber)
+    // Merchant photos and logos (NFR-013); the OkHttp fetcher is found at runtime through Coil's service loader.
+    implementation(libs.coil.compose)
+    runtimeOnly(libs.coil.network.okhttp)
     runtimeOnly(libs.androidx.profileinstaller)
 
     // Debug-only Developer options (DEV-009): fakes and their switching never ship in release.
     debugImplementation(projects.core.testing)
     debugImplementation(libs.androidx.datastore.preferences)
-    debugImplementation(libs.androidx.lifecycle.runtime.compose)
     debugRuntimeOnly(libs.leakcanary.android)
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.okhttp)
@@ -54,6 +59,9 @@ dependencies {
     testDebugImplementation(libs.okhttp.mockwebserver3)
     testDebugImplementation(libs.okhttp.mockwebserver3.junit4)
 
+    androidTestImplementation(projects.core.testing)
+    androidTestImplementation(libs.androidx.test.core)
+    androidTestImplementation(libs.truth)
     androidTestImplementation(libs.androidx.test.runner)
     androidTestImplementation(libs.androidx.test.ext.junit)
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)

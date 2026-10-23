@@ -1,12 +1,19 @@
 package com.hitachi.kiosk.devtools
 
 import com.hitachi.kiosk.core.domain.backend.BackendApi
+import com.hitachi.kiosk.core.domain.device.DeviceIdentityProvider
 
 /**
- * Lets the debug build wrap the real backend client, to switch between fakes, the mock server and the real backend
- * at runtime (technical-design §4.3). Only the `debug` source set binds it; in release the real client is used as is.
- * The payment gateway delegates to [BackendApi], so it follows the same switch.
+ * Lets the debug build wrap real implementations, to switch them to fakes at runtime (technical-design §4.3 TD-11).
+ * Only the `debug` source set binds it; in release the real implementations are used as they are.
  */
-fun interface BindingOverrides {
+interface BindingOverrides {
+    /**
+     * Switches between fakes, the mock server and the real backend. The payment gateway delegates to [BackendApi], so
+     * it follows the same switch.
+     */
     fun backendApi(real: BackendApi): BackendApi
+
+    /** Switches between the real serial-number reader and the FR-002 fakes (success, unavailable, slow). */
+    fun deviceIdentityProvider(real: DeviceIdentityProvider): DeviceIdentityProvider
 }

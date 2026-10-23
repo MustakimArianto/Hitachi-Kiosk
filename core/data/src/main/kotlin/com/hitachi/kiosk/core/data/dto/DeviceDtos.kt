@@ -25,7 +25,7 @@ internal data class ActivationDto(
     override fun toString(): String = "ActivationDto(deviceId=$deviceId, kioskCode=$kioskCode, deviceToken=•••)"
 }
 
-/** A merchant in E1 and E2. `status`: `live` | `coming_soon`. */
+/** A merchant in E1 and E2. `status`: `live` | `coming_soon`. `opensAt`: next opening time while closed. */
 @Serializable
 internal data class MerchantDto(
     val id: String,
@@ -35,6 +35,7 @@ internal data class MerchantDto(
     val photoUrl: String? = null,
     val status: String? = null,
     val isOpen: Boolean = false,
+    val opensAt: String? = null,
 )
 
 /** E2 response. */

@@ -27,6 +27,7 @@ import com.hitachi.kiosk.core.designsystem.theme.KioskTheme
 import com.hitachi.kiosk.core.designsystem.unit.DesignFrame
 import com.hitachi.kiosk.core.designsystem.unit.dpx
 import com.hitachi.kiosk.core.testing.fake.FakeScenario
+import com.hitachi.kiosk.core.testing.fixture.SampleData
 
 /** Build facts shown at the top of Developer options. */
 @Immutable
@@ -39,13 +40,28 @@ data class BuildInfo(
     val mockBaseUrl: String,
 )
 
-/** Stateless Developer options screen (DEV-009): build info, backend mode and fake scenario. */
+/** The serial-number diagnostics actions (DEV-012). */
+@Immutable
+data class SerialActions(
+    val onRefresh: () -> Unit,
+    val onClearCache: () -> Unit,
+    val onCopy: () -> Unit,
+    val onShare: () -> Unit,
+)
+
+/**
+ * Stateless Developer options screen (DEV-009): build info, backend mode, fake scenario, the serial-number source
+ * and the DEV-012 serial-number diagnostics.
+ */
 @Composable
 fun DeveloperOptionsScreen(
     build: BuildInfo,
     settings: DeveloperSettings,
+    serial: SerialDiagnostics?,
     onBackendModeChange: (BackendMode) -> Unit,
     onScenarioChange: (FakeScenario) -> Unit,
+    onIdentityModeChange: (IdentityMode) -> Unit,
+    serialActions: SerialActions,
     onClose: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -101,6 +117,36 @@ fun DeveloperOptionsScreen(
                 selected = settings.scenario == scenario,
             ) { onScenarioChange(scenario) }
         }
+
+        KioskText(text = stringResource(R.string.dev_options_identity), style = typography.section, color = colors.ink)
+        Choice(
+            label = R.string.dev_options_identity_fake,
+            hint = stringResource(R.string.dev_options_identity_fake_hint, SampleData.SERIAL_NUMBER),
+            selected = settings.identityMode == IdentityMode.FAKE,
+        ) { onIdentityModeChange(IdentityMode.FAKE) }
+        Choice(
+            label = R.string.dev_options_identity_unavailable,
+            hint = stringResource(R.string.dev_options_identity_unavailable_hint),
+            selected = settings.identityMode == IdentityMode.FAKE_UNAVAILABLE,
+        ) { onIdentityModeChange(IdentityMode.FAKE_UNAVAILABLE) }
+        Choice(
+            label = R.string.dev_options_identity_slow,
+            hint = stringResource(R.string.dev_options_identity_slow_hint, SampleData.SERIAL_NUMBER),
+            selected = settings.identityMode == IdentityMode.FAKE_SLOW,
+        ) { onIdentityModeChange(IdentityMode.FAKE_SLOW) }
+        Choice(
+            label = R.string.dev_options_identity_real,
+            hint = stringResource(R.string.dev_options_identity_real_hint),
+            selected = settings.identityMode == IdentityMode.REAL,
+        ) { onIdentityModeChange(IdentityMode.REAL) }
+
+        SerialDiagnosticsSection(
+            diagnostics = serial,
+            onRefresh = serialActions.onRefresh,
+            onClearCache = serialActions.onClearCache,
+            onCopy = serialActions.onCopy,
+            onShare = serialActions.onShare,
+        )
 
         Box(
             modifier =
@@ -175,8 +221,18 @@ private fun DeveloperOptionsScreenPreview() {
                         "http://10.0.2.2:4010/",
                     ),
                 settings = DeveloperSettings(),
+                serial =
+                    SerialDiagnostics(
+                        listOf(
+                            DiagnosticRow("IminDeviceIdentityProvider.identify()", "\"IMN24K0003118\""),
+                            DiagnosticRow("prop:ro.serialno", "<blank>"),
+                            DiagnosticRow("prop:persist.sys.imin.sn", "\"IMN24K0003118\""),
+                        ),
+                    ),
                 onBackendModeChange = {},
                 onScenarioChange = {},
+                onIdentityModeChange = {},
+                serialActions = SerialActions(onRefresh = {}, onClearCache = {}, onCopy = {}, onShare = {}),
                 onClose = {},
             )
         }

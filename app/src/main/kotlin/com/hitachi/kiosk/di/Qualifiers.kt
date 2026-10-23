@@ -16,3 +16,8 @@ annotation class DefaultDispatcher
 @Qualifier
 @Retention(AnnotationRetention.BINARY)
 annotation class ApplicationScope
+
+/** The app's `versionName` (PRD §4.1 C7, NFR-014). */
+@Qualifier
+@Retention(AnnotationRetention.BINARY)
+annotation class VersionName

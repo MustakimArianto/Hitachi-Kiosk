@@ -29,7 +29,7 @@ leakcanary = "2.14"
 jankstats = "1.0.0"
 profileinstaller = "1.4.1"
 imin-printer = "V2.0.0.19"   # confirm in DEV-056 / ADR-0004
-imin-device = "3.0.0"        # confirm in DEV-012 / ADR-0002
+imin-device = "3.0.0"        # unused (ADR-0002); remove when the ADR is accepted
 junit4 = "4.13.2"
 truth = "1.4.5"
 turbine = "1.2.1"
@@ -85,6 +85,7 @@ hilt-android = { module = "com.google.dagger:hilt-android", version.ref = "hilt"
 hilt-compiler = { module = "com.google.dagger:hilt-android-compiler", version.ref = "hilt" }
 hilt-android-testing = { module = "com.google.dagger:hilt-android-testing", version.ref = "hilt" }
 androidx-hilt-navigation-compose = { module = "androidx.hilt:hilt-navigation-compose", version.ref = "androidx-hilt" }
+androidx-hilt-lifecycle-viewmodel-compose = { module = "androidx.hilt:hilt-lifecycle-viewmodel-compose", version.ref = "androidx-hilt" }
 androidx-hilt-work = { module = "androidx.hilt:hilt-work", version.ref = "androidx-hilt" }
 androidx-hilt-compiler = { module = "androidx.hilt:hilt-compiler", version.ref = "androidx-hilt" }
 

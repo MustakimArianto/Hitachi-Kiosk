@@ -19,6 +19,11 @@ dependencies {
 
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.retrofit.kotlinx.serialization)
+    // Device state and the encrypted token store (architecture §6, technical-design §6.2–§6.3, TD-05).
+    implementation(libs.androidx.datastore)
+    implementation(libs.androidx.datastore.preferences)
+    implementation(libs.androidx.datastore.tink)
+    implementation(libs.tink.android)
 
     testImplementation(projects.core.testing)
     testImplementation(libs.junit4)

@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -22,6 +23,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
 import com.hitachi.kiosk.R
@@ -32,15 +35,28 @@ import com.hitachi.kiosk.core.designsystem.unit.dpx
 
 /**
  * The root of the UI (technical-design §10.2): the design frame, the [KioskNavHost] and the SCR-13 inactivity overlay
- * above it. The overlay is a placeholder until DEV-040 adds the `InactivityController`.
+ * above it. The overlay is a placeholder until DEV-040 adds the `InactivityController`. It also returns to Sign in
+ * whenever the session ends ([SessionViewModel]).
  */
 @Composable
 fun KioskRoot(
     onBrandMarkClick: () -> Unit,
     modifier: Modifier = Modifier,
     navController: NavHostController = rememberNavController(),
+    sessionViewModel: SessionViewModel = hiltViewModel(),
 ) {
     var stillThereVisible by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(sessionViewModel, navController) {
+        // HTTP 401 or Log out: back to Sign in from wherever the kiosk is (FR-003, TR-NET-06). Splash routes by
+        // itself, and Sign in is already there.
+        sessionViewModel.signedOut.collect {
+            val current = navController.currentDestination
+            if (current?.hasRoute<SplashRoute>() != true && current?.hasRoute<SignInRoute>() != true) {
+                stillThereVisible = false
+                navController.replaceStack(SignInRoute)
+            }
+        }
+    }
     DesignFrame(modifier = modifier) {
         Box(modifier = Modifier.fillMaxSize()) {
             KioskNavHost(

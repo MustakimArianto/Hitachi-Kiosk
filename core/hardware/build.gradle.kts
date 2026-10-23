@@ -10,9 +10,11 @@ android {
 
 dependencies {
     api(projects.core.domain)
-}
 
-// Until DEV-012 adds the first implementation and its tests, the generated Hilt test sources contain no tests.
-tasks.withType<Test>().configureEach {
-    failOnNoDiscoveredTests.set(false)
+    // SerialCache keeps its own identity.preferences_pb (technical-design §6.2, §9.1).
+    implementation(libs.androidx.datastore.preferences)
+
+    testImplementation(libs.junit4)
+    testImplementation(libs.truth)
+    testImplementation(libs.kotlinx.coroutines.test)
 }

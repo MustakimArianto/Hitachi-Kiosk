@@ -16,5 +16,22 @@
     <string name="dev_options_backend_real_hint">The build\'s environment: %1$s</string>
     <string name="dev_options_scenario">Scenario (api-spec §4)</string>
     <string name="dev_options_scenario_hint">Fakes apply every scenario. The mock server applies those Prism supports through a Prefer header.</string>
+    <string name="dev_options_identity">Serial number source (FR-002)</string>
+    <string name="dev_options_identity_fake">Fake</string>
+    <string name="dev_options_identity_fake_hint">Answers the sample SN %1$s at once.</string>
+    <string name="dev_options_identity_unavailable">Fake: unavailable</string>
+    <string name="dev_options_identity_unavailable_hint">No serial number can be read (serial_unavailable).</string>
+    <string name="dev_options_identity_slow">Fake: slow</string>
+    <string name="dev_options_identity_slow_hint">Answers the sample SN %1$s after 5 s.</string>
+    <string name="dev_options_identity_real">Real device</string>
+    <string name="dev_options_identity_real_hint">Reads this device\'s serial number with the ADR-0002 source chain.</string>
+    <string name="dev_options_serial">Serial number diagnostics (DEV-012)</string>
+    <string name="dev_options_serial_hint">Raw result of every source, the cache and the production reader, whatever the source chosen above. Copy or share the results, or capture them with adb logcat (event serial_spike), and fill in the ADR-0002 results table.</string>
+    <string name="dev_options_serial_loading">Reading…</string>
+    <string name="dev_options_serial_refresh">Read again</string>
+    <string name="dev_options_serial_clear">Clear serial cache</string>
+    <string name="dev_options_serial_copy">Copy results</string>
+    <string name="dev_options_serial_share">Share results</string>
+    <string name="dev_options_serial_share_title">Serial number diagnostics</string>
     <string name="dev_options_close">Close</string>
 </resources>

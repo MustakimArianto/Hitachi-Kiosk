@@ -20,8 +20,9 @@ fun interface DeviceCredentialsProvider {
 }
 
 /**
- * In-memory credentials, the default [DeviceCredentialsProvider] binding in 0.1.0. Nothing survives a restart.
- * DEV-014 (0.2.0) replaces it with the Tink-encrypted Secure DataStore (ADR-0001, TD-05).
+ * The in-memory copy of the stored credentials that [DeviceCredentialsProvider] serves to OkHttp without I/O.
+ * [com.hitachi.kiosk.core.data.repository.DeviceSession] fills it from the encrypted token store at startup and after
+ * activation, and clears it on Log out or HTTP 401 (DEV-014, technical-design §5.1).
  */
 @Singleton
 class InMemoryDeviceCredentialsStore

@@ -25,6 +25,15 @@ object KioskEasing {
 
     /** `(.55, 0, .75, .2)`: accelerating fly-to-cart. */
     val Fly: Easing = CubicBezierEasing(0.55f, 0f, 0.75f, 0.2f)
+
+    /** CSS `ease`, `(.25, .1, .25, 1)`: header and caption fades. */
+    val Ease: Easing = CubicBezierEasing(0.25f, 0.1f, 0.25f, 1f)
+
+    /** CSS `ease-in-out`, `(.42, 0, .58, 1)`: breathing and nudging loops. */
+    val EaseInOut: Easing = CubicBezierEasing(0.42f, 0f, 0.58f, 1f)
+
+    /** CSS `linear`: spinners and the skeleton shimmer. */
+    val Linear: Easing = Easing { it }
 }
 
 /**
@@ -49,7 +58,38 @@ object KioskMotion {
         const val TAGLINE_UP_DELAY_MILLIS: Int = 1350
         const val BAR_FILL_MILLIS: Int = 2200
         const val BAR_FILL_DELAY_MILLIS: Int = 1600
+
+        /** The progress track fades in (CSS `ease`) just before the fill starts. */
+        const val BAR_TRACK_FADE_MILLIS: Int = 500
+        const val BAR_TRACK_FADE_DELAY_MILLIS: Int = 1500
+
+        /** "Preparing your kiosk" fades in (CSS `ease`). */
+        const val CAPTION_FADE_MILLIS: Int = 600
+        const val CAPTION_FADE_DELAY_MILLIS: Int = 1700
         const val AUTO_ADVANCE_MILLIS: Int = 3900
+    }
+
+    /** Shared by several screens (PRD §7.1). */
+    object Common {
+        /** Header fade-in (CSS `ease`) on Sign in and Merchants. */
+        const val HEADER_FADE_MILLIS: Int = 600
+
+        /** Error and failure panels fade up. */
+        const val PANEL_UP_MILLIS: Int = 600
+
+        /** Distance of every fade-up entrance, in design px. */
+        const val UP_DISTANCE_PX: Int = 24
+    }
+
+    /** Press feedback (PRD §7.1), with [KioskEasing.Press]. */
+    object Press {
+        /** `.press`: buttons and pills. */
+        const val BUTTON_MILLIS: Int = 140
+        const val BUTTON_SCALE: Float = 0.96f
+
+        /** `.card`: large tappable cards. */
+        const val CARD_MILLIS: Int = 160
+        const val CARD_SCALE: Float = 0.98f
     }
 
     /** Sign in. */
@@ -63,6 +103,14 @@ object KioskMotion {
         const val DOCK_MILLIS: Int = 800
         const val DOCK_DELAY_MILLIS: Int = 300
 
+        /** Distance the dock travels in, in design px. */
+        const val DOCK_DISTANCE_PX: Int = 120
+        const val BREATHE_DELAY_MILLIS: Int = 1000
+        const val WELCOME_UP_MILLIS: Int = 700
+        const val WELCOME_UP_DELAY_MILLIS: Int = 160
+        const val INTRO_UP_MILLIS: Int = 700
+        const val INTRO_UP_DELAY_MILLIS: Int = 320
+
         /** Linear spinner rotation period. */
         const val SPINNER_LOOP_MILLIS: Int = 800
     }
@@ -70,12 +118,32 @@ object KioskMotion {
     /** Merchants. */
     object Merchants {
         const val TITLE_RISE_MILLIS: Int = 900
+        const val TITLE_RISE_DELAY_MILLIS: Int = 80
+        const val STEP_UP_MILLIS: Int = 600
+        const val STEP_UP_DELAY_MILLIS: Int = 80
+        const val SUBTITLE_UP_MILLIS: Int = 700
+        const val SUBTITLE_UP_DELAY_MILLIS: Int = 160
         const val CARD_UP_MILLIS: Int = 700
         const val CARD_UP_DELAY_MILLIS: Int = 220
+        const val SOON_LABEL_UP_MILLIS: Int = 600
+        const val SOON_LABEL_UP_DELAY_MILLIS: Int = 300
+        const val SOON_ROWS_UP_MILLIS: Int = 700
         const val SOON_ROWS_STAGGER_MILLIS: Int = 60
         const val SOON_ROWS_DELAY_MILLIS: Int = 360
         const val OPEN_NOW_PULSE_LOOP_MILLIS: Int = 1800
         const val ARROW_NUDGE_LOOP_MILLIS: Int = 1800
+        const val ARROW_NUDGE_DELAY_MILLIS: Int = 1400
+
+        /** Distance of the arrow nudge, in design px. */
+        const val ARROW_NUDGE_PX: Int = 8
+
+        /** Spread of the "Open now" pulse ring, in design px. */
+        const val OPEN_NOW_PULSE_PX: Int = 12
+
+        /** One pass of the skeleton shimmer (linear). */
+        const val SHIMMER_LOOP_MILLIS: Int = 1400
+        const val FOOTER_FADE_MILLIS: Int = 600
+        const val FOOTER_FADE_DELAY_MILLIS: Int = 700
     }
 
     /** Idle (attract screen). */

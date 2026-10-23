@@ -43,6 +43,12 @@ class KioskTokensTest {
                 "dockDisabled" to c.dockDisabled,
                 "dockDisabledText" to c.dockDisabledText,
                 "surface" to c.surface,
+                "errorBg" to c.errorBg,
+                "errorBorder" to c.errorBorder,
+                "errorText" to c.errorText,
+                "closedDot" to c.closedDot,
+                "skeletonHighlight" to c.skeletonHighlight,
+                "photoTone" to c.photoTone,
             ).mapValues { it.value.hex() }
 
         assertThat(actual).containsExactlyEntriesIn(
@@ -65,6 +71,12 @@ class KioskTokensTest {
                 "dockDisabled" to "#26231F",
                 "dockDisabledText" to "#8F887E",
                 "surface" to "#FFFFFF",
+                "errorBg" to "#FBEEE8",
+                "errorBorder" to "#F0CDBF",
+                "errorText" to "#4F4A44",
+                "closedDot" to "#A39C92",
+                "skeletonHighlight" to "#F6F3EE",
+                "photoTone" to "#E9DED0",
             ),
         )
     }
@@ -92,11 +104,23 @@ class KioskTokensTest {
                 c.dockDisabled,
                 c.dockDisabledText,
                 c.surface,
+                c.errorBg,
+                c.errorBorder,
+                c.errorText,
+                c.closedDot,
+                c.skeletonHighlight,
+                c.photoTone,
+                KioskPalette.PhotoToneFallback,
             )
 
         assertThat(opaque.map { it.alpha }.toSet()).containsExactly(1f)
         assertThat(c.floatingShadow.hex()).isEqualTo("#171513")
         assertThat(c.floatingShadow.alpha).isWithin(0.002f).of(0.10f)
+    }
+
+    @Test
+    fun `the photo slot fallback tone is E6DCD3`() {
+        assertThat(KioskPalette.PhotoToneFallback.hex()).isEqualTo("#E6DCD3")
     }
 
     @Test

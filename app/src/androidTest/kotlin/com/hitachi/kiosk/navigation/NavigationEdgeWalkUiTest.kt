@@ -5,22 +5,32 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasAnyDescendant
 import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasText
-import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.junit4.createEmptyComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.test.core.app.ActivityScenario
 import com.hitachi.kiosk.MainActivity
 import com.hitachi.kiosk.R
+import com.hitachi.kiosk.core.domain.repository.ActivationRepository
+import com.hitachi.kiosk.core.domain.repository.MerchantRepository
+import com.hitachi.kiosk.testing.KioskState
+import com.hitachi.kiosk.testing.awaitScreen
+import com.hitachi.kiosk.testing.launchKiosk
+import com.hitachi.kiosk.testing.string
 import dagger.hilt.android.testing.HiltAndroidRule
 import dagger.hilt.android.testing.HiltAndroidTest
+import org.junit.After
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
+import javax.inject.Inject
 
 /**
- * DEV-010a: walks every edge of the PRD §5.1 navigation map on the placeholder skeleton. Each `go` taps one edge and
- * checks the screen it lands on.
+ * DEV-010a: walks every edge of the PRD §5.1 navigation map from Idle on. Each `go` taps one edge and checks the
+ * screen it lands on. The kiosk starts bound, so the real Splash routes to Idle; the setup edges (Splash, Sign in,
+ * Choose a restaurant) are walked by [com.hitachi.kiosk.feature.SetupJourneysUiTest].
  */
 @HiltAndroidTest
 class NavigationEdgeWalkUiTest {
@@ -28,31 +38,31 @@ class NavigationEdgeWalkUiTest {
     val hilt = HiltAndroidRule(this)
 
     @get:Rule(order = 1)
-    val compose = createAndroidComposeRule<MainActivity>()
+    val compose = createEmptyComposeRule()
+
+    @Inject
+    lateinit var activation: ActivationRepository
+
+    @Inject
+    lateinit var merchants: MerchantRepository
+
+    private lateinit var scenario: ActivityScenario<MainActivity>
 
     @Before
     fun setUp() {
         hilt.inject()
-        assertOn("SCR-01")
+        KioskState(activation, merchants).bound()
+        scenario = launchKiosk()
+        compose.awaitScreen("SCR-04")
     }
 
-    @Test
-    fun splashRoutesAnUnactivatedKioskThroughSetupToIdle() {
-        go(R.string.nav_not_activated, "SCR-02")
-        go(R.string.nav_activation_ok, "SCR-03")
-        go(R.string.nav_log_out, "SCR-02")
-        go(R.string.nav_activation_ok, "SCR-03")
-        go(R.string.nav_pick_merchant, "SCR-04")
-    }
-
-    @Test
-    fun splashRoutesAnActivatedKioskWithoutMerchantToMerchants() {
-        go(R.string.nav_activated_no_merchant, "SCR-03")
+    @After
+    fun tearDown() {
+        scenario.close()
     }
 
     @Test
     fun customerFlowCoversMenuBranchesAndPayment() {
-        go(R.string.nav_merchant_bound, "SCR-04")
         go(R.string.nav_tap_anywhere, "SCR-05")
         go(R.string.nav_pick_order_type, "SCR-06")
         go(R.string.nav_product_card, "SCR-08")
@@ -74,7 +84,6 @@ class NavigationEdgeWalkUiTest {
 
     @Test
     fun itemAndComboOpenYourOrderAndMenuCancelReturnsToIdle() {
-        go(R.string.nav_merchant_bound, "SCR-04")
         go(R.string.nav_tap_anywhere, "SCR-05")
         go(R.string.nav_pick_order_type, "SCR-06")
         go(R.string.nav_product_card, "SCR-08")
@@ -88,7 +97,6 @@ class NavigationEdgeWalkUiTest {
 
     @Test
     fun budgetPlanStepsAndBackBehaviour() {
-        go(R.string.nav_merchant_bound, "SCR-04")
         go(R.string.nav_tap_anywhere, "SCR-05")
         go(R.string.nav_pick_order_type, "SCR-06")
         go(R.string.nav_plan_by_budget, "SCR-19")
@@ -105,7 +113,6 @@ class NavigationEdgeWalkUiTest {
 
     @Test
     fun inactivityOverlayDismissesOrReturnsToIdle() {
-        go(R.string.nav_merchant_bound, "SCR-04")
         go(R.string.nav_tap_anywhere, "SCR-05")
         go(R.string.nav_simulate_inactivity, "SCR-13")
         go(R.string.nav_still_here, "SCR-05")
@@ -116,7 +123,6 @@ class NavigationEdgeWalkUiTest {
 
     @Test
     fun staffAreaCoversEverySettingsPageAndChangePin() {
-        go(R.string.nav_merchant_bound, "SCR-04")
         go(R.string.nav_hold_staff_entry, "SCR-14")
         go(R.string.nav_exit_settings, "SCR-04")
         go(R.string.nav_hold_staff_entry, "SCR-14")
@@ -138,10 +144,10 @@ class NavigationEdgeWalkUiTest {
         @StringRes edge: Int,
         expectedScreen: String,
     ) {
-        val button = compose.onNodeWithText(compose.activity.getString(edge))
+        val button = compose.onNodeWithText(string(edge))
         // Screens scroll their buttons into view; the SCR-13 overlay card does not scroll.
         if (compose
-                .onAllNodes(hasScrollAction() and hasAnyDescendant(hasText(compose.activity.getString(edge))))
+                .onAllNodes(hasScrollAction() and hasAnyDescendant(hasText(string(edge))))
                 .fetchSemanticsNodes()
                 .isNotEmpty()
         ) {
@@ -159,6 +165,6 @@ class NavigationEdgeWalkUiTest {
     private fun assertText(
         @StringRes text: Int,
     ) {
-        compose.onNodeWithText(compose.activity.getString(text)).assertExists()
+        compose.onNodeWithText(string(text)).assertExists()
     }
 }

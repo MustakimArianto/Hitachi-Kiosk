@@ -6,6 +6,7 @@ import com.hitachi.kiosk.core.domain.model.ActivationRequest
 import com.hitachi.kiosk.core.domain.model.Badge
 import com.hitachi.kiosk.core.domain.model.BadgeType
 import com.hitachi.kiosk.core.domain.model.Binding
+import com.hitachi.kiosk.core.domain.model.BoundMerchant
 import com.hitachi.kiosk.core.domain.model.BudgetPlannerConfig
 import com.hitachi.kiosk.core.domain.model.CancelledOrder
 import com.hitachi.kiosk.core.domain.model.Category
@@ -16,8 +17,10 @@ import com.hitachi.kiosk.core.domain.model.ComboSlotOption
 import com.hitachi.kiosk.core.domain.model.ComboSlots
 import com.hitachi.kiosk.core.domain.model.CombosCategory
 import com.hitachi.kiosk.core.domain.model.CreatedOrder
+import com.hitachi.kiosk.core.domain.model.DeviceState
 import com.hitachi.kiosk.core.domain.model.Health
 import com.hitachi.kiosk.core.domain.model.HealthStatus
+import com.hitachi.kiosk.core.domain.model.KioskDevice
 import com.hitachi.kiosk.core.domain.model.KioskMode
 import com.hitachi.kiosk.core.domain.model.Level
 import com.hitachi.kiosk.core.domain.model.LevelPrice
@@ -145,6 +148,21 @@ object SampleData {
             kioskName = "Kiosk 3",
             boundAt = Instant.parse("2026-10-22T07:00:00Z"),
         )
+
+    /** The `merchant_closed` scenario: Urban Grill closed until 10:00 in Jakarta (api-spec §4). */
+    val urbanGrillClosed = urbanGrill.copy(isOpen = false, opensAt = Instant.parse("2026-10-23T03:00:00Z"))
+
+    val merchantsWithClosed = listOf(urbanGrillClosed) + merchants.drop(1)
+
+    // Local device state after E1 and E3 ------------------------------------------------------------------------
+
+    val kioskDevice = KioskDevice(deviceId = DEVICE_ID, kioskCode = "KSK-0003", kioskName = "Kiosk 3")
+
+    val boundMerchant = BoundMerchant(id = MERCHANT_ID, name = "Urban Grill")
+
+    val activatedState = DeviceState.Activated(kioskDevice)
+
+    val boundState = DeviceState.Bound(device = kioskDevice, merchant = boundMerchant, mode = KioskMode.SINGLE)
 
     // E5 ----------------------------------------------------------------------------------------------------------
 

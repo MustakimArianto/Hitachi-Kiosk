@@ -68,7 +68,7 @@ schemas = {
                   "message": STR, "details": {"type": "object", "additionalProperties": True}},
                  ["code", "message"]),
     "Merchant": obj({"id": STR, "name": STR, "cuisine": L, "logoUrl": nstr(), "photoUrl": nstr(),
-                     "status": enum("live", "coming_soon"), "isOpen": BOOL},
+                     "status": enum("live", "coming_soon"), "isOpen": BOOL, "opensAt": {**TIME, "nullable": True}},
                     ["id", "name", "status", "isOpen"]),
     "ActivateRequest": obj({"serialNumber": STR, "model": STR, "osVersion": STR, "appVersion": STR},
                            ["serialNumber", "appVersion"]),
@@ -265,7 +265,10 @@ paths = {
         "listMerchants", "E2 — Merchants this kiosk may serve", ["Device"], [DEVICE_ID] + AUTHED,
         {"200": resp("Merchant list.", "MerchantList", {
             "default": ("Urban Grill live, four coming soon", E2_RES),
-            "empty": ("No merchants yet", {"merchants": []})}),
+            "empty": ("No merchants yet", {"merchants": []}),
+            "closed": ("Urban Grill closed until 10:00 (Jakarta)", {"merchants": [
+                {**E2_RES["merchants"][0], "isOpen": False, "opensAt": "2026-10-23T03:00:00Z"},
+                *E2_RES["merchants"][1:]]})}),
          "401": R401, "500": R5XX})},
     "/v1/devices/{deviceId}/binding": {
         "put": op("bindMerchant", "E3 — Bind kiosk to a merchant", ["Device"], [DEVICE_ID, p("IdempotencyKeyOptional")] + AUTHED,

@@ -1,6 +1,7 @@
 package com.hitachi.kiosk.core.data.api
 
 import com.google.common.truth.Truth.assertThat
+import kotlinx.coroutines.test.runTest
 import org.junit.Test
 
 class DeviceCredentialsTest {
@@ -25,7 +26,8 @@ class DeviceCredentialsTest {
     }
 
     @Test
-    fun `the default unauthorized handler does nothing`() {
-        UnauthorizedHandler.None.onUnauthorized()
-    }
+    fun `the no-op unauthorized handler does nothing`() =
+        runTest {
+            UnauthorizedHandler.None.onUnauthorized()
+        }
 }

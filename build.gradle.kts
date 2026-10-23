@@ -56,12 +56,10 @@ dependencyAnalysis {
             // kiosk.hilt declares Hilt as implementation in every module that uses it.
             onIncorrectConfiguration { exclude("com.google.dagger:hilt-android") }
         }
-        // :core:hardware has no implementation before DEV-012 (0.2.0), so Hilt and the module itself look unused.
-        project(":core:hardware") {
-            onUnusedDependencies { exclude("com.google.dagger:hilt-android", ":core:domain") }
-        }
+        // :app code never uses Retrofit; only the generated Hilt component names it, through the internal
+        // :core:data implementations it constructs (architecture §3: Retrofit stays in :core:data).
         project(":app") {
-            onUnusedDependencies { exclude(":core:hardware") }
+            onUsedTransitiveDependencies { exclude("com.squareup.retrofit2:retrofit") }
         }
     }
 }

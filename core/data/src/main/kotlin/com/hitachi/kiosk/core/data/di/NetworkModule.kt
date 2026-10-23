@@ -6,7 +6,6 @@ import com.hitachi.kiosk.core.data.api.DeviceCredentialsProvider
 import com.hitachi.kiosk.core.data.api.InMemoryDeviceCredentialsStore
 import com.hitachi.kiosk.core.data.api.KioskBackend
 import com.hitachi.kiosk.core.data.api.NetworkInterceptors
-import com.hitachi.kiosk.core.data.api.UnauthorizedHandler
 import dagger.Binds
 import dagger.Module
 import dagger.Provides
@@ -20,7 +19,8 @@ import javax.inject.Singleton
 
 /**
  * The backend HTTP stack (architecture §7, technical-design §5.1). `:app` provides [ApiConfig] and binds
- * `BackendApi`/`PaymentGateway` to `DefaultBackendApi`/`BackendPaymentGateway`.
+ * `BackendApi`/`PaymentGateway` to `DefaultBackendApi`/`BackendPaymentGateway`. HTTP 401 goes to the
+ * `UnauthorizedHandler` bound in [RepositoryModule].
  */
 @Module
 @InstallIn(SingletonComponent::class)
@@ -41,16 +41,12 @@ object NetworkModule {
         config: ApiConfig,
         @KioskBackend client: OkHttpClient,
     ): Retrofit = BackendHttp.retrofit(config.baseUrl, client)
-
-    /** 0.1.0 default; DEV-014 (0.2.0) binds the `SessionInvalidator` instead. */
-    @Provides
-    fun provideUnauthorizedHandler(): UnauthorizedHandler = UnauthorizedHandler.None
 }
 
 @Module
 @InstallIn(SingletonComponent::class)
 abstract class NetworkBindingsModule {
-    /** 0.1.0 default; DEV-014 (0.2.0) binds the Secure DataStore token store instead. */
+    /** The in-memory copy of the encrypted credentials, kept current by `DeviceSession` (DEV-014). */
     @Binds
     abstract fun bindDeviceCredentialsProvider(store: InMemoryDeviceCredentialsStore): DeviceCredentialsProvider
 
