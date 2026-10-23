@@ -121,4 +121,17 @@
     <string name="merchants_soon_pill">Soon</string>
     <string name="merchants_soon_row_description">%1$s, %2$s, coming soon</string>
     <string name="merchants_footer">More merchants will appear here as they join Hitachi Kiosk</string>
+
+    <!-- Shared by the customer screens (0.3.0) -->
+    <string name="offline_banner">Ordering is paused — reconnecting…</string>
+    <string name="max_per_item_toast">Maximum 20 per item</string>
+
+    <!-- SCR-04 Idle and SCR-05 Order type (Idle.dc.html, OrderType.dc.html, FR-006, FR-007) -->
+    <!-- end SCR-04 / SCR-05 -->
+
+    <!-- SCR-06 Menu (Menu.dc.html, FR-009) -->
+    <!-- end SCR-06 -->
+
+    <!-- SCR-07 Combo and SCR-08 Item detail (Combo.dc.html, ItemDetail.dc.html, FR-010, FR-011) -->
+    <!-- end SCR-07 / SCR-08 -->
 </resources>
