@@ -1,1 +1,61 @@
+# --- Secrets and machine-specific config: never commit (conventions §8, TR-SEC-03) ---
+local.properties
+*.keystore
+*.jks
+*.p12
+*.pfx
+*.pem
+*.key
+keystore.properties
+signing.properties
+secrets.properties
+*.env
+.env
+.env.*
+!.env.example
+# Firebase/Play config is not used (D-23); keep it out if a tool generates one.
+google-services.json
+service-account*.json
+
+# --- Gradle and Kotlin ---
+.gradle/
+.kotlin/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+# Gradle's per-machine daemon toolchain file; this project builds with the JDK in JAVA_HOME.
+gradle/gradle-daemon-jvm.properties
+
+# --- Android build output ---
+*.apk
+*.aab
+*.ap_
+*.dex
+captures/
+.externalNativeBuild/
+.cxx/
+*.hprof
+output-metadata.json
+
+# --- IDEs and editors ---
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+.fleet/
+*.swp
+*~
+
+# --- OS files ---
 .DS_Store
+Thumbs.db
+desktop.ini
+
+# --- Tooling: contract scripts (Python, Node) ---
+__pycache__/
+*.py[cod]
+node_modules/
+npm-debug.log*
+
+# --- Logs and local reports ---
+*.log
