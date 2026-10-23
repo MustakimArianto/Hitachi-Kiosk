@@ -12,12 +12,16 @@ import com.hitachi.kiosk.core.data.jsonResponse
 import com.hitachi.kiosk.core.data.prefs.InMemoryTokenStore
 import com.hitachi.kiosk.core.data.prefs.newDeviceStore
 import com.hitachi.kiosk.core.data.sync.DefaultCatalogSyncRepository
+import com.hitachi.kiosk.core.data.sync.InMemoryCatalogStore
 import com.hitachi.kiosk.core.data.takeRequestNow
 import com.hitachi.kiosk.core.domain.Outcome
 import com.hitachi.kiosk.core.domain.error.DomainError
 import com.hitachi.kiosk.core.domain.model.DeviceState
+import com.hitachi.kiosk.core.domain.order.DefaultOrderSessionHolder
 import com.hitachi.kiosk.core.domain.repository.BindResult
 import com.hitachi.kiosk.core.testing.fake.FakeIdGenerator
+import com.hitachi.kiosk.core.testing.fake.FakeImagePrefetcher
+import com.hitachi.kiosk.core.testing.fake.TestClock
 import com.hitachi.kiosk.core.testing.fixture.SampleData
 import kotlinx.coroutines.test.runTest
 import mockwebserver3.junit4.MockWebServerRule
@@ -41,7 +45,8 @@ class SetupIntegrationTest {
     private val server get() = rule.server
     private val tokens = InMemoryTokenStore()
     private val credentials = InMemoryDeviceCredentialsStore()
-    private val session by lazy { DeviceSession(tokens, newDeviceStore(folder.root), credentials) }
+    private val catalogStore = InMemoryCatalogStore()
+    private val session by lazy { DeviceSession(tokens, newDeviceStore(folder.root), credentials, catalogStore) }
     private val config by lazy {
         ApiConfig(
             baseUrl = server.url("/").toString(),
@@ -64,7 +69,15 @@ class SetupIntegrationTest {
     }
     private val activation by lazy { DefaultActivationRepository(backend, session, config) }
     private val merchants by lazy {
-        DefaultMerchantRepository(backend, session, DefaultCatalogSyncRepository(backend), FakeIdGenerator())
+        val sync =
+            DefaultCatalogSyncRepository(
+                backend,
+                catalogStore,
+                DefaultOrderSessionHolder(),
+                FakeImagePrefetcher(),
+                TestClock(),
+            )
+        DefaultMerchantRepository(backend, session, sync, FakeIdGenerator())
     }
 
     private fun envelope(code: String) = """{ "code": "$code", "message": "m", "details": {} }"""

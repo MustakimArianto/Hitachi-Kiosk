@@ -142,9 +142,9 @@ private fun menuActions(
     inactivity: PlaceholderAction,
 ): List<PlaceholderAction> =
     listOf(
-        PlaceholderAction(R.string.nav_product_card) { navController.navigate(ItemDetailRoute) },
+        PlaceholderAction(R.string.nav_product_card) { navController.navigate(ItemDetailRoute(productId = "b2")) },
         PlaceholderAction(R.string.nav_plan_by_budget) { navController.navigate(BudgetPlanRoute) },
-        PlaceholderAction(R.string.nav_meals) { navController.navigate(ComboRoute) },
+        PlaceholderAction(R.string.nav_meals) { navController.navigate(ComboRoute()) },
         // The cart is kept when the order type changes (PRD §5.1).
         PlaceholderAction(R.string.nav_change_order_type) { navController.popBackStack(OrderTypeRoute, false) },
         PlaceholderAction(R.string.nav_cancel_order) { navController.popBackStack(IdleRoute, false) },

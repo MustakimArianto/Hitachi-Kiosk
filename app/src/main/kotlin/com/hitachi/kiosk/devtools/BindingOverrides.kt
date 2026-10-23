@@ -1,6 +1,7 @@
 package com.hitachi.kiosk.devtools
 
 import com.hitachi.kiosk.core.domain.backend.BackendApi
+import com.hitachi.kiosk.core.domain.device.ConnectivityMonitor
 import com.hitachi.kiosk.core.domain.device.DeviceIdentityProvider
 
 /**
@@ -16,4 +17,7 @@ interface BindingOverrides {
 
     /** Switches between the real serial-number reader and the FR-002 fakes (success, unavailable, slow). */
     fun deviceIdentityProvider(real: DeviceIdentityProvider): DeviceIdentityProvider
+
+    /** The connectivity the offline banner reads (FR-028). Instrumented tests replace it with a scriptable fake. */
+    fun connectivityMonitor(real: ConnectivityMonitor): ConnectivityMonitor
 }

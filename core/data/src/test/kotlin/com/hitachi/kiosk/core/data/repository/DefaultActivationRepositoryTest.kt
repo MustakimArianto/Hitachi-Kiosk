@@ -72,7 +72,8 @@ class DefaultActivationRepositoryTest {
 private class SetupHarnessRestart(
     harness: SetupHarness,
 ) {
-    private val session = DeviceSession(harness.tokens, harness.deviceStore, InMemoryDeviceCredentialsStore())
+    private val session =
+        DeviceSession(harness.tokens, harness.deviceStore, InMemoryDeviceCredentialsStore(), harness.catalogStore)
 
     suspend fun load(): DeviceState = session.load()
 }

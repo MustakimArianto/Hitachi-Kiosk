@@ -34,9 +34,13 @@ dependencies {
     implementation(libs.androidx.hilt.lifecycle.viewmodel.compose)
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.timber)
-    // Merchant photos and logos (NFR-013); the OkHttp fetcher is found at runtime through Coil's service loader.
+    // Menu, promo and merchant photos with a 200 MB disk cache (NFR-013, technical-design §4.1).
     implementation(libs.coil.compose)
-    runtimeOnly(libs.coil.network.okhttp)
+    implementation(libs.coil.network.okhttp)
+    implementation(libs.okhttp)
+    // WorkManager with Hilt workers for the periodic catalog sync (DEV-023).
+    implementation(libs.androidx.work.runtime.ktx)
+    implementation(libs.androidx.hilt.work)
     runtimeOnly(libs.androidx.profileinstaller)
 
     // Debug-only Developer options (DEV-009): fakes and their switching never ship in release.
@@ -44,7 +48,6 @@ dependencies {
     debugImplementation(libs.androidx.datastore.preferences)
     debugRuntimeOnly(libs.leakcanary.android)
     debugImplementation(libs.androidx.compose.ui.tooling)
-    debugImplementation(libs.okhttp)
     implementation(libs.androidx.compose.ui.tooling.preview)
 
     testImplementation(projects.core.testing)

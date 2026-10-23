@@ -79,13 +79,16 @@ data class KioskShadow(
 )
 
 /**
- * The two elevations of PRD §11.1: flat (no shadow) and [floating], `0 24 48 rgba(23,21,19,.10)`, for docks
- * and overlays (DEV-004). Read through `KioskTheme.elevation`.
+ * The elevations of PRD §11.1: flat (no shadow), [floating], `0 24 48 rgba(23,21,19,.10)`, for docks and
+ * overlays, and [raised], `0 24 48 rgba(23,21,19,.18)`, for toasts and flying thumbnails (DEV-004). Read through
+ * `KioskTheme.elevation`.
  */
 @Immutable
 data class KioskElevation(
     /** Docks and overlays. */
     val floating: KioskShadow,
+    /** Toasts and the fly-to-cart thumbnail. */
+    val raised: KioskShadow,
 )
 
 /** Builds [KioskElevation] for a design [scale] (PRD §11.1, DEV-004). */
@@ -99,5 +102,11 @@ fun kioskElevation(
                 offsetY = designPxToDp(KioskLayout.FLOATING_OFFSET_YPX, scale),
                 blurRadius = designPxToDp(KioskLayout.FLOATING_BLUR_PX, scale),
                 color = colors.floatingShadow,
+            ),
+        raised =
+            KioskShadow(
+                offsetY = designPxToDp(KioskLayout.FLOATING_OFFSET_YPX, scale),
+                blurRadius = designPxToDp(KioskLayout.FLOATING_BLUR_PX, scale),
+                color = colors.raisedShadow,
             ),
     )

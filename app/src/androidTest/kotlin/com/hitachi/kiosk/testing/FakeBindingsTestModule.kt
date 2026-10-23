@@ -1,8 +1,10 @@
 package com.hitachi.kiosk.testing
 
 import com.hitachi.kiosk.core.domain.backend.BackendApi
+import com.hitachi.kiosk.core.domain.device.ConnectivityMonitor
 import com.hitachi.kiosk.core.domain.device.DeviceIdentityProvider
 import com.hitachi.kiosk.core.testing.fake.FakeBackendApi
+import com.hitachi.kiosk.core.testing.fake.FakeConnectivityMonitor
 import com.hitachi.kiosk.core.testing.fake.FakeDeviceIdentityProvider
 import com.hitachi.kiosk.debug.DeveloperOptionsModule
 import com.hitachi.kiosk.devtools.BindingOverrides
@@ -14,8 +16,8 @@ import dagger.hilt.testing.TestInstallIn
 import javax.inject.Singleton
 
 /**
- * Instrumented tests drive the real app, data layer and encrypted storage, with the backend and the serial number
- * replaced by scriptable fakes the test injects (technical-design §14). It replaces the debug Developer options
+ * Instrumented tests drive the real app, data layer and encrypted storage, with the backend, the serial number and
+ * the connectivity replaced by scriptable fakes the test injects (technical-design §14). It replaces the debug Developer options
  * bindings, so a tester's saved Developer options choices never leak into a test run.
  */
 @Module
@@ -30,14 +32,21 @@ object FakeBindingsTestModule {
     fun fakeIdentity(): FakeDeviceIdentityProvider = FakeDeviceIdentityProvider()
 
     @Provides
+    @Singleton
+    fun fakeConnectivity(): FakeConnectivityMonitor = FakeConnectivityMonitor()
+
+    @Provides
     fun bindingOverrides(
         backend: FakeBackendApi,
         identity: FakeDeviceIdentityProvider,
+        connectivity: FakeConnectivityMonitor,
     ): BindingOverrides =
         object : BindingOverrides {
             override fun backendApi(real: BackendApi): BackendApi = backend
 
             override fun deviceIdentityProvider(real: DeviceIdentityProvider): DeviceIdentityProvider = identity
+
+            override fun connectivityMonitor(real: ConnectivityMonitor): ConnectivityMonitor = connectivity
         }
 
     @Provides

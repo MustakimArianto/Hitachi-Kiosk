@@ -49,6 +49,11 @@ class KioskTokensTest {
                 "closedDot" to c.closedDot,
                 "skeletonHighlight" to c.skeletonHighlight,
                 "photoTone" to c.photoTone,
+                "warningBg" to c.warningBg,
+                "warningBorder" to c.warningBorder,
+                "warningTrack" to c.warningTrack,
+                "warningAccent" to c.warningAccent,
+                "warningText" to c.warningText,
             ).mapValues { it.value.hex() }
 
         assertThat(actual).containsExactlyEntriesIn(
@@ -77,12 +82,17 @@ class KioskTokensTest {
                 "closedDot" to "#A39C92",
                 "skeletonHighlight" to "#F6F3EE",
                 "photoTone" to "#E9DED0",
+                "warningBg" to "#FFF4DB",
+                "warningBorder" to "#EBD39A",
+                "warningTrack" to "#E2C877",
+                "warningAccent" to "#8A6A12",
+                "warningText" to "#4A3A08",
             ),
         )
     }
 
     @Test
-    fun `every color token is opaque except the floating shadow at 10 percent ink`() {
+    fun `every color token is opaque except the shadows at 10 and 18 percent ink`() {
         val c = KioskColors()
         val opaque =
             listOf(
@@ -110,12 +120,19 @@ class KioskTokensTest {
                 c.closedDot,
                 c.skeletonHighlight,
                 c.photoTone,
+                c.warningBg,
+                c.warningBorder,
+                c.warningTrack,
+                c.warningAccent,
+                c.warningText,
                 KioskPalette.PhotoToneFallback,
             )
 
         assertThat(opaque.map { it.alpha }.toSet()).containsExactly(1f)
         assertThat(c.floatingShadow.hex()).isEqualTo("#171513")
         assertThat(c.floatingShadow.alpha).isWithin(0.002f).of(0.10f)
+        assertThat(c.raisedShadow.hex()).isEqualTo("#171513")
+        assertThat(c.raisedShadow.alpha).isWithin(0.002f).of(0.18f)
     }
 
     @Test

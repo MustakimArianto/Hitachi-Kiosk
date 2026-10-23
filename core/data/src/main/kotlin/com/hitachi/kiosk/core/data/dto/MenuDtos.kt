@@ -116,4 +116,5 @@ internal data class ComboSlotOptionDto(
     val name: LocalizedTextDto,
     val upcharge: Long = 0,
     val imageUrl: String? = null,
+    val available: Boolean = true,
 )

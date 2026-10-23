@@ -9,6 +9,7 @@ import com.hitachi.kiosk.core.domain.model.Binding
 import com.hitachi.kiosk.core.domain.model.BoundMerchant
 import com.hitachi.kiosk.core.domain.model.BudgetPlannerConfig
 import com.hitachi.kiosk.core.domain.model.CancelledOrder
+import com.hitachi.kiosk.core.domain.model.Catalog
 import com.hitachi.kiosk.core.domain.model.Category
 import com.hitachi.kiosk.core.domain.model.Combo
 import com.hitachi.kiosk.core.domain.model.ComboSelection
@@ -872,6 +873,9 @@ object SampleData {
                     sizeLargeUpcharge = rp(6_000),
                 ),
         )
+
+    /** E5 and E6 together, as the cache serves them (FR-028). */
+    val catalog = Catalog(config = config, menu = menu)
 
     // E7–E8 -------------------------------------------------------------------------------------------------------
 

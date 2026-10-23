@@ -119,4 +119,10 @@ private fun ComboDto.toDomain(): Combo =
     )
 
 private fun ComboSlotOptionDto.toDomain(): ComboSlotOption =
-    ComboSlotOption(id = id, name = name.toDomain(), upcharge = upcharge.toRupiah(), imageUrl = imageUrl)
+    ComboSlotOption(
+        id = id,
+        name = name.toDomain(),
+        upcharge = upcharge.toRupiah(),
+        imageUrl = imageUrl,
+        available = available,
+    )

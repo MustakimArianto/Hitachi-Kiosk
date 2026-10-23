@@ -1,64 +1,124 @@
 package com.hitachi.kiosk.core.data.sync
 
+import android.database.SQLException
+import com.hitachi.kiosk.core.data.mapper.CatalogStamp
+import com.hitachi.kiosk.core.data.repository.CatalogStore
+import com.hitachi.kiosk.core.data.repository.StoredCatalog
 import com.hitachi.kiosk.core.domain.Outcome
 import com.hitachi.kiosk.core.domain.backend.BackendApi
 import com.hitachi.kiosk.core.domain.error.DomainError
+import com.hitachi.kiosk.core.domain.image.ImagePrefetcher
 import com.hitachi.kiosk.core.domain.log.KioskLog
+import com.hitachi.kiosk.core.domain.model.Catalog
 import com.hitachi.kiosk.core.domain.model.Conditional
 import com.hitachi.kiosk.core.domain.model.KioskMode
-import com.hitachi.kiosk.core.domain.model.Menu
-import com.hitachi.kiosk.core.domain.model.MerchantConfig
+import com.hitachi.kiosk.core.domain.order.OrderSessionHolder
 import com.hitachi.kiosk.core.domain.repository.CatalogSyncRepository
 import com.hitachi.kiosk.core.domain.retryWithBackoff
+import com.hitachi.kiosk.core.domain.time.Clock
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import javax.inject.Inject
 import javax.inject.Singleton
 
-/** The config and menu of the last successful sync. */
-internal data class CatalogSnapshot(
-    val config: MerchantConfig,
-    val menu: Menu,
-)
-
 /**
- * The 0.2.0 catalog download (DEV-016 stub, FR-028): E5 then E6, each retried on transient errors, kept in memory.
- * Concurrent calls share one run. DEV-021/DEV-022 (0.3.0) replace the memory copy with the Room cache, send ETags
- * and add the startup, periodic and reconnect triggers.
+ * The catalog sync of FR-028 (DEV-022, technical-design §7.1): E5 then E6 with `If-None-Match`, each retried on
+ * transient errors, written to the Room cache in one transaction, then the images are prefetched (NFR-013). A
+ * catalog that arrives during an order waits in memory until [applyPending] (A-29). Concurrent calls share one
+ * [Mutex], so they run one after the other.
  */
 @Singleton
 internal class DefaultCatalogSyncRepository
     @Inject
     constructor(
         private val backend: BackendApi,
+        private val store: CatalogStore,
+        private val orders: OrderSessionHolder,
+        private val images: ImagePrefetcher,
+        private val clock: Clock,
     ) : CatalogSyncRepository {
         private val mutex = Mutex()
 
-        /** The last downloaded catalog, or `null` before the first successful sync. */
-        @Volatile
-        var latest: CatalogSnapshot? = null
-            private set
+        /** A newer catalog held back while an order runs (A-29). Guarded by [mutex]. */
+        private var pending: StoredCatalog? = null
 
         override suspend fun sync(merchantId: String): Outcome<KioskMode> =
             mutex.withLock {
+                // The newest copy we hold for this merchant; another merchant's cache never lends its ETags.
+                val base = (pending ?: store.stored())?.takeIf { it.catalog.config.merchantId == merchantId }
+
                 val config =
-                    when (val outcome = retryWithBackoff { backend.config(merchantId, etag = null) }) {
+                    when (val outcome = retryWithBackoff { backend.config(merchantId, base?.stamp?.configEtag) }) {
                         is Outcome.Failure -> return@withLock outcome.also { logFailure("E5", it.error) }
-                        is Outcome.Success -> outcome.value.valueOr(latest?.config) ?: return@withLock notModified("E5")
+                        is Outcome.Success -> outcome.value
                     }
                 val menu =
-                    when (val outcome = retryWithBackoff { backend.menu(merchantId, etag = null) }) {
+                    when (val outcome = retryWithBackoff { backend.menu(merchantId, base?.stamp?.menuEtag) }) {
                         is Outcome.Failure -> return@withLock outcome.also { logFailure("E6", it.error) }
-                        is Outcome.Success -> outcome.value.valueOr(latest?.menu) ?: return@withLock notModified("E6")
+                        is Outcome.Success -> outcome.value
                     }
-                latest = CatalogSnapshot(config, menu)
-                KioskLog.i("catalog_synced", "merchantId" to merchantId, "menuVersion" to menu.menuVersion)
-                Outcome.Success(config.mode)
+
+                val configValue = config.valueOr(base?.catalog?.config) ?: return@withLock notModified("E5")
+                val menuValue = menu.valueOr(base?.catalog?.menu) ?: return@withLock notModified("E6")
+                if (base != null && config is Conditional.NotModified && menu is Conditional.NotModified) {
+                    KioskLog.i("catalog_unchanged", "merchantId" to merchantId, "menuVersion" to menuValue.menuVersion)
+                    return@withLock Outcome.Success(configValue.mode)
+                }
+
+                val next =
+                    StoredCatalog(
+                        catalog = Catalog(configValue, menuValue),
+                        stamp =
+                            CatalogStamp(
+                                configEtag = config.etagOr(base?.stamp?.configEtag),
+                                menuEtag = menu.etagOr(base?.stamp?.menuEtag),
+                                fetchedAtMillis = clock.now().toEpochMilliseconds(),
+                            ),
+                    )
+                if (orders.isOrderActive) {
+                    pending = next
+                    KioskLog.i("catalog_deferred", "menuVersion" to menuValue.menuVersion)
+                    return@withLock Outcome.Success(configValue.mode)
+                }
+                write(next)
             }
+
+        override suspend fun applyPending() {
+            mutex.withLock {
+                val next = pending ?: return@withLock
+                if (orders.isOrderActive) return@withLock
+                write(next)
+            }
+        }
+
+        /** Stores [next] and prefetches its images. Must hold [mutex]. */
+        private suspend fun write(next: StoredCatalog): Outcome<KioskMode> {
+            try {
+                store.replace(next)
+            } catch (e: SQLException) {
+                // The transaction rolled back, so the previous catalog is still served (TR-REL-07).
+                KioskLog.e("catalog_write_failed", "type" to e.javaClass.simpleName)
+                return Outcome.Failure(DomainError.Unknown)
+            }
+            pending = null
+            images.prefetch(next.catalog.imageUrls())
+            KioskLog.i(
+                "catalog_synced",
+                "merchantId" to next.catalog.config.merchantId,
+                "menuVersion" to next.catalog.menu.menuVersion,
+            )
+            return Outcome.Success(next.catalog.config.mode)
+        }
 
         private fun <T> Conditional<T>.valueOr(cached: T?): T? =
             when (this) {
                 is Conditional.Modified -> value
+                Conditional.NotModified -> cached
+            }
+
+        private fun Conditional<*>.etagOr(cached: String?): String? =
+            when (this) {
+                is Conditional.Modified -> etag
                 Conditional.NotModified -> cached
             }
 
@@ -72,4 +132,16 @@ internal class DefaultCatalogSyncRepository
             endpoint: String,
             error: DomainError,
         ) = KioskLog.w("catalog_sync_failed", "endpoint" to endpoint, "error" to error)
+    }
+
+/** Every image the customer screens can show, for the disk-cache prefetch (FR-028, NFR-013). */
+internal fun Catalog.imageUrls(): Set<String> =
+    buildSet {
+        addAll(config.idlePromoImageUrls.filterNotNull())
+        config.logoUrl?.let(::add)
+        config.heroPhotoUrl?.let(::add)
+        menu.products.mapNotNullTo(this) { it.imageUrl }
+        menu.modifierGroups.flatMap { it.options }.mapNotNullTo(this) { it.imageUrl }
+        menu.combos.mapNotNullTo(this) { it.imageUrl }
+        (menu.comboSlots.sides + menu.comboSlots.drinks).mapNotNullTo(this) { it.imageUrl }
     }

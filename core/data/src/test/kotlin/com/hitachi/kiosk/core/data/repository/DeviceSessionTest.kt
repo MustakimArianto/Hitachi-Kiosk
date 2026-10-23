@@ -5,6 +5,7 @@ import com.hitachi.kiosk.core.data.api.DeviceCredentials
 import com.hitachi.kiosk.core.data.api.InMemoryDeviceCredentialsStore
 import com.hitachi.kiosk.core.data.prefs.InMemoryTokenStore
 import com.hitachi.kiosk.core.data.prefs.newDeviceStore
+import com.hitachi.kiosk.core.data.sync.InMemoryCatalogStore
 import com.hitachi.kiosk.core.domain.model.DeviceState
 import com.hitachi.kiosk.core.domain.model.KioskMode
 import com.hitachi.kiosk.core.testing.fixture.SampleData
@@ -20,7 +21,8 @@ class DeviceSessionTest {
     private val tokens = InMemoryTokenStore()
     private val deviceStore by lazy { newDeviceStore(folder.root) }
     private val credentials = InMemoryDeviceCredentialsStore()
-    private val session by lazy { DeviceSession(tokens, deviceStore, credentials) }
+    private val catalogStore = InMemoryCatalogStore()
+    private val session by lazy { DeviceSession(tokens, deviceStore, credentials, catalogStore) }
 
     private val token = SampleData.activation.deviceToken
 
@@ -115,7 +117,7 @@ class DeviceSessionTest {
         }
 
     @Test
-    fun `wipe forgets the token, the device and the credentials`() =
+    fun `wipe forgets the token, the device, the credentials and the catalog`() =
         runTest {
             session.saveActivation(SampleData.activation)
             session.saveBinding(SampleData.boundMerchant, KioskMode.SINGLE)
@@ -126,6 +128,7 @@ class DeviceSessionTest {
             assertThat(tokens.token).isNull()
             assertThat(deviceStore.read()).isNull()
             assertThat(credentials.current()).isNull()
+            assertThat(catalogStore.clears).isEqualTo(1)
             assertThat(session.load()).isEqualTo(DeviceState.NotActivated)
         }
 }

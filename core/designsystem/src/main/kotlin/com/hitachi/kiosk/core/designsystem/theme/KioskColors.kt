@@ -29,12 +29,18 @@ data class KioskColors(
     val dockDisabled: Color = KioskPalette.DockDisabled,
     val dockDisabledText: Color = KioskPalette.DockDisabledText,
     val floatingShadow: Color = KioskPalette.FloatingShadow,
+    val raisedShadow: Color = KioskPalette.RaisedShadow,
     val errorBg: Color = KioskPalette.ErrorBg,
     val errorBorder: Color = KioskPalette.ErrorBorder,
     val errorText: Color = KioskPalette.ErrorText,
     val closedDot: Color = KioskPalette.ClosedDot,
     val skeletonHighlight: Color = KioskPalette.SkeletonHighlight,
     val photoTone: Color = KioskPalette.PhotoTone,
+    val warningBg: Color = KioskPalette.WarningBg,
+    val warningBorder: Color = KioskPalette.WarningBorder,
+    val warningTrack: Color = KioskPalette.WarningTrack,
+    val warningAccent: Color = KioskPalette.WarningAccent,
+    val warningText: Color = KioskPalette.WarningText,
 )
 
 /** The [KioskColors] of the current [KioskTheme] (DEV-004). */

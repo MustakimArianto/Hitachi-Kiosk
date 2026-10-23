@@ -4,6 +4,7 @@ import android.content.Intent
 import com.hitachi.kiosk.BuildConfig
 import com.hitachi.kiosk.core.data.api.NetworkInterceptors
 import com.hitachi.kiosk.core.domain.backend.BackendApi
+import com.hitachi.kiosk.core.domain.device.ConnectivityMonitor
 import com.hitachi.kiosk.core.domain.device.DeviceIdentityProvider
 import com.hitachi.kiosk.core.domain.time.Clock
 import com.hitachi.kiosk.devtools.BindingOverrides
@@ -38,6 +39,9 @@ object DeveloperOptionsModule {
 
             override fun deviceIdentityProvider(real: DeviceIdentityProvider): DeviceIdentityProvider =
                 SwitchableDeviceIdentityProvider(real = real, settings = { store.settings.value })
+
+            // Testers go offline with airplane mode, so debug builds keep the real monitor.
+            override fun connectivityMonitor(real: ConnectivityMonitor): ConnectivityMonitor = real
         }
 
     @Provides

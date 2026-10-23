@@ -1,5 +1,7 @@
 package com.hitachi.kiosk.di
 
+import com.hitachi.kiosk.core.data.net.DefaultConnectivityMonitor
+import com.hitachi.kiosk.core.domain.device.ConnectivityMonitor
 import com.hitachi.kiosk.core.domain.device.DeviceIdentityProvider
 import com.hitachi.kiosk.core.hardware.identity.IminDeviceIdentityProvider
 import com.hitachi.kiosk.devtools.BindingOverrides
@@ -24,4 +26,12 @@ object HardwareBindingsModule {
         real: IminDeviceIdentityProvider,
         overrides: Optional<BindingOverrides>,
     ): DeviceIdentityProvider = overrides.map { it.deviceIdentityProvider(real) }.orElse(real)
+
+    /** FR-028: online, checking or offline, for the offline banner. */
+    @Provides
+    @Singleton
+    fun connectivityMonitor(
+        real: DefaultConnectivityMonitor,
+        overrides: Optional<BindingOverrides>,
+    ): ConnectivityMonitor = overrides.map { it.connectivityMonitor(real) }.orElse(real)
 }

@@ -91,8 +91,26 @@ object KioskPalette {
     /** The photo slot tone used instead of a requested tone that is too dark (luminance below 0.7, `Photo.dc.html`). */
     val PhotoToneFallback = Color(0xFFE6DCD3)
 
+    /** `warningBg`: the amber offline banner ("Ordering is paused — reconnecting…", `S_Menu_offline`). */
+    val WarningBg = Color(0xFFFFF4DB)
+
+    /** `warningBorder`: outline of the offline banner. */
+    val WarningBorder = Color(0xFFEBD39A)
+
+    /** `warningTrack`: the offline banner spinner's track. */
+    val WarningTrack = Color(0xFFE2C877)
+
+    /** `warningAccent`: the offline banner spinner's head. */
+    val WarningAccent = Color(0xFF8A6A12)
+
+    /** `warningText`: text on the offline banner. */
+    val WarningText = Color(0xFF4A3A08)
+
     /** The floating elevation's shadow color, `rgba(23,21,19,.10)` (PRD §11.1). */
     val FloatingShadow = Ink.copy(alpha = 0.10f)
+
+    /** The raised shadow of toasts and flying thumbnails, `rgba(23,21,19,.18)` (`Menu.dc.html`). */
+    val RaisedShadow = Ink.copy(alpha = 0.18f)
 
     /** The accent the merchant config may choose from, default first (A-38). */
     val AccentOptions: List<Color> = listOf(AccentPaprika, AccentForest, AccentIndigo, AccentInk)

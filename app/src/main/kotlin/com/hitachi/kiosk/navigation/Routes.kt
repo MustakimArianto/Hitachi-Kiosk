@@ -3,7 +3,7 @@ package com.hitachi.kiosk.navigation
 import kotlinx.serialization.Serializable
 
 // Type-safe routes, one per screen of PRD §4 (architecture §11). SCR-13 "Still there?" is an overlay above the
-// NavHost, not a route. Arguments (for example the product of ItemDetailRoute) arrive with their features.
+// NavHost, not a route. Only IDs travel as arguments; the cart is shared through the OrderSessionHolder.
 
 /** SCR-01. Always the start destination. */
 @Serializable data object SplashRoute
@@ -26,11 +26,15 @@ import kotlinx.serialization.Serializable
 /** SCR-06. */
 @Serializable data object MenuRoute
 
-/** SCR-07. */
-@Serializable data object ComboRoute
+/** SCR-07. [comboId] preselects a combo; `null` starts on the first one (FR-011). */
+@Serializable data class ComboRoute(
+    val comboId: String? = null,
+)
 
-/** SCR-08. */
-@Serializable data object ItemDetailRoute
+/** SCR-08 for one product (FR-010). */
+@Serializable data class ItemDetailRoute(
+    val productId: String,
+)
 
 /** SCR-09. */
 @Serializable data object UpsellRoute

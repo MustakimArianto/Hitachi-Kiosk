@@ -89,6 +89,25 @@ class UnknownValuesMapperTest {
     }
 
     @Test
+    fun `combo slot options are available unless they say otherwise (FR-011)`() {
+        val json =
+            """
+            { "menuVersion": "m1", "comboSlots": { "SIDE": [
+              { "id": "s1", "name": { "en": "Fries" } },
+              { "id": "s2", "name": { "en": "Cheese fries" }, "upcharge": 8000, "available": false }
+            ] } }
+            """.trimIndent()
+
+        val sides =
+            KioskJson
+                .decodeFromString<MenuDto>(json)
+                .toDomain()
+                .comboSlots.sides
+
+        assertThat(sides.map { it.available }).containsExactly(true, false).inOrder()
+    }
+
+    @Test
     fun `the full menu fixture parses although promoBanners is not mapped`() {
         val menu = KioskJson.decodeFromString<MenuDto>(Fixtures.read("e6_response"))
 

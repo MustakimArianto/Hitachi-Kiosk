@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Version | v1 draft (2026-10-23) — merchants carry an optional `opensAt` for the closed badge (E1/E2, FR-004); state conflicts on E3, E8 and E9 have their own 409 codes; E6 is the full design menu, with required choices on b2 (size, FR-010), c4, r1 and d2 |
+| Version | v1 draft (2026-10-23) — combo slot options carry an optional `available` for sold-out sides and drinks (E6, FR-011); merchants carry an optional `opensAt` for the closed badge (E1/E2, FR-004); state conflicts on E3, E8 and E9 have their own 409 codes; E6 is the full design menu, with required choices on b2 (size, FR-010), c4, r1 and d2 |
 | Consumer | Hitachi Kiosk Android app |
 | Requirements | [`../product-requirement.md`](../product-requirement.md) §10 (endpoints E1–E14) |
 | Status | **Proposed.** Build the mock server from this document. The real backend implements the same contract (PRD D-06). |
@@ -472,6 +472,7 @@ Rules the mock must respect:
 - `ModifierGroup.type`: `SINGLE` (radio) | `MULTI` (checkbox list) | `LEVEL` (None / Regular / Extra per option).
 - Combo price = `price + (side.upcharge + drink.upcharge + (large ? SIZE_LARGE_UPCHARGE : 0)) × serves`.
 - `available: false` → the item is hidden from the menu (PRD A-09).
+- `comboSlots` options may carry `available` (optional, default `true`). An option with `available: false` stays listed on the Combo screen, greyed and marked "Sold out", and cannot be picked (FR-011, `S_Combo_soldOut`).
 - `promoBanners`: the final design has no promo carousel on Menu, so the 1.0 app does not render them. The field stays in the contract as optional and the app ignores it.
 - Budget Plan fields (PRD FR-032), required on every product:
   - `role`: `MAIN` | `SIDE` | `DRINK` | `DESSERT`.

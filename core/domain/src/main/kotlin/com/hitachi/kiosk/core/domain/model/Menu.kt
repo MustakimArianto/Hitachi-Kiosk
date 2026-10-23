@@ -109,9 +109,11 @@ data class ComboSlots(
     val sizeLargeUpcharge: Rupiah,
 )
 
+/** A side or drink of a combo. An unavailable one shows as "Sold out" and cannot be picked (FR-011). */
 data class ComboSlotOption(
     val id: String,
     val name: LocalizedText,
     val upcharge: Rupiah,
     val imageUrl: String?,
+    val available: Boolean = true,
 )
