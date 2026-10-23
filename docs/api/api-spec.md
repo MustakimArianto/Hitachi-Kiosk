@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Version | v1 draft (2026-10-22) |
+| Version | v1 draft (2026-10-23) — state conflicts on E3, E8 and E9 have their own 409 codes; E6 is the full design menu, with required choices on b2 (size, FR-010), c4, r1 and d2 |
 | Consumer | Hitachi Kiosk Android app |
 | Requirements | [`../product-requirement.md`](../product-requirement.md) §10 (endpoints E1–E14) |
 | Status | **Proposed.** Build the mock server from this document. The real backend implements the same contract (PRD D-06). |
@@ -104,7 +104,10 @@ Every non-2xx response has this body:
 | 404 | `NOT_FOUND` | Unknown merchant/order/payment | Generic error |
 | 409 | `PRICE_CHANGED` | Kiosk total ≠ backend total (E7) | Re-sync and re-price, back to Your order |
 | 409 | `ITEM_UNAVAILABLE` | One or more items sold out (E7) | Mark the lines and block Pay |
+| 409 | `MERCHANT_NOT_LIVE` | Merchant is `coming_soon` and cannot be bound (E3) | Stay on Choose a restaurant with Retry |
 | 409 | `MERCHANT_CLOSED` | Merchant not accepting orders (E7) | "The restaurant isn't taking orders right now." |
+| 409 | `ORDER_ALREADY_PAID` | Order is already `PAID`, so it cannot be cancelled (E8) | Go to Complete |
+| 409 | `ORDER_NOT_AWAITING_PAYMENT` | Order is not `AWAITING_PAYMENT`, so no payment can start (E9) | Re-read the payment with E10 if one exists, otherwise back to Your order |
 | 409 | `PAYMENT_NOT_CANCELLABLE` | Payment already paid/final (E11) | Re-read the status with E10 |
 | 409 | `PIN_INCORRECT` | Wrong current PIN (E13) | Inline error |
 | 422 | `PAYMENT_METHOD_UNAVAILABLE` | Method disabled for merchant (E9) | Hide the method and show the failure |
@@ -204,7 +207,7 @@ Every non-2xx response has this body:
   "boundAt": "2026-10-22T07:00:00Z"
 }
 ```
-**Errors:** `404 NOT_FOUND`, `409 VALIDATION_ERROR` (merchant is `coming_soon`).
+**Errors:** `404 NOT_FOUND`, `409 MERCHANT_NOT_LIVE` (merchant is `coming_soon`).
 
 ---
 
@@ -280,7 +283,7 @@ Notes:
 ### E6 — Menu
 `GET /v1/merchants/{merchantId}/menu` · supports `If-None-Match` → `304`
 
-**Response 200** (header `ETag: "menu-118"`). Abbreviated: the full mock should contain every product from the design (see §4).
+**Response 200** (header `ETag: "menu-118"`). This is the full design menu: 23 products in 6 categories, 4 combos and their slot options (see §4).
 ```json
 {
   "menuVersion": "menu-118",
@@ -300,6 +303,7 @@ Notes:
     { "id": "pb3", "tag": { "en": "Share it", "id": "Untuk berbagi" }, "title": { "en": "Family Bucket", "id": "Family Bucket" }, "priceText": { "en": "8 pc · Rp 129.000", "id": "8 pcs · Rp 129.000" }, "imageUrl": null, "target": { "type": "PRODUCT", "id": "c4" } }
   ],
   "products": [
+    { "id": "b1", "categoryId": "cat_burgers", "name": { "en": "Classic Cheeseburger", "id": "Cheeseburger Klasik" }, "description": null, "price": 38000, "kcal": 540, "badge": null, "tags": null, "imageUrl": null, "available": true, "modifierGroupIds": [], "role": "MAIN", "kidFriendly": true, "servesAdults": 1, "shareable": false, "plannerWeight": 0 },
     {
       "id": "b2",
       "categoryId": "cat_burgers",
@@ -311,18 +315,47 @@ Notes:
       "tags": { "en": "Beef · Contains gluten, dairy", "id": "Sapi · Mengandung gluten, susu" },
       "imageUrl": null,
       "available": true,
-      "modifierGroupIds": ["mg_meal_upgrade", "mg_b2_ingredients", "mg_burger_extras"],
+      "modifierGroupIds": ["mg_b2_size", "mg_meal_upgrade", "mg_b2_ingredients", "mg_burger_extras"],
       "role": "MAIN",
       "kidFriendly": false,
       "servesAdults": 1,
       "shareable": false,
       "plannerWeight": 5
     },
+    { "id": "b3", "categoryId": "cat_burgers", "name": { "en": "Hot Honey Chicken Burger", "id": "Burger Ayam Madu Pedas" }, "description": null, "price": 42000, "kcal": 620, "badge": { "type": "SPICY", "label": { "en": "Spicy", "id": "Pedas" } }, "tags": null, "imageUrl": null, "available": true, "modifierGroupIds": [], "role": "MAIN", "kidFriendly": false, "servesAdults": 1, "shareable": false, "plannerWeight": 0 },
+    { "id": "b4", "categoryId": "cat_burgers", "name": { "en": "BBQ Beef Bacon Burger", "id": "Burger Beef Bacon BBQ" }, "description": null, "price": 45000, "kcal": 710, "badge": null, "tags": null, "imageUrl": null, "available": true, "modifierGroupIds": [], "role": "MAIN", "kidFriendly": false, "servesAdults": 1, "shareable": false, "plannerWeight": 0 },
     { "id": "c1", "categoryId": "cat_chicken", "name": { "en": "Crispy Chicken (2 pc)", "id": "Ayam Krispi (2 pcs)" }, "description": { "en": "Original recipe", "id": "Resep original" }, "price": 38000, "kcal": 560, "badge": { "type": "BEST_SELLER", "label": { "en": "Best seller", "id": "Terlaris" } }, "tags": null, "imageUrl": null, "available": true, "modifierGroupIds": [], "role": "MAIN", "kidFriendly": false, "servesAdults": 1, "shareable": false, "plannerWeight": 0 },
-    { "id": "s1", "categoryId": "cat_sides", "name": { "en": "French Fries", "id": "Kentang Goreng" }, "description": null, "price": 18000, "kcal": 320, "badge": null, "tags": null, "imageUrl": null, "available": true, "modifierGroupIds": ["mg_fries_size"], "role": "SIDE", "kidFriendly": true, "servesAdults": 1, "shareable": true, "plannerWeight": 0 },
-    { "id": "d1", "categoryId": "cat_drinks", "name": { "en": "Iced Lychee Tea", "id": "Es Teh Leci" }, "description": null, "price": 16000, "kcal": 140, "badge": null, "tags": null, "imageUrl": null, "available": true, "modifierGroupIds": ["mg_ice"], "role": "DRINK", "kidFriendly": false, "servesAdults": 1, "shareable": false, "plannerWeight": 0 }
+    { "id": "c2", "categoryId": "cat_chicken", "name": { "en": "Spicy Wings (6 pc)", "id": "Sayap Pedas (6 pcs)" }, "description": null, "price": 36000, "kcal": 480, "badge": { "type": "SPICY", "label": { "en": "Spicy", "id": "Pedas" } }, "tags": null, "imageUrl": null, "available": true, "modifierGroupIds": [], "role": "MAIN", "kidFriendly": false, "servesAdults": 1, "shareable": false, "plannerWeight": 0 },
+    { "id": "c3", "categoryId": "cat_chicken", "name": { "en": "Chicken Nuggets (9 pc)", "id": "Nugget Ayam (9 pcs)" }, "description": null, "price": 32000, "kcal": 430, "badge": null, "tags": null, "imageUrl": null, "available": true, "modifierGroupIds": [], "role": "MAIN", "kidFriendly": true, "servesAdults": 1, "shareable": false, "plannerWeight": 0 },
+    { "id": "c4", "categoryId": "cat_chicken", "name": { "en": "Family Bucket (8 pc)", "id": "Family Bucket (8 pcs)" }, "description": null, "price": 129000, "kcal": 2240, "badge": { "type": "SHARE", "label": { "en": "Share", "id": "Untuk berbagi" } }, "tags": null, "imageUrl": null, "available": true, "modifierGroupIds": ["mg_bucket_flavour"], "role": "MAIN", "kidFriendly": false, "servesAdults": 4, "shareable": true, "plannerWeight": 0 },
+    { "id": "r1", "categoryId": "cat_bowls", "name": { "en": "Sambal Matah Rice Bowl", "id": "Nasi Mangkuk Sambal Matah" }, "description": null, "price": 34000, "kcal": 610, "badge": { "type": "LOCAL", "label": { "en": "Local", "id": "Lokal" } }, "tags": null, "imageUrl": null, "available": true, "modifierGroupIds": ["mg_spice_level"], "role": "MAIN", "kidFriendly": false, "servesAdults": 1, "shareable": false, "plannerWeight": 0 },
+    { "id": "r2", "categoryId": "cat_bowls", "name": { "en": "Teriyaki Chicken Bowl", "id": "Nasi Mangkuk Ayam Teriyaki" }, "description": null, "price": 32000, "kcal": 590, "badge": null, "tags": null, "imageUrl": null, "available": true, "modifierGroupIds": [], "role": "MAIN", "kidFriendly": true, "servesAdults": 1, "shareable": false, "plannerWeight": 0 },
+    { "id": "r3", "categoryId": "cat_bowls", "name": { "en": "Ayam Geprek Bowl", "id": "Nasi Mangkuk Ayam Geprek" }, "description": null, "price": 30000, "kcal": 640, "badge": { "type": "SPICY", "label": { "en": "Spicy", "id": "Pedas" } }, "tags": null, "imageUrl": null, "available": true, "modifierGroupIds": [], "role": "MAIN", "kidFriendly": false, "servesAdults": 1, "shareable": false, "plannerWeight": 0 },
+    { "id": "r4", "categoryId": "cat_bowls", "name": { "en": "Black Pepper Beef Bowl", "id": "Nasi Mangkuk Sapi Lada Hitam" }, "description": null, "price": 39000, "kcal": 660, "badge": null, "tags": null, "imageUrl": null, "available": true, "modifierGroupIds": [], "role": "MAIN", "kidFriendly": false, "servesAdults": 1, "shareable": false, "plannerWeight": 0 },
+    { "id": "s1", "categoryId": "cat_sides", "name": { "en": "French Fries", "id": "Kentang Goreng" }, "description": { "en": "Sea salt", "id": "Garam laut" }, "price": 18000, "kcal": 320, "badge": null, "tags": null, "imageUrl": null, "available": true, "modifierGroupIds": ["mg_fries_size"], "role": "SIDE", "kidFriendly": true, "servesAdults": 1, "shareable": true, "plannerWeight": 0 },
+    { "id": "s2", "categoryId": "cat_sides", "name": { "en": "Cheese Fries", "id": "Kentang Keju" }, "description": { "en": "Melted cheddar", "id": "Cheddar leleh" }, "price": 26000, "kcal": 450, "badge": null, "tags": null, "imageUrl": null, "available": true, "modifierGroupIds": [], "role": "SIDE", "kidFriendly": false, "servesAdults": 1, "shareable": false, "plannerWeight": 0 },
+    { "id": "s3", "categoryId": "cat_sides", "name": { "en": "Chicken Nuggets (4 pc)", "id": "Nugget Ayam (4 pcs)" }, "description": null, "price": 16000, "kcal": 190, "badge": null, "tags": null, "imageUrl": null, "available": true, "modifierGroupIds": [], "role": "SIDE", "kidFriendly": true, "servesAdults": 1, "shareable": false, "plannerWeight": 0 },
+    { "id": "s4", "categoryId": "cat_sides", "name": { "en": "Spicy Wings (3 pc)", "id": "Sayap Pedas (3 pcs)" }, "description": null, "price": 19000, "kcal": 240, "badge": null, "tags": null, "imageUrl": null, "available": true, "modifierGroupIds": [], "role": "SIDE", "kidFriendly": false, "servesAdults": 1, "shareable": false, "plannerWeight": 0 },
+    { "id": "d1", "categoryId": "cat_drinks", "name": { "en": "Iced Lychee Tea", "id": "Es Teh Leci" }, "description": null, "price": 16000, "kcal": 140, "badge": null, "tags": null, "imageUrl": null, "available": true, "modifierGroupIds": ["mg_ice"], "role": "DRINK", "kidFriendly": false, "servesAdults": 1, "shareable": false, "plannerWeight": 0 },
+    { "id": "d2", "categoryId": "cat_drinks", "name": { "en": "Cola (Regular)", "id": "Cola (Reguler)" }, "description": null, "price": 14000, "kcal": 150, "badge": null, "tags": null, "imageUrl": null, "available": true, "modifierGroupIds": ["mg_cola_type"], "role": "DRINK", "kidFriendly": true, "servesAdults": 1, "shareable": false, "plannerWeight": 0 },
+    { "id": "d3", "categoryId": "cat_drinks", "name": { "en": "Iced Coffee Latte", "id": "Es Kopi Latte" }, "description": null, "price": 18000, "kcal": 180, "badge": null, "tags": null, "imageUrl": null, "available": true, "modifierGroupIds": [], "role": "DRINK", "kidFriendly": false, "servesAdults": 1, "shareable": false, "plannerWeight": 0 },
+    { "id": "d4", "categoryId": "cat_drinks", "name": { "en": "Mineral Water 600 ml", "id": "Air Mineral 600 ml" }, "description": null, "price": 8000, "kcal": 0, "badge": null, "tags": null, "imageUrl": null, "available": true, "modifierGroupIds": [], "role": "DRINK", "kidFriendly": true, "servesAdults": 1, "shareable": false, "plannerWeight": 0 },
+    { "id": "e1", "categoryId": "cat_desserts", "name": { "en": "Caramel Sundae", "id": "Sundae Karamel" }, "description": { "en": "Soft serve", "id": "Es krim lembut" }, "price": 15000, "kcal": 330, "badge": null, "tags": null, "imageUrl": null, "available": true, "modifierGroupIds": [], "role": "DESSERT", "kidFriendly": true, "servesAdults": 1, "shareable": false, "plannerWeight": 0 },
+    { "id": "e2", "categoryId": "cat_desserts", "name": { "en": "Chocolate Sundae", "id": "Sundae Cokelat" }, "description": null, "price": 15000, "kcal": 350, "badge": null, "tags": null, "imageUrl": null, "available": true, "modifierGroupIds": [], "role": "DESSERT", "kidFriendly": true, "servesAdults": 1, "shareable": false, "plannerWeight": 0 },
+    { "id": "e3", "categoryId": "cat_desserts", "name": { "en": "Pandan Soft Serve", "id": "Es Krim Pandan" }, "description": { "en": "Local favourite", "id": "Favorit lokal" }, "price": 12000, "kcal": 210, "badge": { "type": "LOCAL", "label": { "en": "Local", "id": "Lokal" } }, "tags": null, "imageUrl": null, "available": true, "modifierGroupIds": [], "role": "DESSERT", "kidFriendly": true, "servesAdults": 1, "shareable": false, "plannerWeight": 0 }
   ],
   "modifierGroups": [
+    {
+      "id": "mg_b2_size",
+      "name": { "en": "Choose a size", "id": "Pilih ukuran" },
+      "type": "SINGLE",
+      "required": true,
+      "min": 1, "max": 1,
+      "options": [
+        { "id": "opt_b2_regular", "name": { "en": "Regular", "id": "Reguler" }, "description": { "en": "Two patties", "id": "Dua patty" }, "priceDelta": 0, "default": false, "imageUrl": null },
+        { "id": "opt_b2_large", "name": { "en": "Large", "id": "Besar" }, "description": { "en": "Three patties", "id": "Tiga patty" }, "priceDelta": 6000, "default": false, "imageUrl": null }
+      ]
+    },
     {
       "id": "mg_meal_upgrade",
       "name": { "en": "Make it a meal?", "id": "Jadikan paket?" },
@@ -370,6 +403,29 @@ Notes:
       "options": [
         { "id": "opt_ice_regular", "name": { "en": "Regular ice", "id": "Es normal" }, "priceDelta": 0, "default": true },
         { "id": "opt_ice_less",    "name": { "en": "Less ice", "id": "Sedikit es" },   "priceDelta": 0, "default": false }
+      ]
+    },
+    {
+      "id": "mg_bucket_flavour", "name": { "en": "Choose a flavour", "id": "Pilih rasa" }, "type": "SINGLE", "required": true, "min": 1, "max": 1,
+      "options": [
+        { "id": "opt_flavour_original", "name": { "en": "Original", "id": "Original" }, "priceDelta": 0, "default": false },
+        { "id": "opt_flavour_spicy", "name": { "en": "Spicy", "id": "Pedas" }, "priceDelta": 0, "default": false },
+        { "id": "opt_flavour_half", "name": { "en": "Half & half", "id": "Setengah-setengah" }, "priceDelta": 0, "default": false }
+      ]
+    },
+    {
+      "id": "mg_spice_level", "name": { "en": "Spice level", "id": "Tingkat pedas" }, "type": "SINGLE", "required": true, "min": 1, "max": 1,
+      "options": [
+        { "id": "opt_spice_mild", "name": { "en": "Mild", "id": "Tidak pedas" }, "priceDelta": 0, "default": false },
+        { "id": "opt_spice_medium", "name": { "en": "Medium", "id": "Sedang" }, "priceDelta": 0, "default": false },
+        { "id": "opt_spice_hot", "name": { "en": "Hot", "id": "Pedas" }, "priceDelta": 0, "default": false }
+      ]
+    },
+    {
+      "id": "mg_cola_type", "name": { "en": "Choose a cola", "id": "Pilih cola" }, "type": "SINGLE", "required": true, "min": 1, "max": 1,
+      "options": [
+        { "id": "opt_cola_classic", "name": { "en": "Classic", "id": "Klasik" }, "priceDelta": 0, "default": false },
+        { "id": "opt_cola_zero", "name": { "en": "Zero sugar", "id": "Tanpa gula" }, "priceDelta": 0, "default": false }
       ]
     }
   ],
@@ -441,6 +497,7 @@ Rules the mock must respect:
       "productId": "b2",
       "quantity": 1,
       "selections": [
+        { "groupId": "mg_b2_size", "optionId": "opt_b2_regular" },
         { "groupId": "mg_meal_upgrade", "optionId": "opt_make_meal" },
         { "groupId": "mg_b2_ingredients", "optionId": "ing_cheddar", "level": "EXTRA" },
         { "groupId": "mg_b2_ingredients", "optionId": "ing_onion", "level": "NONE" }
@@ -468,7 +525,7 @@ A combo line looks like this:
   "comboSelections": { "sideId": "cs_cheese", "drinkId": "cd_coffee", "size": "LARGE" },
   "unitPrice": 74000, "lineTotal": 74000 }
 ```
-Only the changed LEVEL options need to be sent (here `onion: NONE`). Unsent ones use `defaultLevel`.
+Every SINGLE and MULTI choice is sent. Of the LEVEL options, only the changed ones are sent (here `cheddar: EXTRA` and `onion: NONE`); unsent ones use `defaultLevel`.
 
 **Response 201**
 ```json
@@ -522,7 +579,7 @@ Only the changed LEVEL options need to be sent (here `onion: NONE`). Unsent ones
 ```json
 { "orderId": "ord_7Hq2k9", "status": "CANCELLED" }
 ```
-**Errors:** `409 VALIDATION_ERROR` if the order is already `PAID` (the app must then go to Complete).
+**Errors:** `409 ORDER_ALREADY_PAID` if the order is already `PAID` (the app must then go to Complete).
 
 ---
 
@@ -567,7 +624,7 @@ Only the changed LEVEL options need to be sent (here `onion: NONE`). Unsent ones
 ```
 The kiosk sends `amount` and `terminalRef` to the EDC terminal (protocol per PRD OQ-03).
 
-**Errors:** `422 PAYMENT_METHOD_UNAVAILABLE`, `409 VALIDATION_ERROR` (order not `AWAITING_PAYMENT`), `502 GATEWAY_ERROR`.
+**Errors:** `422 PAYMENT_METHOD_UNAVAILABLE`, `409 ORDER_NOT_AWAITING_PAYMENT` (order not `AWAITING_PAYMENT`), `502 GATEWAY_ERROR`.
 
 ---
 
@@ -705,6 +762,14 @@ To make the mock match the design screens one-to-one, include:
 | Desserts | e1 Caramel Sundae 15000 · 330; e2 Chocolate Sundae 15000 · 350; e3 Pandan Soft Serve 12000 · 210 · LOCAL |
 
 Bold items are in "Popular" (`featuredProductIds`). Combos and slot options are as in E6.
+
+**Modifier groups in the sample menu** (E6 is the complete list):
+- b2 Smoky Double Burger: "Choose a size" (required, no default: Regular · Two patties / Large · Three patties · +Rp 6.000), "Make it a meal?" (default Burger only), "Customize" (ingredient levels) and "Add extras" (FR-010).
+- s1 French Fries: Size (default Regular). d1 Iced Lychee Tea: Ice (default Regular ice).
+- c4 Family Bucket: "Choose a flavour" (Original / Spicy / Half & half). r1 Sambal Matah Rice Bowl: "Spice level" (Mild / Medium / Hot). d2 Cola: "Choose a cola" (Classic / Zero sugar). All three are required, have no default and cost Rp 0, so no price or Budget Plan total changes. The Menu artboard marks these items as needing a choice; the options themselves are sample data chosen on 2026-10-23, and the PO may replace them.
+- Every other product has no groups.
+- Products with any required group open Item detail instead of quick add (FR-009, A-08). A Budget Plan uses each group's default option, or the first option when it has none (A-42).
+- The Budget Plan tags above are canonical. The Budget Plan artboard also offers d1 to children and orders its mains by preference; the planner uses these tags and `plannerWeight` instead (TC-161–TC-163 depend on them).
 
 **Budget Plan tags for the mock:**
 - `role`: Burgers, Chicken, Rice bowls → `MAIN`; Sides → `SIDE`; Drinks → `DRINK`; Desserts → `DESSERT`.

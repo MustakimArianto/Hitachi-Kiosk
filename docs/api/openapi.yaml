@@ -276,7 +276,7 @@ paths:
                 comingSoon:
                   summary: "Merchant is coming soon"
                   value:
-                    code: "VALIDATION_ERROR"
+                    code: "MERCHANT_NOT_LIVE"
                     message: "Merchant is not live yet."
                     details: {}
         "500":
@@ -522,7 +522,7 @@ paths:
                 "$ref": "#/components/schemas/Menu"
               examples:
                 default:
-                  summary: "Urban Grill menu (abbreviated, see api-spec §4)"
+                  summary: "Urban Grill full menu (api-spec §4)"
                   value:
                     menuVersion: "menu-118"
                     categories:
@@ -616,6 +616,24 @@ paths:
                           type: "PRODUCT"
                           id: "c4"
                     products:
+                      - id: "b1"
+                        categoryId: "cat_burgers"
+                        name:
+                          en: "Classic Cheeseburger"
+                          id: "Cheeseburger Klasik"
+                        description: null
+                        price: 38000
+                        kcal: 540
+                        badge: null
+                        tags: null
+                        imageUrl: null
+                        available: true
+                        modifierGroupIds: []
+                        role: "MAIN"
+                        kidFriendly: true
+                        servesAdults: 1
+                        shareable: false
+                        plannerWeight: 0
                       - id: "b2"
                         categoryId: "cat_burgers"
                         name:
@@ -637,6 +655,7 @@ paths:
                         imageUrl: null
                         available: true
                         modifierGroupIds:
+                          - "mg_b2_size"
                           - "mg_meal_upgrade"
                           - "mg_b2_ingredients"
                           - "mg_burger_extras"
@@ -645,6 +664,46 @@ paths:
                         servesAdults: 1
                         shareable: false
                         plannerWeight: 5
+                      - id: "b3"
+                        categoryId: "cat_burgers"
+                        name:
+                          en: "Hot Honey Chicken Burger"
+                          id: "Burger Ayam Madu Pedas"
+                        description: null
+                        price: 42000
+                        kcal: 620
+                        badge:
+                          type: "SPICY"
+                          label:
+                            en: "Spicy"
+                            id: "Pedas"
+                        tags: null
+                        imageUrl: null
+                        available: true
+                        modifierGroupIds: []
+                        role: "MAIN"
+                        kidFriendly: false
+                        servesAdults: 1
+                        shareable: false
+                        plannerWeight: 0
+                      - id: "b4"
+                        categoryId: "cat_burgers"
+                        name:
+                          en: "BBQ Beef Bacon Burger"
+                          id: "Burger Beef Bacon BBQ"
+                        description: null
+                        price: 45000
+                        kcal: 710
+                        badge: null
+                        tags: null
+                        imageUrl: null
+                        available: true
+                        modifierGroupIds: []
+                        role: "MAIN"
+                        kidFriendly: false
+                        servesAdults: 1
+                        shareable: false
+                        plannerWeight: 0
                       - id: "c1"
                         categoryId: "cat_chicken"
                         name:
@@ -669,12 +728,158 @@ paths:
                         servesAdults: 1
                         shareable: false
                         plannerWeight: 0
+                      - id: "c2"
+                        categoryId: "cat_chicken"
+                        name:
+                          en: "Spicy Wings (6 pc)"
+                          id: "Sayap Pedas (6 pcs)"
+                        description: null
+                        price: 36000
+                        kcal: 480
+                        badge:
+                          type: "SPICY"
+                          label:
+                            en: "Spicy"
+                            id: "Pedas"
+                        tags: null
+                        imageUrl: null
+                        available: true
+                        modifierGroupIds: []
+                        role: "MAIN"
+                        kidFriendly: false
+                        servesAdults: 1
+                        shareable: false
+                        plannerWeight: 0
+                      - id: "c3"
+                        categoryId: "cat_chicken"
+                        name:
+                          en: "Chicken Nuggets (9 pc)"
+                          id: "Nugget Ayam (9 pcs)"
+                        description: null
+                        price: 32000
+                        kcal: 430
+                        badge: null
+                        tags: null
+                        imageUrl: null
+                        available: true
+                        modifierGroupIds: []
+                        role: "MAIN"
+                        kidFriendly: true
+                        servesAdults: 1
+                        shareable: false
+                        plannerWeight: 0
+                      - id: "c4"
+                        categoryId: "cat_chicken"
+                        name:
+                          en: "Family Bucket (8 pc)"
+                          id: "Family Bucket (8 pcs)"
+                        description: null
+                        price: 129000
+                        kcal: 2240
+                        badge:
+                          type: "SHARE"
+                          label:
+                            en: "Share"
+                            id: "Untuk berbagi"
+                        tags: null
+                        imageUrl: null
+                        available: true
+                        modifierGroupIds:
+                          - "mg_bucket_flavour"
+                        role: "MAIN"
+                        kidFriendly: false
+                        servesAdults: 4
+                        shareable: true
+                        plannerWeight: 0
+                      - id: "r1"
+                        categoryId: "cat_bowls"
+                        name:
+                          en: "Sambal Matah Rice Bowl"
+                          id: "Nasi Mangkuk Sambal Matah"
+                        description: null
+                        price: 34000
+                        kcal: 610
+                        badge:
+                          type: "LOCAL"
+                          label:
+                            en: "Local"
+                            id: "Lokal"
+                        tags: null
+                        imageUrl: null
+                        available: true
+                        modifierGroupIds:
+                          - "mg_spice_level"
+                        role: "MAIN"
+                        kidFriendly: false
+                        servesAdults: 1
+                        shareable: false
+                        plannerWeight: 0
+                      - id: "r2"
+                        categoryId: "cat_bowls"
+                        name:
+                          en: "Teriyaki Chicken Bowl"
+                          id: "Nasi Mangkuk Ayam Teriyaki"
+                        description: null
+                        price: 32000
+                        kcal: 590
+                        badge: null
+                        tags: null
+                        imageUrl: null
+                        available: true
+                        modifierGroupIds: []
+                        role: "MAIN"
+                        kidFriendly: true
+                        servesAdults: 1
+                        shareable: false
+                        plannerWeight: 0
+                      - id: "r3"
+                        categoryId: "cat_bowls"
+                        name:
+                          en: "Ayam Geprek Bowl"
+                          id: "Nasi Mangkuk Ayam Geprek"
+                        description: null
+                        price: 30000
+                        kcal: 640
+                        badge:
+                          type: "SPICY"
+                          label:
+                            en: "Spicy"
+                            id: "Pedas"
+                        tags: null
+                        imageUrl: null
+                        available: true
+                        modifierGroupIds: []
+                        role: "MAIN"
+                        kidFriendly: false
+                        servesAdults: 1
+                        shareable: false
+                        plannerWeight: 0
+                      - id: "r4"
+                        categoryId: "cat_bowls"
+                        name:
+                          en: "Black Pepper Beef Bowl"
+                          id: "Nasi Mangkuk Sapi Lada Hitam"
+                        description: null
+                        price: 39000
+                        kcal: 660
+                        badge: null
+                        tags: null
+                        imageUrl: null
+                        available: true
+                        modifierGroupIds: []
+                        role: "MAIN"
+                        kidFriendly: false
+                        servesAdults: 1
+                        shareable: false
+                        plannerWeight: 0
                       - id: "s1"
                         categoryId: "cat_sides"
                         name:
                           en: "French Fries"
                           id: "Kentang Goreng"
-                        description: null
+                        description:
+                          en: "Sea salt"
+                          id: "Garam laut"
                         price: 18000
                         kcal: 320
                         badge: null
@@ -687,6 +892,62 @@ paths:
                         kidFriendly: true
                         servesAdults: 1
                         shareable: true
+                        plannerWeight: 0
+                      - id: "s2"
+                        categoryId: "cat_sides"
+                        name:
+                          en: "Cheese Fries"
+                          id: "Kentang Keju"
+                        description:
+                          en: "Melted cheddar"
+                          id: "Cheddar leleh"
+                        price: 26000
+                        kcal: 450
+                        badge: null
+                        tags: null
+                        imageUrl: null
+                        available: true
+                        modifierGroupIds: []
+                        role: "SIDE"
+                        kidFriendly: false
+                        servesAdults: 1
+                        shareable: false
+                        plannerWeight: 0
+                      - id: "s3"
+                        categoryId: "cat_sides"
+                        name:
+                          en: "Chicken Nuggets (4 pc)"
+                          id: "Nugget Ayam (4 pcs)"
+                        description: null
+                        price: 16000
+                        kcal: 190
+                        badge: null
+                        tags: null
+                        imageUrl: null
+                        available: true
+                        modifierGroupIds: []
+                        role: "SIDE"
+                        kidFriendly: true
+                        servesAdults: 1
+                        shareable: false
+                        plannerWeight: 0
+                      - id: "s4"
+                        categoryId: "cat_sides"
+                        name:
+                          en: "Spicy Wings (3 pc)"
+                          id: "Sayap Pedas (3 pcs)"
+                        description: null
+                        price: 19000
+                        kcal: 240
+                        badge: null
+                        tags: null
+                        imageUrl: null
+                        available: true
+                        modifierGroupIds: []
+                        role: "SIDE"
+                        kidFriendly: false
+                        servesAdults: 1
+                        shareable: false
                         plannerWeight: 0
                       - id: "d1"
                         categoryId: "cat_drinks"
@@ -707,7 +968,153 @@ paths:
                         servesAdults: 1
                         shareable: false
                         plannerWeight: 0
+                      - id: "d2"
+                        categoryId: "cat_drinks"
+                        name:
+                          en: "Cola (Regular)"
+                          id: "Cola (Reguler)"
+                        description: null
+                        price: 14000
+                        kcal: 150
+                        badge: null
+                        tags: null
+                        imageUrl: null
+                        available: true
+                        modifierGroupIds:
+                          - "mg_cola_type"
+                        role: "DRINK"
+                        kidFriendly: true
+                        servesAdults: 1
+                        shareable: false
+                        plannerWeight: 0
+                      - id: "d3"
+                        categoryId: "cat_drinks"
+                        name:
+                          en: "Iced Coffee Latte"
+                          id: "Es Kopi Latte"
+                        description: null
+                        price: 18000
+                        kcal: 180
+                        badge: null
+                        tags: null
+                        imageUrl: null
+                        available: true
+                        modifierGroupIds: []
+                        role: "DRINK"
+                        kidFriendly: false
+                        servesAdults: 1
+                        shareable: false
+                        plannerWeight: 0
+                      - id: "d4"
+                        categoryId: "cat_drinks"
+                        name:
+                          en: "Mineral Water 600 ml"
+                          id: "Air Mineral 600 ml"
+                        description: null
+                        price: 8000
+                        kcal: 0
+                        badge: null
+                        tags: null
+                        imageUrl: null
+                        available: true
+                        modifierGroupIds: []
+                        role: "DRINK"
+                        kidFriendly: true
+                        servesAdults: 1
+                        shareable: false
+                        plannerWeight: 0
+                      - id: "e1"
+                        categoryId: "cat_desserts"
+                        name:
+                          en: "Caramel Sundae"
+                          id: "Sundae Karamel"
+                        description:
+                          en: "Soft serve"
+                          id: "Es krim lembut"
+                        price: 15000
+                        kcal: 330
+                        badge: null
+                        tags: null
+                        imageUrl: null
+                        available: true
+                        modifierGroupIds: []
+                        role: "DESSERT"
+                        kidFriendly: true
+                        servesAdults: 1
+                        shareable: false
+                        plannerWeight: 0
+                      - id: "e2"
+                        categoryId: "cat_desserts"
+                        name:
+                          en: "Chocolate Sundae"
+                          id: "Sundae Cokelat"
+                        description: null
+                        price: 15000
+                        kcal: 350
+                        badge: null
+                        tags: null
+                        imageUrl: null
+                        available: true
+                        modifierGroupIds: []
+                        role: "DESSERT"
+                        kidFriendly: true
+                        servesAdults: 1
+                        shareable: false
+                        plannerWeight: 0
+                      - id: "e3"
+                        categoryId: "cat_desserts"
+                        name:
+                          en: "Pandan Soft Serve"
+                          id: "Es Krim Pandan"
+                        description:
+                          en: "Local favourite"
+                          id: "Favorit lokal"
+                        price: 12000
+                        kcal: 210
+                        badge:
+                          type: "LOCAL"
+                          label:
+                            en: "Local"
+                            id: "Lokal"
+                        tags: null
+                        imageUrl: null
+                        available: true
+                        modifierGroupIds: []
+                        role: "DESSERT"
+                        kidFriendly: true
+                        servesAdults: 1
+                        shareable: false
+                        plannerWeight: 0
                     modifierGroups:
+                      - id: "mg_b2_size"
+                        name:
+                          en: "Choose a size"
+                          id: "Pilih ukuran"
+                        type: "SINGLE"
+                        required: true
+                        min: 1
+                        max: 1
+                        options:
+                          - id: "opt_b2_regular"
+                            name:
+                              en: "Regular"
+                              id: "Reguler"
+                            description:
+                              en: "Two patties"
+                              id: "Dua patty"
+                            priceDelta: 0
+                            default: false
+                            imageUrl: null
+                          - id: "opt_b2_large"
+                            name:
+                              en: "Large"
+                              id: "Besar"
+                            description:
+                              en: "Three patties"
+                              id: "Tiga patty"
+                            priceDelta: 6000
+                            default: false
+                            imageUrl: null
                       - id: "mg_meal_upgrade"
                         name:
                           en: "Make it a meal?"
@@ -874,6 +1281,81 @@ paths:
                             name:
                               en: "Less ice"
                               id: "Sedikit es"
+                            priceDelta: 0
+                            default: false
+                      - id: "mg_bucket_flavour"
+                        name:
+                          en: "Choose a flavour"
+                          id: "Pilih rasa"
+                        type: "SINGLE"
+                        required: true
+                        min: 1
+                        max: 1
+                        options:
+                          - id: "opt_flavour_original"
+                            name:
+                              en: "Original"
+                              id: "Original"
+                            priceDelta: 0
+                            default: false
+                          - id: "opt_flavour_spicy"
+                            name:
+                              en: "Spicy"
+                              id: "Pedas"
+                            priceDelta: 0
+                            default: false
+                          - id: "opt_flavour_half"
+                            name:
+                              en: "Half & half"
+                              id: "Setengah-setengah"
+                            priceDelta: 0
+                            default: false
+                      - id: "mg_spice_level"
+                        name:
+                          en: "Spice level"
+                          id: "Tingkat pedas"
+                        type: "SINGLE"
+                        required: true
+                        min: 1
+                        max: 1
+                        options:
+                          - id: "opt_spice_mild"
+                            name:
+                              en: "Mild"
+                              id: "Tidak pedas"
+                            priceDelta: 0
+                            default: false
+                          - id: "opt_spice_medium"
+                            name:
+                              en: "Medium"
+                              id: "Sedang"
+                            priceDelta: 0
+                            default: false
+                          - id: "opt_spice_hot"
+                            name:
+                              en: "Hot"
+                              id: "Pedas"
+                            priceDelta: 0
+                            default: false
+                      - id: "mg_cola_type"
+                        name:
+                          en: "Choose a cola"
+                          id: "Pilih cola"
+                        type: "SINGLE"
+                        required: true
+                        min: 1
+                        max: 1
+                        options:
+                          - id: "opt_cola_classic"
+                            name:
+                              en: "Classic"
+                              id: "Klasik"
+                            priceDelta: 0
+                            default: false
+                          - id: "opt_cola_zero"
+                            name:
+                              en: "Zero sugar"
+                              id: "Tanpa gula"
                             priceDelta: 0
                             default: false
                     combos:
@@ -1140,6 +1622,8 @@ paths:
                       productId: "b2"
                       quantity: 1
                       selections:
+                        - groupId: "mg_b2_size"
+                          optionId: "opt_b2_regular"
                         - groupId: "mg_meal_upgrade"
                           optionId: "opt_make_meal"
                         - groupId: "mg_b2_ingredients"
@@ -1247,7 +1731,7 @@ paths:
                 alreadyPaid:
                   summary: "Order already paid"
                   value:
-                    code: "VALIDATION_ERROR"
+                    code: "ORDER_ALREADY_PAID"
                     message: "Order is already paid."
                     details:
                       status: "PAID"
@@ -1320,7 +1804,7 @@ paths:
                 wrongState:
                   summary: "Order not awaiting payment"
                   value:
-                    code: "VALIDATION_ERROR"
+                    code: "ORDER_NOT_AWAITING_PAYMENT"
                     message: "Order is not awaiting payment."
                     details: {}
         "422":
@@ -1825,7 +2309,10 @@ components:
             - "NOT_FOUND"
             - "PRICE_CHANGED"
             - "ITEM_UNAVAILABLE"
+            - "MERCHANT_NOT_LIVE"
             - "MERCHANT_CLOSED"
+            - "ORDER_ALREADY_PAID"
+            - "ORDER_NOT_AWAITING_PAYMENT"
             - "PAYMENT_NOT_CANCELLABLE"
             - "PIN_INCORRECT"
             - "PAYMENT_METHOD_UNAVAILABLE"

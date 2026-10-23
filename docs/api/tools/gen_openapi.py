@@ -3,16 +3,19 @@
 Usage (from the repo root):
     python3 docs/api/tools/gen_openapi.py docs/api/api-spec.md docs/api/openapi.yaml
 
-The JSON examples are read in document order (31 blocks); adding or reordering a block in
-api-spec.md means updating the unpacking below. Standard library only.
+The JSON examples are read in document order (31 blocks) by spec_examples.py; adding or reordering a
+block in api-spec.md means updating spec_examples.NAMES and the unpacking below. Standard library only.
 """
 import copy
 import json
 import re
 import sys
 
+sys.dont_write_bytecode = True  # keep docs/api/tools free of __pycache__ (a Gradle task input)
+from spec_examples import read_examples  # noqa: E402
+
 src, out = sys.argv[1], sys.argv[2]
-blocks = [json.loads(b) for b in re.findall(r"```json\n(.*?)```", open(src).read(), re.S)]
+blocks = [parsed for _name, _raw, parsed in read_examples(src)]
 assert len(blocks) == 31, len(blocks)
 (ERR, E1_REQ, E1_RES, E1_404, E2_RES, E3_REQ, E3_RES, E5_RES, E6_RES, E7_REQ, COMBO_LINE,
  E7_RES, E7_PRICE, E7_UNAVAIL, E8_REQ, E8_RES, E9_REQ_QR, E9_RES_QR, E9_REQ_CARD, E9_RES_CARD,
@@ -58,7 +61,8 @@ schemas = {
     "LocalizedText": {"type": "object", "description": "Localized text; the app falls back to the other language.",
                       "properties": {"en": STR, "id": STR}},
     "Error": obj({"code": enum("VALIDATION_ERROR", "TOKEN_INVALID", "DEVICE_DISABLED", "DEVICE_NOT_REGISTERED",
-                               "NOT_FOUND", "PRICE_CHANGED", "ITEM_UNAVAILABLE", "MERCHANT_CLOSED",
+                               "NOT_FOUND", "PRICE_CHANGED", "ITEM_UNAVAILABLE", "MERCHANT_NOT_LIVE",
+                               "MERCHANT_CLOSED", "ORDER_ALREADY_PAID", "ORDER_NOT_AWAITING_PAYMENT",
                                "PAYMENT_NOT_CANCELLABLE", "PIN_INCORRECT", "PAYMENT_METHOD_UNAVAILABLE",
                                "RATE_LIMITED", "SERVER_ERROR", "GATEWAY_ERROR"),
                   "message": STR, "details": {"type": "object", "additionalProperties": True}},
@@ -268,7 +272,7 @@ paths = {
                   {"200": resp("Bound.", "BindingResponse", {"default": ("Bound to Urban Grill", E3_RES)}),
                    "401": R401,
                    "404": error_resp("Unknown merchant.", {"notFound": ("Unknown merchant", err("NOT_FOUND", "Merchant not found."))}),
-                   "409": error_resp("Merchant not live.", {"comingSoon": ("Merchant is coming soon", err("VALIDATION_ERROR", "Merchant is not live yet."))}),
+                   "409": error_resp("Merchant not live.", {"comingSoon": ("Merchant is coming soon", err("MERCHANT_NOT_LIVE", "Merchant is not live yet."))}),
                    "500": R5XX},
                   body("BindingRequest", {"default": ("Urban Grill", E3_REQ)})),
         "delete": op("unbindMerchant", "E4 — Unbind / log out", ["Device"], [DEVICE_ID] + AUTHED,
@@ -283,7 +287,7 @@ paths = {
          "401": R401, "500": R5XX})},
     "/v1/merchants/{merchantId}/menu": {"get": op(
         "getMenu", "E6 — Full menu", ["Catalog"], [MERCHANT_ID, p("IfNoneMatch")] + AUTHED,
-        {"200": resp("Menu.", "Menu", {"default": ("Urban Grill menu (abbreviated, see api-spec §4)", E6_RES)}, ETAG_HDR),
+        {"200": resp("Menu.", "Menu", {"default": ("Urban Grill full menu (api-spec §4)", E6_RES)}, ETAG_HDR),
          "304": {"description": "Not modified (If-None-Match matched)."},
          "401": R401, "500": R5XX})},
     "/v1/orders": {"post": op(
@@ -305,7 +309,7 @@ paths = {
         "cancelOrder", "E8 — Abandon an unpaid order", ["Orders"], [ORDER_ID, p("IdempotencyKeyOptional")] + AUTHED,
         {"200": resp("Cancelled.", "OrderStatusResponse", {"default": ("Cancelled", E8_RES)}),
          "401": R401,
-         "409": error_resp("Already paid.", {"alreadyPaid": ("Order already paid", err("VALIDATION_ERROR", "Order is already paid.", {"status": "PAID"}))}),
+         "409": error_resp("Already paid.", {"alreadyPaid": ("Order already paid", err("ORDER_ALREADY_PAID", "Order is already paid.", {"status": "PAID"}))}),
          "500": R5XX},
         body("CancelOrderRequest", {"default": ("Customer went back", E8_REQ)}))},
     "/v1/orders/{orderId}/payments": {"post": op(
@@ -314,7 +318,7 @@ paths = {
             "qris": ("QRIS payment", E9_RES_QR),
             "card": ("Card payment on EDC terminal", E9_RES_CARD)}),
          "401": R401,
-         "409": error_resp("Order not awaiting payment.", {"wrongState": ("Order not awaiting payment", err("VALIDATION_ERROR", "Order is not awaiting payment."))}),
+         "409": error_resp("Order not awaiting payment.", {"wrongState": ("Order not awaiting payment", err("ORDER_NOT_AWAITING_PAYMENT", "Order is not awaiting payment."))}),
          "422": error_resp("Method unavailable.", {"methodUnavailable": ("Method disabled", err("PAYMENT_METHOD_UNAVAILABLE", "Card payments are not enabled for this merchant."))}),
          "502": error_resp("Gateway error.", {"gatewayError": ("Gateway error", err("GATEWAY_ERROR", "Payment gateway unavailable."))}),
          "500": R5XX},
