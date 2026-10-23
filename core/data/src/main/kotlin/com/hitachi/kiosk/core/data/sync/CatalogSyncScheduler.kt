@@ -11,14 +11,22 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 
-/** Schedules [CatalogSyncWorker] every 15 minutes with a connected network (FR-028, technical-design §7.2). */
-class PeriodicCatalogSync
+/** Schedules the periodic catalog sync (FR-028, DEV-023). `:app` calls it once at startup. */
+fun interface CatalogSyncScheduler {
+    /** Enqueues the unique periodic work; an existing schedule is updated, not restarted. */
+    fun schedulePeriodic()
+}
+
+/**
+ * [CatalogSyncWorker] every 15 minutes while a network is connected, unique work [WORK_NAME] with policy UPDATE
+ * (technical-design §7.2).
+ */
+internal class WorkManagerCatalogSyncScheduler
     @Inject
     constructor(
         @ApplicationContext private val context: Context,
-    ) {
-        /** Enqueues the unique periodic work; an existing schedule is updated, not restarted (policy UPDATE). */
-        fun schedule() {
+    ) : CatalogSyncScheduler {
+        override fun schedulePeriodic() {
             val request =
                 PeriodicWorkRequestBuilder<CatalogSyncWorker>(INTERVAL_MINUTES, TimeUnit.MINUTES)
                     .setConstraints(Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
@@ -30,7 +38,6 @@ class PeriodicCatalogSync
         }
 
         companion object {
-            /** Unique work name (technical-design §7.2). */
             const val WORK_NAME = "catalog-sync"
             const val INTERVAL_MINUTES = 15L
         }

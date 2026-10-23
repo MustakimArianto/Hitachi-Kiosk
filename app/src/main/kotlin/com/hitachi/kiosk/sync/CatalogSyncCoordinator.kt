@@ -1,6 +1,6 @@
 package com.hitachi.kiosk.sync
 
-import com.hitachi.kiosk.core.data.sync.PeriodicCatalogSync
+import com.hitachi.kiosk.core.data.sync.CatalogSyncScheduler
 import com.hitachi.kiosk.core.domain.device.Connectivity
 import com.hitachi.kiosk.core.domain.device.ConnectivityMonitor
 import com.hitachi.kiosk.core.domain.model.DeviceState
@@ -26,7 +26,7 @@ import javax.inject.Singleton
 class CatalogSyncCoordinator
     @Inject
     constructor(
-        private val periodic: PeriodicCatalogSync,
+        private val scheduler: CatalogSyncScheduler,
         private val catalog: CatalogSyncRepository,
         private val activation: ActivationRepository,
         private val connectivity: ConnectivityMonitor,
@@ -35,7 +35,7 @@ class CatalogSyncCoordinator
     ) {
         /** Starts the triggers for the life of the process. Call once, from `KioskApp`. */
         fun start() {
-            scope.launch { periodic.schedule() }
+            scope.launch { scheduler.schedulePeriodic() }
             scope.launch {
                 orders.current
                     .map { it == null }

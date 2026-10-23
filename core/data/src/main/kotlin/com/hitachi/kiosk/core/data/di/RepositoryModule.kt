@@ -7,7 +7,9 @@ import com.hitachi.kiosk.core.data.repository.DefaultActivationRepository
 import com.hitachi.kiosk.core.data.repository.DefaultCatalogRepository
 import com.hitachi.kiosk.core.data.repository.DefaultMerchantRepository
 import com.hitachi.kiosk.core.data.repository.SessionInvalidator
+import com.hitachi.kiosk.core.data.sync.CatalogSyncScheduler
 import com.hitachi.kiosk.core.data.sync.DefaultCatalogSyncRepository
+import com.hitachi.kiosk.core.data.sync.WorkManagerCatalogSyncScheduler
 import com.hitachi.kiosk.core.domain.repository.ActivationRepository
 import com.hitachi.kiosk.core.domain.repository.CatalogRepository
 import com.hitachi.kiosk.core.domain.repository.CatalogSyncRepository
@@ -41,6 +43,10 @@ internal abstract class RepositoryModule {
     /** A session wipe empties the same cache (FR-004 AC3). */
     @Binds
     abstract fun catalogCache(repository: DefaultCatalogRepository): CatalogCache
+
+    /** The 15-minute periodic sync (DEV-023). */
+    @Binds
+    abstract fun catalogSyncScheduler(scheduler: WorkManagerCatalogSyncScheduler): CatalogSyncScheduler
 
     /** HTTP 401 wipes the session (TR-NET-06). */
     @Binds
