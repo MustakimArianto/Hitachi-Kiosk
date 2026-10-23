@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Document version | 1.1 (2026-10-22) — updated to the final "Linen & Paprika" design, English-only UI (D-29), Budget Plan |
+| Document version | 1.2 (2026-10-23) — 0.1.0 device notes, release-check tooling |
 | Requirements | [`product-requirement.md`](product-requirement.md) |
 | Development roadmap | [`dev-plan.md`](dev-plan.md) |
 | API contract | [`api/api-spec.md`](api/api-spec.md) |
@@ -78,6 +78,8 @@ Every external dependency has a scriptable fake (dev-plan DEV-005). The debug-on
 | **iMin target kiosk** (model per OQ-01) | device (≈ 34+) | device native | Hardware, performance, soak, pilot: **authoritative** | 0.2.0 (SN spike) |
 | Printers | — | — | iMin built-in; 2 USB ESC/POS (58 mm + 80 mm); 2 Bluetooth ESC/POS | 0.6.0 |
 | EDC terminal | — | — | Model per OQ-03 | 0.9.0 |
+
+0.1.0 ran its instrumented suite on a Pixel 10 AVD (API 37, 1080 × 2424, letterboxed) because no API 30/34 image was installed; `scripts/create-avds.sh` creates Kiosk-30 and Kiosk-34. JVM screenshot tests run on Robolectric SDK 36 (technical-design §16).
 
 Orientation is locked portrait (NFR-002). Densities 160/240/320 prove the `DesignUnit` scaling. Unsupported aspect ratios are checked once for letterboxing (TC-141).
 
@@ -237,7 +239,7 @@ Test data: the tagged sample menu from `api-spec.md` §4 (kid-friendly mains b1,
 | TC-084 | FR-019 | Switch method | Failed (card) | Tap "Pay by QRIS instead" | Card payment cancelled; QRIS payment created for the **same** orderId | E2E | H | Y |
 | TC-085 | FR-019 | Unknown status | Network drop right after PAID at gateway | Pay; kill network 10 s; restore | "Checking your payment…" (no "not charged"); resolves to Complete | E2E | H | P |
 | TC-086 | FR-019 | Back to order | Pending QR | Tap "Back to order" | E11 + E8 sent; SCR-10 with cart intact; next Pay creates a new order (new key) | E2E | H | Y |
-| TC-087 | FR-019 | No counter button / no simulate bar in release | Release APK | Inspect Failed state; `apkanalyzer` strings | No "Pay at the counter" button; no "Prototype only" string or class | UI/U | H | Y |
+| TC-087 | FR-019 | No counter button / no simulate bar in release | Release APK | Inspect Failed state; `scripts/check-release-apk.sh` strings check | No "Pay at the counter" button; no "Prototype only" string or class | UI/U | H | Y |
 
 ### 5.6 Completion and printing (FR-020 – FR-022)
 
@@ -323,7 +325,7 @@ Test data: the tagged sample menu from `api-spec.md` §4 (kid-friendly mains b1,
 | TC-145 | NFR-004, NFR-015 | 72 h soak | iMin device, staging | UI Automator order every 3 min for 72 h | 0 crashes, 0 ANRs; heap growth ≤ 20 MB; temperature within spec; log dir ≤ 10 MB | D | H | P |
 | TC-146 | NFR-005 | Token storage | Debug build | `run-as` inspect files | Token not in plain text | D | H | N |
 | TC-147 | NFR-005 | TLS / pinning / cleartext | Proxy with self-signed cert; HTTP URL | Run app through proxy | Connections refused (pinning); cleartext blocked in release | D | H | N |
-| TC-148 | NFR-005 | Release hardening | Release APK | `apkanalyzer`, manifest review | `debuggable=false`; R8 on; no Developer options/simulate classes; exported components minimal; only listed permissions | U | H | Y |
+| TC-148 | NFR-005 | Release hardening | Release APK | `scripts/check-release-apk.sh` (dex, R8 mapping, manifest), manifest review | `debuggable=false`; R8 on; no Developer options/simulate classes; exported components minimal; only listed permissions | U | H | Y |
 | TC-149 | NFR-006 | Privacy | Release build after a soak | Review logs; dependency list | No customer data, no PIN, payment refs masked; no analytics/crash SDKs | M | H | P |
 | TC-150 | NFR-007 | Automated accessibility checks | — | Compose tests with accessibility checks on every screen | No errors (labels, target ≥ 88 dpx, contrast) | UI | H | Y |
 | TC-151 | NFR-007 | TalkBack walkthrough | iMin device or emulator | Complete J1 with TalkBack only | All controls reachable and labelled as in the design aria labels | M | M | N |

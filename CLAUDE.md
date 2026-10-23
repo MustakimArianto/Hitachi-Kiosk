@@ -38,17 +38,21 @@ Coverage targets: `:core:domain` ≥ 90 %, `:core:data` ≥ 70 %.
 ```bash
 # API contract
 python3 docs/api/tools/gen_openapi.py docs/api/api-spec.md docs/api/openapi.yaml
-npx @stoplight/prism-cli mock docs/api/openapi.yaml --port 4010
+npx @stoplight/prism-cli@5.16.0 mock docs/api/openapi.yaml --port 4010
 
-# Android (available once DEV-001 lands; update this list if task names change)
+python3 docs/api/tools/extract_fixtures.py docs/api/api-spec.md core/testing/src/main/resources/fixtures   # or ./gradlew extractApiFixtures
+
+# Android (update this list if task names change)
 ./gradlew assembleDebug
 ./gradlew testDebugUnitTest
 ./gradlew lint detekt ktlintCheck
-./gradlew verifyRoborazziDebug        # screenshot tests
-./gradlew connectedDebugAndroidTest   # instrumented, needs an emulator
+./gradlew verifyRoborazziDebug        # screenshot tests (record new goldens with recordRoborazziDebug)
+./gradlew connectedDebugAndroidTest   # instrumented, needs an emulator (scripts/create-avds.sh makes Kiosk-30/34)
 ./gradlew koverHtmlReport
 ./gradlew verify                      # the full local gate (lint, tests, coverage, screenshots, release APK check, OpenAPI check)
 ```
 
 ## Repo state
-As of 2026-10-22 the repo has docs only. The Android project is created by DEV-001/002 (milestone 0.1.0).
+As of 2026-10-23 milestone 0.1.0 (Foundation) is implemented: the multi-module project, `build-logic` and the `verify` gate, the design-system foundation, domain models and ports for E1–E14 with fakes, the networking skeleton, debug Developer options and a placeholder navigation skeleton. Status and open items are in `docs/dev-plan.md` (0.1.0 status) and `docs/test-reports/0.1.0.md`. `README.md` explains how to build and run.
+
+Build notes: run Gradle with a JDK ≥ 17 (`JAVA_HOME`); bytecode is Java 17. JVM screenshot tests run on Robolectric SDK 36 (`src/test/resources/robolectric.properties`). Debug-only code lives in package `com.hitachi.kiosk.debug` and is reached from `src/main` only through the optional `DeveloperMenu` / `BindingOverrides` bindings.

@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Document version | 1.0 (2026-10-22) |
+| Document version | 1.1 (2026-10-23) — updated with the 0.1.0 implementation (build, verify gate, debug bindings, fixtures) |
 | Answers | *How will the system satisfy the requirements?* |
 | Requirements | [`product-requirement.md`](product-requirement.md) (what the product does), [`technical-requirement.md`](technical-requirement.md) (TR-, what it must satisfy) |
 | Structure | [`architecture.md`](architecture.md) and [`adr/`](adr/): modules, layering, state machines, persistence map |
@@ -54,10 +54,11 @@ hitachi-kiosk/
 |---|---|---|
 | `kiosk.android.application` | `com.android.application` | `compileSdk 37`, `targetSdk 37`, `minSdk 30`, JVM target 17, versioning (§2.4), environments (§2.3), R8 for release, packaging excludes |
 | `kiosk.android.library` | `com.android.library` | SDK levels, JVM target 17, `consumerProguardFiles`, no `BuildConfig` unless asked for |
-| `kiosk.jvm.library` | `org.jetbrains.kotlin.jvm` | JVM toolchain 21, bytecode 17. Used only by `:core:domain`, so `android.*` cannot compile there (TR-MNT-01). |
-| `kiosk.compose` | `org.jetbrains.kotlin.plugin.compose` | Compose BOM, compiler reports and metrics in `build/compose-reports` behind a property, stability config file |
+| `kiosk.jvm.library` | `org.jetbrains.kotlin.jvm` | Bytecode 17, compiled with the Gradle daemon JDK (no toolchain). Used by `:core:domain`, so `android.*` cannot compile there (TR-MNT-01), and by `:core:testing`, whose fakes depend on the domain only. |
+| `kiosk.compose` | `org.jetbrains.kotlin.plugin.compose` | Compose BOM, compiler reports and metrics in `build/compose-reports` behind `-Pkiosk.composeReports=true`, stability config `config/compose/stability.conf`, and an Espresso 3.7.0 constraint for the Compose test rule (API 37, technology-stack §4) |
 | `kiosk.hilt` | `com.google.devtools.ksp`, `com.google.dagger.hilt.android` | Hilt runtime and KSP compiler |
-| `kiosk.quality` | detekt, ktlint, Kover, Lint config | Rule sets, baselines (empty at start), Kover rules: `:core:domain` ≥ 90 %, `:core:data` ≥ 70 % (TR-MNT-02) |
+| `kiosk.quality` | detekt, ktlint, Kover, Dependency Analysis | Rule sets (`config/detekt/detekt.yml`, `.editorconfig`, `config/lint/lint.xml`; no baselines), Kover exclusions for generated and Hilt wiring code, and the per-module `kioskCheck` task. Modules call `kioskCoverage(minLinePercent)`: `:core:domain` 90, `:core:data` 70 (TR-MNT-02) |
+| `kiosk.verify` | root project only | The `verify` task (§2.6), `checkOpenApi`, `extractApiFixtures`, `checkApiFixtures` and the aggregated Kover report |
 
 Android modules use AGP 9's built-in Kotlin compilation, so no separate Kotlin Android plugin is applied (technology-stack §2).
 
@@ -69,7 +70,7 @@ Architecture §7 requires a flavor-less `dev | staging | prod` environment. It i
 | `debug` | `dev` | `-Pkiosk.env=staging`; at runtime, Developer options can switch to the mock host or a custom URL | Mock host only (`10.0.2.2`, `localhost`) through `src/debug/res/xml/network_security_config.xml` | Off for `dev` and the mock host; on when built with `kiosk.env=staging` |
 | `release` | `prod` | `-Pkiosk.env=staging` for 0.9.0 staging builds | Never | On, staging or prod pin set |
 
-`kiosk.env` sets `BuildConfig.API_BASE_URL`, `BuildConfig.KIOSK_ENV` and the pin set read from `kiosk.pins.<env>` (Gradle property or environment variable, TR-SEC-03). A release build with `kiosk.env=dev` fails at configuration time.
+`kiosk.env` sets `BuildConfig.API_BASE_URL` (from `kiosk.baseUrl.<env>` in `gradle.properties`), `BuildConfig.KIOSK_ENV` and `BuildConfig.CERT_PINS`, read from `kiosk.pins.<env>` or `KIOSK_PINS_<ENV>` (TR-SEC-03). Debug builds also get `BuildConfig.MOCK_BASE_URL` for Developer options. A release build with `kiosk.env=dev` fails before it builds (`checkReleaseEnvironment`). The pins are not known yet (A-36, DEV-094); until then a build without pins has no pinning, and DEV-094 makes a missing pin set fail a `staging` or `prod` build.
 
 ### 2.4 Versioning (TR-DST-02)
 `kiosk.version.major/minor/patch` in `gradle.properties` produce `versionName = "M.m.p"` and `versionCode = M*10000 + m*100 + p` in `kiosk.android.application`. They are bumped in one place (conventions §10).
@@ -78,8 +79,8 @@ Architecture §7 requires a flavor-less `dev | staging | prod` environment. It i
 - `isMinifyEnabled = true`, `isShrinkResources = true`, R8 full mode (the AGP 9 default), `isDebuggable = false`.
 - Signing from the environment variables `KIOSK_KEYSTORE_PATH`, `KIOSK_KEYSTORE_PASSWORD`, `KIOSK_KEY_ALIAS`, `KIOSK_KEY_PASSWORD`, with a fallback to `local.properties`. v2 and v3 signing on, v1 off (`minSdk 30` does not need it).
 - Keep rules: kotlinx.serialization (generated serializers for DTOs and routes), Retrofit interfaces, Tink (shipped consumer rules), iMin SDK (per ADR-0004), and `@Keep` on the `DeviceAdminReceiver`.
-- `scripts/check-release-apk.sh <apk>` uses `apkanalyzer` to check:
-  - no class under `com.hitachi.kiosk.debug` and no `Fake*` or `Switchable*` class;
+- `scripts/check-release-apk.sh <apk-dir> <r8-mapping> <sdk-dir> <build-tools-version> <stamp>` (run by `:app:checkReleaseApk`) uses the build-tools `dexdump` and `aapt2` to check:
+  - no class under `com.hitachi.kiosk.debug` and no `com.hitachi.kiosk…Fake*` or `Switchable*` class, in every `classes*.dex` and in the R8 mapping (R8 renames classes, the mapping keeps the original names);
   - no "Prototype only" string;
   - `debuggable` is absent or false, and `allowBackup="false"`;
   - the exported components match the allow-list in §11.1.
@@ -87,14 +88,13 @@ Architecture §7 requires a flavor-less `dev | staging | prod` environment. It i
 ### 2.6 Verification gate (TR-MNT-06) — TD-03
 No CI in 1.0 (D-31). `build-logic` registers a root `verify` task that depends on:
 
-1. `lint`, `detekt`, `ktlintCheck`
-2. `testDebugUnitTest` (Android modules), `:core:domain:test` (JVM module), `verifyRoborazziDebug`, `koverVerify`
-3. `buildHealth` (Dependency Analysis)
-4. `assembleRelease`, then `checkReleaseApk` (an `Exec` task wrapping the script above)
-5. `checkOpenApi` (an `Exec` task running `scripts/check-openapi.sh`: regenerate `openapi.yaml`, `git diff --exit-code docs/api/openapi.yaml`, `npx @redocly/cli lint`)
-6. `checkApiFixtures` (re-extracts the fixtures from `api-spec.md`, §14, and fails on a diff)
+1. every module's `kioskCheck`: `lintDebug` (Android), `detekt`, `ktlintCheck`, `testDebugUnitTest` (Android) or `test` (JVM), `verifyRoborazziDebug` (modules with screenshot tests) and the Kover verification where `kioskCoverage` is set
+2. `buildHealth` (Dependency Analysis, every module)
+3. `:app:checkReleaseApk`, which builds `assembleRelease` and runs the script above
+4. `checkOpenApi` (an `Exec` task running `scripts/check-openapi.sh`: regenerate `openapi.yaml` into a temporary file, `diff` it with `docs/api/openapi.yaml`, then `npx @redocly/cli@2.69.0 lint`)
+5. `checkApiFixtures` (re-extracts the fixtures from `api-spec.md`, §14, and fails on a diff)
 
-`connectedDebugAndroidTest` stays a separate step, because it needs a running emulator (Kiosk-30 and Kiosk-34 AVDs, testing-plan §2.3). `scripts/git-hooks/pre-push` runs `./gradlew verify`. It is installed with `git config core.hooksPath scripts/git-hooks`, documented in the README. If CI is adopted later, a job calls the same tasks.
+`connectedDebugAndroidTest` stays a separate step, because it needs a running emulator (Kiosk-30 and Kiosk-34 AVDs, testing-plan §2.3; `scripts/create-avds.sh` creates them). `scripts/git-hooks/pre-push` runs `./gradlew verify`. It is installed with `git config core.hooksPath scripts/git-hooks`, documented in the README. If CI is adopted later, a job calls the same tasks.
 
 ---
 
@@ -104,12 +104,12 @@ The package layout follows conventions §1. The table names the main types per m
 
 | Module | Main types |
 |---|---|
-| `:core:domain` | `model/` (`Rupiah`, `Product`, `ModifierGroup`, `Combo`, `Category`, `MerchantConfig`, `KioskSettings`, `CartLine`, `Totals`, `PendingOrder`, `PaymentStatus`), `pricing/PricingEngine`, `cart/Cart`, `planner/BudgetPlanner`, `order/OrderSession`, `order/OrderSessionHolder` (interface), `payment/PaymentStateMachine`, `auth/StaffPinVerifier`, `format/IdrFormatter`, `repository/*Repository` (interfaces), `device/` (`CardTerminal`, `PrinterManager`, `PrinterDriver`, `DeviceIdentityProvider`, `ConnectivityMonitor`), `time/Clock`, `id/IdGenerator`, `image/ImagePrefetcher`, `error/DomainError`, `Outcome`, `log/KioskLog` (facade + `Redactor`, pure Kotlin) |
-| `:core:data` | `api/KioskApi`, `api/interceptor/*`, `api/ApiErrorMapper`, `dto/*Dto`, `mapper/*`, `db/KioskDatabase`, `db/dao/*`, `db/entity/*Entity`, `prefs/DeviceStore`, `prefs/SettingsStore`, `prefs/SecureTokenStore` (implements the `TokenStore` port), `repository/Default*Repository`, `sync/CatalogSyncRepository`, `sync/CatalogSyncWorker`, `net/DefaultConnectivityMonitor`, `time/ServerClockOffset` |
+| `:core:domain` | `backend/BackendApi` (E1–E14 in domain types), `payment/PaymentGateway` (E9–E12, delegates to `BackendApi`), `model/` (`Rupiah`, `Product`, `ModifierGroup`, `Combo`, `Category`, `MerchantConfig`, `KioskSettings`, `CartLine`, `Totals`, `PendingOrder`, `PaymentStatus`), `pricing/PricingEngine`, `cart/Cart`, `planner/BudgetPlanner`, `order/OrderSession`, `order/OrderSessionHolder` (interface), `payment/PaymentStateMachine`, `auth/StaffPinVerifier`, `format/IdrFormatter`, `repository/*Repository` (interfaces), `device/` (`CardTerminal`, `PrinterManager`, `PrinterDriver`, `DeviceIdentityProvider`, `ConnectivityMonitor`), `time/Clock`, `id/IdGenerator`, `image/ImagePrefetcher`, `error/DomainError`, `Outcome`, `retryWithBackoff`, `log/KioskLog` (facade + `Redactor`, pure Kotlin) |
+| `:core:data` | `api/KioskApi` (internal), `api/interceptor/*`, `api/ApiErrorMapper`, `api/ApiConfig`, `api/DeviceCredentialsProvider`, `api/UnauthorizedHandler`, `backend/DefaultBackendApi`, `backend/BackendPaymentGateway`, `di/NetworkModule`, `dto/*Dto`, `mapper/*`, `db/KioskDatabase`, `db/dao/*`, `db/entity/*Entity`, `prefs/DeviceStore`, `prefs/SettingsStore`, `prefs/SecureTokenStore` (implements the `TokenStore` port), `repository/Default*Repository`, `sync/CatalogSyncRepository`, `sync/CatalogSyncWorker`, `net/DefaultConnectivityMonitor`, `time/ServerClockOffset` |
 | `:core:hardware` | `identity/IminDeviceIdentityProvider`, `identity/SerialCache` (own DataStore file), `printer/DefaultPrinterManager`, `printer/escpos/EscPosEncoder`, `printer/render/ReceiptRenderer`, `printer/render/KitchenTicketRenderer`, `printer/driver/{Imin,UsbEscPos,BtEscPos}Driver`, `terminal/*CardTerminal` (per ADR-0003) |
 | `:core:designsystem` | `theme/KioskTheme` (+ `KioskColors`, `KioskType`, `KioskShapes`, `KioskSpacing`), `unit/DesignUnit`, `motion/KioskMotion`, `LocalReduceMotion`, `LocalLargeText`, `LocalAccent`, `component/*` (PRD §11.3). `PhotoSlot` draws the tone placeholder and takes the image as a composable slot, so this module depends on Compose only (architecture §3); `:app` fills the slot with Coil's `AsyncImage`. |
-| `:core:testing` | `fake/Fake*` (one per domain interface), `fixture/Fixtures` (loads `fixtures/*.json`), `rule/MainDispatcherRule`, `rule/TestClockRule` |
-| `:app` | `KioskApp`, `MainActivity`, `navigation/` (`Routes.kt`, `KioskNavHost`, `StartupRouter`), `kiosk/` (`KioskModeController`, `KioskDeviceAdminReceiver`, `BootReceiver`, `BrightnessController`), `inactivity/InactivityController`, `sound/SoundPlayer`, `log/TimberLogSink`, `log/RotatingFileTree`, `image/CoilImagePrefetcher`, `di/*Module`, `feature/*`; `src/debug`: `DeveloperOptions*`, `DebugBindingsModule`, `Switchable*` |
+| `:core:testing` | `fake/Fake*` (one per domain interface) built on `fake/Script`, `fake/FakeScenario` (api-spec §4), `fake/TestClock`, `fixture/Fixtures` (loads `fixtures/*.json`), `fixture/SampleData` (the same examples as domain objects), `rule/MainDispatcherRule` |
+| `:app` | `KioskApp`, `MainActivity`, `navigation/` (`Routes.kt`, `KioskNavHost`, `StartupRouter`), `kiosk/` (`KioskModeController`, `KioskDeviceAdminReceiver`, `BootReceiver`, `BrightnessController`), `inactivity/InactivityController`, `sound/SoundPlayer`, `log/TimberLogSink`, `log/RotatingFileTree`, `image/CoilImagePrefetcher`, `devtools/` (`DeveloperMenu`, `BindingOverrides`), `di/*Module` (including `BackendModule`), `feature/*`; `src/debug` (package `com.hitachi.kiosk.debug`): `DeveloperOptions*`, `DeveloperSettingsStore`, `SwitchableBackendApi`, `MockServerInterceptor` |
 
 `Clock` and `IdGenerator` are domain interfaces (TR-INT-10, TR-INT-11). `SystemClock` returns `kotlin.time.Instant` and a monotonic `elapsedRealtime` for UI timers. `UuidIdGenerator` produces the `Idempotency-Key` values (UUID v4), so tests can script keys.
 
@@ -134,7 +134,9 @@ In `onCreate`, in this order, all off the main thread except the first two:
 A background E5/E6 sync starts in the same scope but does not block. Routing waits for the minimum time **and** the local load, with a hard cap of 10 s (`withTimeoutOrNull`), then replaces the back stack (TR-PRF-02, TR-PRF-03). Any failure to read the token is treated as "not activated" (TR-REL-06).
 
 ### 4.3 Hilt modules
-As in architecture §10. One addition: `CoroutineScopesModule` provides `@ApplicationScope CoroutineScope = CoroutineScope(SupervisorJob() + @DefaultDispatcher)`. Debug builds add `DebugBindingsModule` (`src/debug`), which replaces the bindings for the domain repository interfaces, `CardTerminal`, `PrinterManager` and `DeviceIdentityProvider` with `Switchable*` wrappers that delegate to the real implementation or to the `:core:testing` fake. Switching happens at domain interfaces only, so no DTO or `KioskApi` type leaves `:core:data` (architecture §3). The "mock server" mode is not a fake: it keeps the real repositories and points the base URL at Prism. Release has no `src/release` override, because the real bindings in `src/main` are already the release bindings.
+As in architecture §10. One addition: `CoroutinesModule` provides the dispatchers and `@ApplicationScope CoroutineScope = CoroutineScope(SupervisorJob() + @DefaultDispatcher)`.
+
+**Debug overrides (TD-11).** Hilt cannot replace a production binding outside tests, so `src/main` declares two optional bindings with `@BindsOptionalOf` in `BackendModule`: `BindingOverrides` and `DeveloperMenu`. `BackendModule` binds each port to its real implementation, wrapped by `BindingOverrides` when present. Only `src/debug` (`DeveloperOptionsModule`) provides them, so the release bindings are exactly those of `src/main` and release has no `src/release` override. In 0.1.0 the debug override wraps `BackendApi` in `SwitchableBackendApi`, which sends each call to the real client or to a `FakeBackendApi` with the selected `FakeScenario`; `PaymentGateway` delegates to `BackendApi`, so it follows the same switch. Later milestones add `CardTerminal`, `PrinterManager` and `DeviceIdentityProvider` to `BindingOverrides` in the same way. Switching happens at domain interfaces only, so no DTO or `KioskApi` type leaves `:core:data` (architecture §3). The "mock server" mode is not a fake: it keeps the real client, and a debug-only interceptor (contributed to the `@NetworkInterceptors` set) redirects it to Prism and adds the scenario's `Prefer` header.
 
 ---
 
@@ -144,12 +146,14 @@ As in architecture §10. One addition: `CoroutineScopesModule` provides `@Applic
 `NetworkModule` builds a single `OkHttpClient`:
 - `connectTimeout(10 s)`, `readTimeout(15 s)`, `writeTimeout(15 s)`, `callTimeout(30 s)`.
 - Interceptors, in the architecture §7 order:
-  1. `IdempotencyKeyInterceptor`: copies the key from the `@Tag(IdempotencyKey::class)` request tag into the header. It never generates a key.
-  2. `AuthInterceptor`: adds `Authorization` from `TokenStore` on every call except E1 and E14, and `X-Device-Id` from `DeviceStore` on every call once activated, E14 included (api-spec §2.2).
+  1. `IdempotencyKeyInterceptor`: copies the key from the `@Tag key: RequestIdempotencyKey` request tag (a data-module wrapper of the domain `IdempotencyKey`) into the header. It never generates a key.
+  2. `AuthInterceptor`: adds `Authorization` on every call except the `@Unauthenticated` ones (E1, E14), and `X-Device-Id` on every call once activated, E14 included (api-spec §2.2). It reads a `DeviceCredentialsProvider`; 0.1.0 binds an in-memory store that DEV-014 replaces with the Secure DataStore `TokenStore` and `DeviceStore`.
   3. `HeadersInterceptor`: `X-App-Version`, `Accept-Language: en`.
-  4. Debug only: `HttpLoggingInterceptor(level = BODY)` through a `KioskLog` logger that applies the same `Redactor` rules (§12) to headers and JSON bodies: `Authorization`, `deviceToken`, `currentPin`, `currentPinProof`, `newPin` dropped; `qrString`, `reference`, `terminalRef`, `approvalCode` and `paymentId` truncated.
+  4. Extra interceptors from the `@NetworkInterceptors` multibound set (empty in release; the debug build adds the mock-server redirect).
+  5. Debug only (from DEV-073): `HttpLoggingInterceptor(level = BODY)` through a `KioskLog` logger that applies the same `Redactor` rules (§12) to headers and JSON bodies: `Authorization`, `deviceToken`, `currentPin`, `currentPinProof`, `newPin` dropped; `qrString`, `reference`, `terminalRef`, `approvalCode` and `paymentId` truncated.
 - `connectionSpecs(listOf(ConnectionSpec.MODERN_TLS))`: TLS 1.2 and 1.3 only (TR-SEC-02). The debug mock host adds `CLEARTEXT`.
-- `CertificatePinner` for the API host, when `KIOSK_ENV` is `staging` or `prod`, with the primary and backup SPKI hashes from `BuildConfig` (TR-SEC-03).
+- `CertificatePinner` for the API host when `BuildConfig.CERT_PINS` is not empty (`staging`/`prod`, TR-SEC-03; see §2.3).
+- The `OkHttpClient` and `Retrofit` are qualified `@KioskBackend`, so another client (for example Coil's) can never pick up the one that sends the device token. `KioskApi`, the DTOs and the `Json` instance are `internal` to `:core:data`.
 - A `401` is handled in `ApiErrorMapper`, not with an OkHttp `Authenticator`. api-spec v1 defines no refresh endpoint (E1 returns `tokenExpiresAt: null`), so the app has no refresh flow. FR-003 says the token is "refreshed per §10", but §10 defines no mechanism; this is listed as an open item in technical-requirement §14. `SessionInvalidator` clears the token and binding and emits a navigation event to SCR-02 (TR-NET-06).
 
 Retrofit: `Retrofit.Builder().addConverterFactory(json.asConverterFactory("application/json; charset=utf-8".toMediaType()))` with `Json { ignoreUnknownKeys = true; explicitNulls = false }` (TR-NET-08, architecture §7). Unknown enum values are not coerced silently: mappers handle them explicitly (for example a product with no `role` defaults to MAIN and logs a warning). Every `KioskApi` method is `suspend` and returns `Response<T>`, so headers (`ETag`, `Date`) and status codes are readable.
@@ -161,10 +165,10 @@ Retrofit: `Retrofit.Builder().addConverterFactory(json.asConverterFactory("appli
 |---|---|---|
 | `IOException`, `SocketTimeoutException`, no route | `Network` | Retried per §5.3 first |
 | HTTP 401 `TOKEN_INVALID` | `Unauthorized` | Also triggers `SessionInvalidator` |
-| HTTP 409 `PRICE_CHANGED` | `PriceChanged(details)` | `details` maps to per-line old and new prices |
+| HTTP 409 `PRICE_CHANGED` | `PriceChanged(details)` | `details` carries `menuVersion`, `configVersion` and `serverTotals` (api-spec E7) |
 | HTTP 409 `ITEM_UNAVAILABLE` | `ItemUnavailable(ids)` | |
-| Other HTTP 409 (`MERCHANT_CLOSED`, `PAYMENT_NOT_CANCELLABLE`, `PIN_INCORRECT`) | `Conflict` | Each is unique within its endpoint, so the caller knows which one it is |
-| HTTP 403 `DEVICE_DISABLED`, 404 `DEVICE_NOT_REGISTERED`, 404 `NOT_FOUND`, 400, 422, 429, 5xx | `Server(code)` | `code` = the envelope `code` string, or `HTTP_<status>` when there is no envelope. ViewModels map the code to the PRD copy. |
+| Other HTTP 409 (`MERCHANT_NOT_LIVE` on E3, `MERCHANT_CLOSED` on E7, `ORDER_ALREADY_PAID` on E8, `ORDER_NOT_AWAITING_PAYMENT` on E9, `PAYMENT_NOT_CANCELLABLE` on E11, `PIN_INCORRECT` on E13) | `Conflict` | Each is unique within its endpoint, so the caller knows which one it is |
+| HTTP 403 `DEVICE_DISABLED`, 404 `DEVICE_NOT_REGISTERED`, 404 `NOT_FOUND`, 400 `VALIDATION_ERROR` (bad request body only), 422, 429, 5xx | `Server(code)` | `code` = the envelope `code` string, or `HTTP_<status>` when there is no envelope. ViewModels map the code to the PRD copy. |
 | Body that fails to parse | `Unknown` | Logged with the endpoint ID, never the body |
 
 ### 5.3 Retry and idempotency per endpoint (TR-NET-04, TR-REL-03)
@@ -278,7 +282,7 @@ Each store is exposed as a `Flow` of a domain model (`KioskSettings`, etc.). Wri
 ### 8.3 `BudgetPlanner` (FR-032, TR-PRF-08) — TD-06
 A pure function: `plan(budget, adults, children, menu, config, options): PlanResult`. The approach meets the 100 ms target without trying every combination:
 
-1. **Candidate units.** Per adult: `(main, drink)` pairs, plus combos (`serves = 1` covers one adult, `serves = 2` covers two). Per child: `(kidFriendly main, drink)` pairs. If no main is kid-friendly, the child gets the cheapest main and the result is flagged "Kids' menu not available" (BR-14, D-28). Optional per person: one side or one dessert. Unavailable items and products with `servesAdults > 1` are excluded.
+1. **Candidate units.** Per adult: `(main, drink)` pairs, plus combos (`serves = 1` covers one adult, `serves = 2` covers two). Per child: `(kidFriendly main, drink)` pairs. If no main is kid-friendly, the child gets the cheapest main and the result is flagged "Kids' menu not available" (BR-14, D-28). Optional per person: one side or one dessert. Unavailable items and products with `servesAdults > 1` are excluded. Each planned item takes its required groups' default option, or the first option when a group has none (A-42).
 2. **Reachable subtotals.** Subtotals are counted in units of the greatest common divisor of all candidate prices (Rp 1.000 on the sample menu, at least Rp 100 in practice). If a merchant's prices make that unit smaller than Rp 100, the state count grows; the cap below handles it. A dynamic program over the people adds each person's unit prices to a set of reachable subtotals. It keeps one best composition per subtotal, chosen by the FR-032 tie-breaks that apply within a subtotal: variety, then `plannerWeight`, then featured. With 10 people and a sample menu, that is at most about 30,000 states.
 3. **Final totals.** Each reachable subtotal goes through `PricingEngine` to get its final total (promo, tax, rounding). That makes the threshold promo and the rounding exact rather than approximate (BR-15).
 4. **Selection.**
@@ -436,12 +440,12 @@ When the app is not device owner, it calls `startLockTask()` (screen pinning) an
 | Need | Implementation |
 |---|---|
 | Fakes (TR-INT-10) | `:core:testing` `Fake*`. Each one takes a script (`Queue<Outcome>`) or a mode enum, plus optional delays driven by the test dispatcher. |
-| Fixtures (TR-NET-02) | `core/testing/src/main/resources/fixtures/*.json`, extracted from `api-spec.md` examples by a small Gradle task (`extractApiFixtures`) that reuses the same parser as `gen_openapi.py`. The `checkApiFixtures` step of `verify` fails on a diff (§2.6). |
+| Fixtures (TR-NET-02) | `core/testing/src/main/resources/fixtures/*.json` (31 files, byte-identical to the `api-spec.md` examples), written by `./gradlew extractApiFixtures` (`docs/api/tools/extract_fixtures.py`), which shares its parser `spec_examples.py` with `gen_openapi.py`. The `checkApiFixtures` step of `verify` fails on a diff (§2.6). `SampleData` holds the same examples as domain objects, and the `:core:data` contract tests check that each parsed fixture equals it. |
 | Contract and network tests | `mockwebserver3` + `mockwebserver3-junit4` serve the fixtures and inject faults (delays, 5xx, disconnects) (TR-NET-03, TR-NET-04). |
 | Room and DataStore | Robolectric with an in-memory Room database. `MigrationTestHelper` from 1.0.0. A DataStore on a temporary folder. |
 | Flows and time | `runTest` + `StandardTestDispatcher`, `TestClock` implementing the domain `Clock`, Turbine. |
 | Property tests | `kotest-property` `checkAll(iterations = 1_000, …)` inside JUnit 4 `@Test` functions (TC-061, FR-032 AC8). |
-| Screenshot tests | Roborazzi on Robolectric. A 1080 × 1920 px screen at 160, 240 and 320 dpi is `@Config(qualifiers = "w1080dp-h1920dp-mdpi")`, `"w720dp-h1280dp-hdpi"` and `"w540dp-h960dp-xhdpi"`. One test per `S_*` board and screen artboard, plus larger-text variants (TR-MNT-08). |
+| Screenshot tests | Roborazzi on Robolectric (SDK 36, §16), goldens committed under each module's `src/test/screenshots`. A 1080 × 1920 px screen at 160, 240 and 320 dpi is `@Config(qualifiers = "w1080dp-h1920dp-mdpi")`, `"w720dp-h1280dp-hdpi"` and `"w540dp-h960dp-xhdpi"`. One test per `S_*` board and screen artboard, plus larger-text variants (TR-MNT-08). |
 | Instrumented UI | `HiltTestRunner`, `@TestInstallIn` replacing the data and hardware modules with fakes. `createAndroidComposeRule<MainActivity>()` with `enableAccessibilityChecks()` (TR-ACC-01). |
 | System-level | UI Automator for lock task, process kill and reboot checks, plus the 72 h soak script (TR-REL-01). |
 | Release checks | `scripts/check-release-apk.sh` (§2.5). |
@@ -462,6 +466,7 @@ When the app is not device owner, it calls `startLockTask()` (screen pinning) an
 | TD-08 | Pure-Kotlin print renderer and ESC/POS encoder; drivers only move bytes | Golden tests without hardware. One renderer for three transports. | A vendor ESC/POS library | Architecture §9; ADR-0004 for the drivers |
 | TD-09 | Keep Navigation Compose 2.x and Room 2.x in 1.0, although Navigation 3 and Room 3 are stable | Architecture §11 and §6 are written for them. Migration has no 1.0 benefit. | Navigation 3; Room 3 | technology-stack §7 |
 | TD-10 | `kotlin.time.Instant` for every business timestamp | kotlinx-datetime 0.7+ removed `kotlinx.datetime.Instant` in favour of the standard library type | Pin an older kotlinx-datetime | conventions §4 |
+| TD-11 | Debug builds change bindings only through optional `BindingOverrides` / `DeveloperMenu` bindings declared in `src/main` and provided in `src/debug` | Hilt cannot override production bindings outside tests; `src/main` stays the release graph | A `src/debug` + `src/release` module pair per binding | This document (§4.3) |
 
 ---
 
@@ -469,9 +474,11 @@ When the app is not device owner, it calls `startLockTask()` (screen pinning) an
 
 | Risk | Mitigation |
 |---|---|
-| detekt 1.23.8 may not parse Kotlin 2.4 sources | Fallback in technology-stack §5. Decide in DEV-001. |
-| Robolectric may not support API 37 yet | Run JVM tests at the highest SDK Robolectric supports (`robolectric.properties`). Instrumented tests cover API 37. |
-| KSP 2.3.12 with Kotlin 2.4.21 is unconfirmed | Trial build in DEV-001. Fallback: the latest Kotlin 2.3.x. |
+| detekt 1.23.8 may not parse Kotlin 2.4 sources | **Closed in DEV-001**: it does, without type resolution. |
+| Robolectric may not support API 37 yet | **DEV-001 result**: Robolectric 4.17 starts API 37, but Compose draws nothing there, so screenshot tests run on SDK 36 (`robolectric.properties`). Instrumented tests cover API 37. Revisit with the next Robolectric release. |
+| KSP 2.3.12 with Kotlin 2.4.21 is unconfirmed | **Closed in DEV-001**: it works, with Hilt 2.60.1 and AGP 9's built-in Kotlin. |
+| Compose's transitive Espresso 3.5.0 fails on API 37 (`InputManager.getInstance()` was removed) | Constrained to Espresso 3.7.0 in `kiosk.compose` (technology-stack §4). |
+| Android 16+ may ignore `screenOrientation="portrait"` on large screens (sw ≥ 600 dp; a 1080 × 1920 kiosk at 240 dpi is 720 dp wide), and `targetSdk 37` removes the opt-out | The kiosk is mounted in portrait and runs in lock task, so the window is portrait anyway. Check on the iMin device in DEV-012 (0.2.0) and record the result in ADR-0002 or a new ADR if the app must handle a landscape window (NFR-002, TR-PLT-05). |
 | iMin SDK distribution (JitPack) and APIs vary by model | Spikes DEV-012 and DEV-056 on the real device (OQ-01). Drivers sit behind interfaces. |
 | EDC transport unknown | `CardTerminal` interface and fake (OQ-03, R-1). |
 

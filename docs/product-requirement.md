@@ -14,6 +14,8 @@
 | 1.0 | 2026-10-22 | First complete PRD. |
 | 1.1 | 2026-10-22 | Aligned with the final "Linen & Paprika" design: English-only UI in 1.0 [D-29] (FR-008 deferred); Budget Pas renamed **Budget Plan**, with SCR-19 now designed as a 2-step flow plus a Customize sheet, exact-match handling and in-1.0 swap rebalancing (FR-032, OQ-14 closed); Menu promo carousel and the Checkout scan line, step list and "Step 3 of 3" indicator removed [D-30]; OrderType has no photos; Item, Combo, Payment, Checkout, Complete and Idle states documented from the 33 state boards; SCR-09, SCR-13 and the new SCR-20 (Change PIN) are now designed; "At counter" is no longer drawn on Payment or Checkout. |
 | 1.2 | 2026-10-22 | File renamed from `prd.md` to `product-requirement.md`. Added the companion technical documents. No CI in 1.0 [D-31]: NFR-011 static analysis and coverage are enforced by the local `./gradlew verify` gate. |
+| 1.3 | 2026-10-23 | DEP-1 owner: the PO builds the mock and the backend from `api/api-spec.md`. |
+| 1.4 | 2026-10-23 | A-42: option choice for planned items. The api-spec sample menu is complete and adds required choices on c4, r1 and d2. |
 
 ## 0. How to read this document
 
@@ -987,7 +989,7 @@ Sized for one developer. Features live as packages inside `:app` rather than sep
 ### 13.1 Dependencies
 | ID | Dependency | Needed by | Owner |
 |---|---|---|---|
-| DEP-1 | Backend implementing §10 | Mock from 0.1.0. Real by 0.9.0 | Backend team [D-06] |
+| DEP-1 | Backend implementing §10 | Mock from 0.1.0. Real by 0.9.0 | PO: builds the mock and the backend from `api/api-spec.md` (2026-10-23). Contract changes are requested from the PO [D-06] |
 | DEP-2 | Company payment gateway API + sandbox (QRIS, card) | Spec by 0.5.0. Sandbox by 0.9.0 | Company gateway team [D-12] |
 | DEP-3 | EDC terminal model, transport and protocol | Spec by 0.5.0 | Company / bank [D-13, OQ-03] |
 | DEP-4 | Target iMin device (≥ 1 unit) and SDK (printer, SN) | 0.2.0 (SN), 0.6.0 (printer) | Hitachi [OQ-01] |
@@ -1099,6 +1101,7 @@ Sized for one developer. Features live as packages inside `:app` rather than sep
 | A-39 | No foreground service is needed for printing. | Platform. |
 | A-40 | The Budget Plan tag row on Your order ("Budget Plan · 2 adults · 1 child · Rp 150.000") shows while the cart still matches the plan, and is cleared as soon as a line is edited. | Cosmetic. |
 | A-41 | The kid-menu fallback note on a plan reads "Kids' menu not available" (the design has no UI for it). | Copy. |
+| A-42 | A planned item that has a required option group gets that group's default option, or its first option when it has none. The sample menu's choices for c4, r1 and d2 (api-spec §4) cost Rp 0, so they never change a plan total. | Budget Plan (FR-032). |
 
 ## 16. Open questions
 

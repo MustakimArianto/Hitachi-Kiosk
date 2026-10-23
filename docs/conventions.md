@@ -5,11 +5,12 @@ How code is written and how changes land. [`architecture.md`](architecture.md) c
 ## 1. Packages
 
 ```
-com.hitachi.kiosk                      :app (MainActivity, KioskApp, navigation/, di/, kiosk/)
+com.hitachi.kiosk                      :app (MainActivity, KioskApp, navigation/, di/, devtools/, kiosk/)
+com.hitachi.kiosk.debug                :app src/debug only (Developer options, switchable wrappers)
 com.hitachi.kiosk.feature.<feature>    :app feature packages (menu, cart, checkout, …)
 com.hitachi.kiosk.core.designsystem    :core:designsystem (theme/, unit/, motion/, component/)
-com.hitachi.kiosk.core.domain          :core:domain (model/, pricing/, cart/, planner/, order/, payment/, repository/, device/)
-com.hitachi.kiosk.core.data            :core:data (api/, dto/, mapper/, db/, prefs/, repository/, sync/)
+com.hitachi.kiosk.core.domain          :core:domain (model/, error/, backend/, pricing/, cart/, planner/, order/, payment/, repository/, device/, time/, id/, log/)
+com.hitachi.kiosk.core.data            :core:data (api/, backend/, dto/, mapper/, db/, prefs/, repository/, sync/, di/)
 com.hitachi.kiosk.core.hardware        :core:hardware (identity/, printer/, terminal/)
 com.hitachi.kiosk.core.testing         :core:testing (fake/, fixture/, rule/)
 ```
@@ -74,7 +75,7 @@ A feature package contains only `XxxRoute.kt`, `XxxScreen.kt`, `XxxViewModel.kt`
 
 ## 8. Debug vs release
 
-- Developer tools (Developer options, simulate bar, fake switching) live only in `src/debug/`. Release must not reference them (`apkanalyzer` check in `./gradlew verify`, FR-019 AC3).
+- Developer tools (Developer options, simulate bar, fake switching) live only in `src/debug/`. Release must not reference them (`scripts/check-release-apk.sh` in `./gradlew verify`, FR-019 AC3). Debug code lives in package `com.hitachi.kiosk.debug`, which the check rejects in a release APK. `src/main` reaches debug tools only through optional bindings (`DeveloperMenu`, `BindingOverrides`, technical-design §4.3).
 - Logging goes through `KioskLog`, never `println`/`Log.*` directly. No PIN, full payment refs or customer data in logs (NFR-006).
 - Secrets (signing keystore, pins) never get committed. They come from environment variables or `local.properties`.
 

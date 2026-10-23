@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Document version | 1.0 (2026-10-22) |
+| Document version | 1.1 (2026-10-23) — debug binding mechanism and DI modules as built in 0.1.0 |
 | Requirements | [`product-requirement.md`](product-requirement.md): this document explains *how*; the PRD decides *what*. Where they disagree, the PRD wins. Measurable technical requirements: [`technical-requirement.md`](technical-requirement.md). |
 | Implementation | [`technical-design.md`](technical-design.md) adds the implementation detail (build, schemas, algorithms, configuration) under this structure. [`technology-stack.md`](technology-stack.md) pins the libraries and versions. |
 | Contract | [`api/api-spec.md`](api/api-spec.md) (E1–E14) |
@@ -251,7 +251,7 @@ All interfaces live in `:core:domain`. Real implementations live in `:core:hardw
 
 The receipt renderer produces a device-independent command list, and each driver only transports bytes. That way receipts can be checked in unit tests without hardware.
 
-**Real vs fake selection**: Hilt modules in `:app` bind real implementations. In the `debug` source set, a `DebugBindingsModule` replaces them with switchable wrappers (`SwitchableCardTerminal` etc.) that delegate to either the real implementation or the fake, based on the Developer options choice (DEV-009). Release builds contain neither the wrappers nor the fakes (checked with `apkanalyzer` by `scripts/check-release-apk.sh`, part of `./gradlew verify`).
+**Real vs fake selection**: Hilt modules in `:app` bind real implementations. They also declare optional `BindingOverrides`, which only the `debug` source set provides: it wraps the real implementations in switchable wrappers (`SwitchableBackendApi` in 0.1.0, then `SwitchableCardTerminal` etc.) that delegate to either the real implementation or the fake, based on the Developer options choice (DEV-009, technical-design §4.3 TD-11). Release builds contain neither the wrappers nor the fakes (checked in the dex files and the R8 mapping by `scripts/check-release-apk.sh`, part of `./gradlew verify`).
 
 ## 10. Dependency injection
 
@@ -259,7 +259,7 @@ Hilt. One `@Module` per concern, installed in `SingletonComponent` unless stated
 
 - `:core:data`: `NetworkModule`, `DatabaseModule`, `DataStoreModule`, `RepositoryModule` (`@Binds` interface → implementation).
 - `:core:hardware`: `HardwareModule`.
-- `:app`: `DispatchersModule` (`@IoDispatcher`, `@DefaultDispatcher`), `SessionModule` (`OrderSessionHolder`), `ClockModule`.
+- `:app`: `CoroutinesModule` (`@IoDispatcher`, `@DefaultDispatcher`, `@ApplicationScope`), `ClockModule` (`Clock`, `IdGenerator`), `BackendModule` (`ApiConfig`, `BackendApi` and `PaymentGateway` → `:core:data` implementations, optional debug overrides), and from 0.4.0 `SessionModule` (`OrderSessionHolder`). `src/debug` adds `DeveloperOptionsModule`.
 - `:core:domain` has no Hilt. Its classes use plain constructors, and modules in `:app` or `:core:data` provide them.
 
 Tests: unit tests construct classes by hand with fakes. Instrumented tests use `@TestInstallIn` to swap modules for fakes.
@@ -267,7 +267,7 @@ Tests: unit tests construct classes by hand with fakes. Instrumented tests use `
 ## 11. Navigation
 
 - Single `MainActivity`, portrait-locked, `FLAG_KEEP_SCREEN_ON`, edge-to-edge with system bars hidden in lock task.
-- Navigation Compose with type-safe `@Serializable` route objects, one per screen SCR-01…SCR-19 (PRD §4), including Upsell and Budget Plan (SCR-19, one route with an internal step state, so Back from step 2 returns to step 1 and Back from step 1 returns to Menu). Change PIN is a route inside the staff settings graph. SCR-13 ("Still there?") is an overlay hosted above the `NavHost`, not a route. The design shows it as its own board with Menu blurred behind it.
+- Navigation Compose with type-safe `@Serializable` route objects, one per screen SCR-01…SCR-20 (PRD §4), including Upsell and Budget Plan (SCR-19, one route with an internal step state, so Back from step 2 returns to step 1 and Back from step 1 returns to Menu). Change PIN (SCR-20) is a route inside the staff settings graph. SCR-13 ("Still there?") is an overlay hosted above the `NavHost`, not a route. The design shows it as its own board with Menu blurred behind it.
 - The **start destination is always Splash**. `StartupRouter` (DEV-011) waits for both the 3.9 s minimum and initialization (≤ 10 s network cap), then replaces the back stack with SCR-02, SCR-03 or SCR-04 (FR-001).
 - The customer flow is a nested graph. Leaving it (Complete auto-return, timeout, cancel) pops to Idle and resets the session.
 - Staff settings are a nested graph entered only through the PIN gate (SCR-14), with their own 120 s timeout [A-22].

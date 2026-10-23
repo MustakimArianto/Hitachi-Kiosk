@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Document version | 1.0 (2026-10-22) |
+| Document version | 1.1 (2026-10-23) — DEV-001 trial-build results, Espresso pin, release check on build-tools |
 | Answers | *What technologies does the project use, at which version, and why?* |
 | Requirements | [`product-requirement.md`](product-requirement.md) (FR-/NFR-/D-) and [`technical-requirement.md`](technical-requirement.md) (TR-) |
 | Design | [`architecture.md`](architecture.md) (structure), [`technical-design.md`](technical-design.md) (implementation), [ADR-0001](adr/0001-architecture.md) (stack decision) |
@@ -44,17 +44,17 @@ This document lists every technology the 1.0 app, its build and its tests use. T
 
 | Tool | Version | Purpose | Notes |
 |---|---|---|---|
-| JDK (Gradle daemon and toolchain) | 21 (LTS), e.g. Eclipse Temurin 21 | Runs Gradle, AGP, KSP and the JVM tests | AGP 9.4 needs JDK ≥ 17. Bytecode targets JVM 17 for all modules (`jvmTarget = 17`, `sourceCompatibility = 17`). |
+| JDK (Gradle daemon) | 21 (LTS) recommended, e.g. Eclipse Temurin 21; any JDK ≥ 17 works | Runs Gradle, AGP, KSP and the JVM tests | AGP 9.4 needs JDK ≥ 17. No Gradle Java toolchain is configured: every module compiles with the daemon JDK to JVM 17 bytecode (`jvmTarget = 17`, `sourceCompatibility = 17`). 0.1.0 was verified with JDK 17.0.20. |
 | Gradle wrapper | **9.8.2** | Build system | AGP 9.4 needs Gradle ≥ 9.6.0. The wrapper is committed, with the distribution checksum in `gradle-wrapper.properties`. |
-| Android Gradle Plugin | **9.4.1** | Android build | Supports API 37. AGP 9 compiles Kotlin with its built-in Kotlin support, so Android modules apply no separate `org.jetbrains.kotlin.android` plugin. **⚠ verify in DEV-001** against the "Migrate to built-in Kotlin" guide. |
-| Android SDK Build Tools | 36.0.0 (minimum required by AGP 9.4) | `aapt2`, `apksigner`, `apkanalyzer` (in cmdline-tools) | `apkanalyzer` runs the release-APK checks (TR-SEC-07). |
+| Android Gradle Plugin | **9.4.1** | Android build | Supports API 37. AGP 9 compiles Kotlin with its built-in Kotlin support, so Android modules apply no separate `org.jetbrains.kotlin.android` plugin. Verified in DEV-001: built-in Kotlin works with KSP, Hilt, Compose, serialization, detekt, ktlint, Kover and Roborazzi. |
+| Android SDK Build Tools | 36.0.0 (minimum required by AGP 9.4) | `aapt2`, `dexdump`, `apksigner` | `aapt2` and `dexdump` run the release-APK checks (TR-SEC-07), so the gate needs no command-line tools package. |
 | Android SDK platform | API **37** (Android 17) | `compileSdk` and `targetSdk` | Latest stable at the 0.1.0 start (NFR-001). `minSdk 30` (D-04). |
 | Android Studio | Rabbit 1 (2026.2.1) | IDE | Any version that supports AGP 9.4 is fine. |
 | Kotlin | **2.4.21** | Language and compiler | Pin it explicitly. The Plugin Portal "latest" points to a 2.5 beta. |
 | Kotlin Compose compiler plugin | **2.4.21** (`org.jetbrains.kotlin.plugin.compose`) | Compose compiler | Always the same version as Kotlin. |
 | Kotlin serialization plugin | **2.4.21** (`org.jetbrains.kotlin.plugin.serialization`) | `@Serializable` DTOs and navigation routes | Same version as Kotlin. |
-| KSP | **2.3.12** (`com.google.devtools.ksp`) | Annotation processing for Hilt and Room | KSP2 has its own version line and is no longer tied to the Kotlin version. **⚠ verify in DEV-001** with Kotlin 2.4.21. Fallback: drop Kotlin to the latest 2.3.x that KSP 2.3.12 supports. |
-| Python | 3.10+ | `docs/api/tools/gen_openapi.py` (spec → `openapi.yaml`) | Standard library only. |
+| KSP | **2.3.12** (`com.google.devtools.ksp`) | Annotation processing for Hilt and Room | KSP2 has its own version line and is no longer tied to the Kotlin version. Verified in DEV-001 with Kotlin 2.4.21 and Hilt 2.60.1. |
+| Python | 3.9+ | `docs/api/tools/` (`gen_openapi.py`: spec → `openapi.yaml`; `extract_fixtures.py`: spec → test fixtures; shared parser `spec_examples.py`) | Standard library only. Run by `verify`. |
 | Node.js | 22 LTS | Runs `npx` for Redocly and Prism | Contract tooling only. Not part of the app. |
 | Git | 2.40+ | Version control, optional `pre-push` hook (§9) | Conventional Commits (conventions §9). |
 
@@ -105,7 +105,7 @@ The modules column follows [architecture §3](architecture.md#3-modules). "BOM" 
 |---|---|---|---|---|
 | Retrofit | `com.squareup.retrofit2:retrofit` | **3.0.0** | `KioskApi` interface mirroring E1–E14 | `:core:data` |
 | Retrofit kotlinx converter | `com.squareup.retrofit2:converter-kotlinx-serialization` | **3.0.0** | JSON (de)serialization through kotlinx.serialization | `:core:data` |
-| OkHttp | `com.squareup.okhttp3:okhttp` | **5.5.1** | HTTP client: timeouts, interceptors, `CertificatePinner`, TLS | `:core:data` |
+| OkHttp | `com.squareup.okhttp3:okhttp` | **5.5.1** | HTTP client: timeouts, interceptors, `CertificatePinner`, TLS | `:core:data`; `:app` (debug: the mock-server interceptor) |
 | OkHttp logging interceptor | `com.squareup.okhttp3:logging-interceptor` | 5.5.1 | Request logging, **debug only**, behind the `KioskLog` redaction | `:core:data` (debug) |
 
 ### 3.5 Persistence and background work
@@ -113,7 +113,7 @@ The modules column follows [architecture §3](architecture.md#3-modules). "BOM" 
 | Library | Artifact | Version | Purpose | Modules |
 |---|---|---|---|---|
 | Room | `androidx.room:room-runtime`, `room-ktx`, `room-compiler` (KSP), plugin `androidx.room` | **2.8.5** | Config, menu and `pending_order` tables. Atomic menu replacement. Exported schemas (`core/data/schemas/`) for migrations (architecture §6) | `:core:data` |
-| DataStore Preferences | `androidx.datastore:datastore-preferences` | **1.3.0** | `device.preferences_pb`, `settings.preferences_pb`, PIN lockout state | `:core:data` |
+| DataStore Preferences | `androidx.datastore:datastore-preferences` | **1.3.0** | `device.preferences_pb`, `settings.preferences_pb`, PIN lockout state; the debug-only Developer options choices (`developer_options`) | `:core:data`, `:app` (debug) |
 | DataStore + Tink | `androidx.datastore:datastore`, `androidx.datastore:datastore-tink` | **1.3.0** | Secure DataStore `secure.pb`: `AeadSerializer` encrypts each write with AES-256-GCM (ADR-0001, NFR-005) | `:core:data` |
 | Tink | `com.google.crypto.tink:tink-android` | **1.24.0** | `Aead` primitive, `AndroidKeysetManager` with an `android-keystore://` master key | `:core:data` |
 | WorkManager | `androidx.work:work-runtime-ktx` | **2.12.0** | 15-minute periodic catalog sync with a `CONNECTED` constraint (FR-028) | `:core:data` |
@@ -163,13 +163,14 @@ Rules for test dependencies are in [testing-plan §1.3](testing-plan.md#13-test-
 | Truth | `com.google.truth:truth` | **1.4.5** | Assertions | all |
 | kotlinx-coroutines-test | `org.jetbrains.kotlinx:kotlinx-coroutines-test` | 1.11.0 | `runTest`, virtual time for the polling, timers and timeouts | JVM tests |
 | Turbine | `app.cash.turbine:turbine` | **1.2.1** | `Flow` and `StateFlow` assertions | JVM tests |
-| kotest-property | `io.kotest:kotest-property` | **6.2.6** | Property tests with generators and shrinking (TC-061 pricing over 1,000 random carts; FR-032 AC8 exact-match coverage). Used standalone (`checkAll`) inside JUnit 4 tests; the Kotest runner is not used. **⚠ verify in DEV-001** that it runs in a JUnit 4 test. Fallback: the latest 5.x release. | `:core:domain` |
+| kotest-property | `io.kotest:kotest-property` | **6.2.6** | Property tests with generators and shrinking (TC-061 pricing over 1,000 random carts; FR-032 AC8 exact-match coverage). Used standalone (`checkAll`) inside JUnit 4 tests; the Kotest runner is not used. Not used until the first property test (0.4.0); check there that it runs in a JUnit 4 test. Fallback: the latest 5.x release. | `:core:domain` |
 | MockWebServer 3 | `com.squareup.okhttp3:mockwebserver3`, `mockwebserver3-junit4` | 5.5.1 | HTTP contract and fault-injection tests that serve the fixtures from `api-spec.md` (NFR-010, DEV-006). `mockwebserver3-junit4` provides the JUnit 4 rule. | `:core:data` |
 | Room testing | `androidx.room:room-testing` | 2.8.5 | `MigrationTestHelper`, in-memory database | `:core:data` |
 | WorkManager testing | `androidx.work:work-testing` | 2.12.0 | `WorkManagerTestInitHelper`, `TestDriver` (DEV-023) | `:core:data` |
-| Robolectric | `org.robolectric:robolectric` | **4.17** | Android framework on the JVM for Room, DataStore and Roborazzi tests. **⚠ verify in DEV-001** the highest SDK Robolectric 4.17 supports. If API 37 isn't supported, pin `sdk = 36` in `robolectric.properties`. | `:core:data`, `:app`, `:core:designsystem` |
+| Robolectric | `org.robolectric:robolectric` | **4.17** | Android framework on the JVM for Room, DataStore and Roborazzi tests. DEV-001 result: 4.17 starts the API 37 image, but Compose draws nothing there in NATIVE graphics mode, so the screenshot modules pin `sdk=36` in `src/test/resources/robolectric.properties`. API 37 is covered by the instrumented tests. The unit-test JVM gets `--add-exports=java.base/jdk.internal.access=ALL-UNNAMED` (set in build-logic). | `:core:data`, `:app`, `:core:designsystem` |
 | Roborazzi | `io.github.takahirom.roborazzi:roborazzi`, `roborazzi-compose`, `roborazzi-junit-rule`, plugin `io.github.takahirom.roborazzi` | **1.77.0** | JVM screenshot tests at 1080 × 1920 and 160/240/320 dpi, one per `S_<Screen>_<scenario>` board (TC-180) | `:app`, `:core:designsystem` |
 | AndroidX Test | `androidx.test:core`, `androidx.test:runner` (**1.7.0**), `androidx.test.ext:junit` (**1.3.0**) | as listed | Instrumented test runner (a custom `HiltTestRunner`) | `:app` (androidTest) |
+| Espresso | `androidx.test.espresso:espresso-core` | **3.7.0** | Not used directly: a dependency **constraint** in `kiosk.compose`. The Compose test rule drives Espresso, and the 3.5.0 it brings transitively calls `InputManager.getInstance()`, which API 37 removed, so every Compose test failed on API 37 without it. | test and androidTest of Compose modules |
 | Compose UI test | `androidx.compose.ui:ui-test-junit4`, `ui-test-manifest` (debug) | BOM (1.12.1) | Screen and journey tests with `enableAccessibilityChecks()` (NFR-007) | `:app` (androidTest) |
 | UI Automator | `androidx.test.uiautomator:uiautomator` | **2.4.0** | System dialogs, lock task, process kill, 72 h soak script (TC-145) | `:app` (androidTest), `:benchmark` |
 | Macrobenchmark | `androidx.benchmark:benchmark-macro-junit4`, plugin `androidx.baselineprofile` | **1.5.0** | Cold start, journey jank and the Budget Plan benchmark. Generates the baseline profile (DEV-031, DEV-082). | `:benchmark` |
@@ -182,24 +183,24 @@ Rules for test dependencies are in [testing-plan §1.3](testing-plan.md#13-test-
 | Tool | Artifact / plugin ID | Version | Purpose |
 |---|---|---|---|
 | Version catalog | `gradle/libs.versions.toml` | n/a | The only place versions are declared (conventions §7) |
-| Convention plugins | `build-logic/` included build | n/a | `kiosk.android.application`, `kiosk.android.library`, `kiosk.jvm.library`, `kiosk.compose`, `kiosk.hilt`, `kiosk.quality`: shared SDK levels, JVM target, lint, detekt, ktlint and Kover setup (technical-design §2) |
+| Convention plugins | `build-logic/` included build | n/a | `kiosk.android.application`, `kiosk.android.library`, `kiosk.jvm.library`, `kiosk.compose`, `kiosk.hilt`, `kiosk.quality`, `kiosk.verify` (root only): shared SDK levels, JVM target, lint, detekt, ktlint, Kover and dependency-analysis setup, and the `verify` gate (technical-design §2) |
 | Android Lint | AGP built-in | AGP 9.4.1 | Includes `HardcodedText`, missing translation and accessibility checks (NFR-008). `warningsAsErrors` for the Compose and accessibility categories. |
-| detekt | `io.gitlab.arturbosch.detekt` | **1.23.8** | Static analysis (NFR-011). detekt 2.0 is still alpha, so it is not used. **⚠ verify in DEV-001** that 1.23.8 analyses Kotlin 2.4 sources cleanly. Fallback: run detekt with `--jvm-target 17` and type resolution off. If it still fails, ktlint and Android Lint form the gate until detekt 2.0 is stable (record that in an ADR). |
+| detekt | `io.gitlab.arturbosch.detekt` | **1.23.8** | Static analysis (NFR-011). detekt 2.0 is still alpha, so it is not used. Verified in DEV-001: 1.23.8 analyses the Kotlin 2.4 sources without type resolution (the plain `detekt` task). compose-rules reads `allowedCompositionLocals` but does not declare it, so `config/detekt/detekt.yml` excludes that key from config validation. |
 | Compose rules for detekt | `io.nlopez.compose.rules:detekt` | **0.6.8** | Compose-specific checks (modifier order, unstable parameters, ViewModel injection) |
 | ktlint | `org.jlleitschuh.gradle.ktlint` plugin **14.2.0** running ktlint **1.8.0** | as listed | Formatting (`ktlint_official` style plus `.editorconfig`) |
 | Kover | `org.jetbrains.kotlinx.kover` | **0.9.11** | Coverage. `koverVerify` enforces `:core:domain` ≥ 90 % and `:core:data` ≥ 70 % line coverage (NFR-011) |
-| Dependency Analysis | `com.autonomousapps.dependency-analysis` | **3.19.2** | Flags unused and wrongly scoped dependencies. Also catches module-boundary leaks such as `:core:hardware` → `:core:data` (architecture §3). |
+| Dependency Analysis | `com.autonomousapps.dependency-analysis` | **3.19.2** | Flags unused and wrongly scoped dependencies. Also catches module-boundary leaks such as `:core:hardware` → `:core:data` (architecture §3). Artifact families used through one alias (Compose, Hilt, AndroidX Test, …) are declared as bundles in the root `build.gradle.kts`. |
 | Versions report | `com.github.ben-manes.versions` | **0.66.0** | `./gradlew dependencyUpdates` lists newer **stable** versions (non-stable versions filtered out) at each milestone start |
 | OpenAPI generator | `docs/api/tools/gen_openapi.py` | in repo | `api-spec.md` → `openapi.yaml`. The yaml is never edited by hand. |
 | Redocly CLI | `@redocly/cli` (npx) | **2.69.0** | `redocly lint docs/api/openapi.yaml` |
 | Prism | `@stoplight/prism-cli` (npx) | **5.16.0** | Mock server on port 4010 (`api-spec.md` §4 scenarios) |
-| apkanalyzer | Android SDK cmdline-tools | SDK | `scripts/check-release-apk.sh`: verifies the release APK has no `src/debug` classes, no simulate-bar strings and is not debuggable (FR-019 AC3, TC-087, TC-148) |
+| `aapt2`, `dexdump` | Android SDK build-tools | 36.0.0 | `scripts/check-release-apk.sh`: verifies the release APK (every `classes*.dex`) and the R8 mapping have no `com.hitachi.kiosk.debug`, `Fake*` or `Switchable*` classes, no simulate-bar strings, no `debuggable`, `allowBackup="false"` and only allow-listed exported components (FR-019 AC3, TC-087, TC-148) |
 
 **Verification gate.** There is no CI in 1.0 (D-31). Instead, `./gradlew verify` (defined in `build-logic`) runs the same checks a CI job would:
-1. `lint`, `detekt` and `ktlintCheck`
-2. `testDebugUnitTest` (Android modules), `:core:domain:test` (the JVM module), `verifyRoborazziDebug` and `koverVerify`
-3. `buildHealth` (Dependency Analysis)
-4. `assembleRelease` followed by `scripts/check-release-apk.sh`
+1. `lintDebug`, `detekt` and `ktlintCheck` in every module
+2. `testDebugUnitTest` (Android modules), `test` (the JVM modules `:core:domain` and `:core:testing`), `verifyRoborazziDebug` and the Kover verification of `:core:domain` (`koverVerify`) and `:core:data` (`koverVerifyDebug`)
+3. `buildHealth` (Dependency Analysis, applied to every module by `kiosk.quality`)
+4. `assembleRelease` followed by `scripts/check-release-apk.sh` (`:app:checkReleaseApk`)
 5. `scripts/check-openapi.sh`, which regenerates `openapi.yaml`, fails on a diff and runs Redocly lint
 6. `checkApiFixtures`, which fails when the test fixtures differ from the `api-spec.md` examples
 

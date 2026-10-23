@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Document version | 1.1 (2026-10-22) — updated to the final "Linen & Paprika" design, English-only UI, Budget Plan |
+| Document version | 1.2 (2026-10-23) — 0.1.0 implemented (see the 0.1.0 status note) |
 | Requirements | [`product-requirement.md`](product-requirement.md) (FR-xxx, NFR-xxx, D-xx, A-xx, OQ-xx), [`technical-requirement.md`](technical-requirement.md) (TR-) |
 | Implementation | [`technical-design.md`](technical-design.md), [`technology-stack.md`](technology-stack.md) (versions for DEV-001) |
 | Tests | [`testing-plan.md`](testing-plan.md) (TC-xxx) |
@@ -14,10 +14,9 @@
 Verified repository state on 2026-10-22:
 - `hitachi-kiosk/` contains only `docs/`. `docs/ui-design/` is the final "Linen & Paprika" design: 20 screen artboards (14 customer/onboarding + 6 staff), 33 state boards named `S_<Screen>_<scenario>.dc.html`, the `Photo` component, `canvas.json` and a `README.md`. Every screen with states exposes a `scenario` prop, and a state board is that screen rendered with one value (for example `S_Checkout_expired` = `Checkout` with `scenario="expired"`). A few scenarios exist only as props and have no board (`Login` busy and snUnreadable, `Merchants` menuDownloadFailed, `Menu` unavailable and maxQty, `ItemDetail` maxQty, `Checkout` checking, `StillThere` countdownLow).
 - Upsell (`Upsell.dc.html`), Budget Plan (`BudgetPas.dc.html`), the inactivity overlay (`StillThere.dc.html`) and Change PIN (`ChangePin.dc.html`) are now designed, so DEP-5 and OQ-14 are resolved. The UI language is English only for 1.0 (D-29).
-- It has no Android project, no Gradle build, no source code and no tests.
-- It is not yet a git repository. Git is initialized when these documents are committed.
+- It had no Android project, no Gradle build, no source code and no tests. It is a git repository with these documents committed.
 
-Everything below is therefore greenfield. No existing code is changed or migrated.
+Everything below is therefore greenfield. No existing code is changed or migrated. Milestone 0.1.0 (below) created the project on 2026-10-23.
 
 ## 2. Planning principles
 
@@ -79,42 +78,49 @@ Create a buildable, testable Android project with the architecture, design syste
   - applicationId `com.hitachi.kiosk` [A: confirm with PO], `versionName 0.1.0`, `versionCode 100` (NFR-014 scheme).
   - Portrait-locked single Activity with `windowSoftInputMode` set for the settings inputs.
   - *Verify:* `./gradlew assembleDebug` succeeds, and the APK installs on an API 30 and an API 35 emulator.
-- [ ] **DEV-002** Create modules `:core:designsystem`, `:core:domain` (pure Kotlin/JVM), `:core:data`, `:core:hardware`, `:core:testing` with the dependency rules in PRD §12.1. Add Hilt to `:app`, `:core:data` and `:core:hardware`.
+- [x] **DEV-002** Create modules `:core:designsystem`, `:core:domain` (pure Kotlin/JVM), `:core:data`, `:core:hardware`, `:core:testing` with the dependency rules in PRD §12.1. Add Hilt to `:app`, `:core:data` and `:core:hardware`.
   - *Verify:* `:core:domain` has no Android dependency (a Gradle JVM module), and a module dependency check (Gradle `dependencies` report) matches §12.1.
-- [ ] **DEV-008** Local verification gate (NFR-011, D-31: no CI in 1.0; technical-design §2.6).
+- [x] **DEV-008** Local verification gate (NFR-011, D-31: no CI in 1.0; technical-design §2.6).
   - A root `./gradlew verify` task runs `lint`, `detekt`, `ktlintCheck`, unit tests, `verifyRoborazziDebug`, `koverVerify`, `buildHealth`, `assembleRelease` + `scripts/check-release-apk.sh`, and `scripts/check-openapi.sh`.
   - Instrumented tests run with `connectedDebugAndroidTest` on the Kiosk-30 and Kiosk-34 emulators before every merge to `main`.
   - An optional `scripts/git-hooks/pre-push` hook runs `verify`. The README explains how to install it.
   - *Verify:* a deliberately failing test fails `verify`.
 
 **Design system foundation**
-- [ ] **DEV-003** `DesignUnit`: the `Int.dpx` / `Int.spx` extensions computing `screenWidthDp / 1080`, with a large-text multiplier CompositionLocal (NFR-002, PRD §11.2).
+- [x] **DEV-003** `DesignUnit`: the `Int.dpx` / `Int.spx` extensions computing `screenWidthDp / 1080`, with a large-text multiplier CompositionLocal (NFR-002, PRD §11.2).
   - *Verify:* unit test of the conversion. A screenshot test of a 72-dpx-margin box at 1080×1920 for 160/240/320 dpi shows identical layout.
-- [ ] **DEV-004** Tokens: colors (PRD §11.1), radii, spacing, typography (Schibsted Grotesk 400–800 bundled under `res/font`, with its OFL license stored in `licenses/`), and motion constants (easings `Emphasized=(.16,1,.3,1)`, `Press=(.2,0,0,1)`, `Spring=(.3,1.15,.4,1)`, `InOut=(.65,0,.35,1)`, `Fly=(.55,0,.75,.2)`).
+- [x] **DEV-004** Tokens: colors (PRD §11.1), radii, spacing, typography (Schibsted Grotesk 400–800 bundled under `res/font`, with its OFL license stored in `licenses/`), and motion constants (easings `Emphasized=(.16,1,.3,1)`, `Press=(.2,0,0,1)`, `Spring=(.3,1.15,.4,1)`, `InOut=(.65,0,.35,1)`, `Fly=(.55,0,.75,.2)`).
   - Add a `LocalReduceMotion` that, when true, turns every spec into `snap()`.
   - *Verify:* a token unit test asserts the hex values. A reduce-motion test asserts specs return `snap()`.
 
 **Contract & fakes**
-- [ ] **DEV-006** Keep the API contract in sync and wire it into the `verify` gate. `docs/api/api-spec.md` and the generated `docs/api/openapi.yaml` (via `docs/api/tools/gen_openapi.py`) already exist as of 2026-10-22. The yaml lints valid and has been run under Prism.
+- [x] **DEV-006** Keep the API contract in sync and wire it into the `verify` gate. `docs/api/api-spec.md` and the generated `docs/api/openapi.yaml` (via `docs/api/tools/gen_openapi.py`) already exist as of 2026-10-22. The yaml lints valid and has been run under Prism.
   - Reconcile any difference found while building the mock, updating `api-spec.md` first, then regenerating.
   - Add `scripts/check-openapi.sh` (run by `verify`) that regenerates the yaml and fails on a diff, then runs `redocly lint`.
   - *Verify:* the OpenAPI check in `verify` is green; the app's MockWebServer fixtures equal the spec's examples.
-- [ ] **DEV-007** Networking skeleton in `:core:data` (NFR-010).
+- [x] **DEV-007** Networking skeleton in `:core:data` (NFR-010).
   - Retrofit + OkHttp + kotlinx.serialization, error envelope parsing, auth interceptor, timeouts 10 s/15 s, network security config with cleartext disabled.
   - The base URL comes from build config `dev|staging|prod`.
   - *Verify:* MockWebServer tests for the success path, the error envelope, and a timeout.
-- [ ] **DEV-005** Domain interfaces and fakes in `:core:testing` (NFR-012): `BackendApi` (all E1–E14), `PaymentGateway` (via backend), `CardTerminal`, `PrinterDriver`, `DeviceIdentityProvider`, `ConnectivityMonitor`, `Clock`. Each fake is scriptable (success, error, delay).
+- [x] **DEV-005** Domain interfaces and fakes in `:core:testing` (NFR-012): `BackendApi` (all E1–E14), `PaymentGateway` (via backend), `CardTerminal`, `PrinterDriver`, `DeviceIdentityProvider`, `ConnectivityMonitor`, `Clock`. Each fake is scriptable (success, error, delay).
   - *Verify:* fakes compile against the interfaces, and a sample test drives each fake outcome.
-- [ ] **DEV-009** A debug-only "Developer options" screen (behind 5 taps on the splash mark, `debug` source set only).
+- [x] **DEV-009** A debug-only "Developer options" screen (behind 5 taps on the splash mark, `debug` source set only).
   - Choose fake vs real backend, select fake scenarios, and show the build info.
-  - *Verify:* the release APK has no reference to the class (`apkanalyzer` check in `scripts/check-release-apk.sh`, run by `verify`).
+  - *Verify:* the release APK has no reference to the class (dex and R8-mapping check in `scripts/check-release-apk.sh`, run by `verify`).
 
 **Navigation skeleton**
-- [ ] **DEV-010a** A Navigation Compose graph with routes for SCR-01…SCR-19 (PRD §4). Each route shows a placeholder with the screen ID, and all edges in PRD §5.1 are wired as debug buttons.
+- [x] **DEV-010a** A Navigation Compose graph with routes for SCR-01…SCR-20 (PRD §4; SCR-20 Change PIN sits in the staff graph, SCR-13 is an overlay, SCR-14 has a PIN gate and a Settings home route). Each route shows a placeholder with the screen ID, and all edges in PRD §5.1 are wired as debug buttons.
   - *Verify:* a UI test walks every edge in §5.1 on the emulator.
 
 **Docs**
-- [ ] **DEV-019** `README.md` (build, run, module map, how to switch fakes) and `docs/adr/0001-architecture.md` capturing D-24 and the module decision.
+- [x] **DEV-019** `README.md` (build, run, module map, how to switch fakes) and `docs/adr/0001-architecture.md` capturing D-24 and the module decision.
+
+### 0.1.0 status (2026-10-23)
+- Every other 0.1.0 task is done: `./gradlew verify` is green, and the DEV-010a edge walk (`NavigationEdgeWalkUiTest`, 7 tests) passes on an API 37 emulator (Pixel 10 AVD, 1080 × 2424).
+- **DEV-001 stays open** for its last check: installing on API 30 and API 35 emulators. Only an API 37 image was available. `scripts/create-avds.sh` creates the Kiosk-30 and Kiosk-34 emulators of testing-plan §2.3 once the SDK command-line tools are installed.
+- `:core:hardware` is an empty module until DEV-012; `buildHealth` ignores its unused dependencies until then.
+- DEP-1: the PO builds the mock and the backend directly from `api-spec.md` (2026-10-23), so the contract needs no separate hand-over. The app runs on its in-app fakes or on Prism until that mock is up.
+- Evidence: [`docs/test-reports/0.1.0.md`](test-reports/0.1.0.md).
 
 ### Acceptance criteria
 - AC-0.1-1: A clean checkout builds debug and release (release unsigned locally) with zero lint errors.
@@ -131,7 +137,7 @@ Create a buildable, testable Android project with the architecture, design syste
 Buildable multi-module project; local `verify` gate; design-system foundation; `docs/api/openapi.yaml`; fakes; README; ADR-0001.
 
 ### Exit criteria
-All AC-0.1 pass in `verify` and the instrumented suite. The contract has been shared with the backend team (DEP-1) and the share date is noted in the README. There are no open P1/P2 defects.
+All AC-0.1 pass in `verify` and the instrumented suite. The contract is in the hands of whoever builds the backend (DEP-1; the PO since 2026-10-23), with the date noted in the README. There are no open P1/P2 defects.
 
 ---
 
