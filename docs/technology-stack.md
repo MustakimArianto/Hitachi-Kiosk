@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Document version | 1.1 (2026-10-23) — DEV-001 trial-build results, Espresso pin, release check on build-tools |
+| Document version | 1.2 (2026-10-23) — 0.2.0: Hilt ViewModel Compose, Coil used from 0.2.0, DataStore in `:core:hardware`, iMin device library not used (ADR-0002) |
 | Answers | *What technologies does the project use, at which version, and why?* |
 | Requirements | [`product-requirement.md`](product-requirement.md) (FR-/NFR-/D-) and [`technical-requirement.md`](technical-requirement.md) (TR-) |
 | Design | [`architecture.md`](architecture.md) (structure), [`technical-design.md`](technical-design.md) (implementation), [ADR-0001](adr/0001-architecture.md) (stack decision) |
@@ -93,7 +93,8 @@ The modules column follows [architecture §3](architecture.md#3-modules). "BOM" 
 | Library | Artifact | Version | Purpose | Modules |
 |---|---|---|---|---|
 | Hilt | `com.google.dagger:hilt-android`, `hilt-android-compiler` (KSP), plugin `com.google.dagger.hilt.android` | **2.60.1** | Compile-time DI graph (architecture §10) | `:app`, `:core:data`, `:core:hardware` |
-| Hilt Navigation Compose | `androidx.hilt:hilt-navigation-compose` | **1.4.0** | `hiltViewModel()` per navigation destination | `:app` |
+| Hilt Navigation Compose | `androidx.hilt:hilt-navigation-compose` | **1.4.0** | Listed for navigation-scoped Hilt helpers; not used yet. `hiltViewModel()` comes from the artifact below, where it moved in 1.3.0 | — |
+| Hilt ViewModel Compose | `androidx.hilt:hilt-lifecycle-viewmodel-compose` | **1.4.0** | `hiltViewModel()` per navigation destination (Splash, Sign in, Merchants, app root) | `:app` |
 | Hilt Work | `androidx.hilt:hilt-work`, `androidx.hilt:hilt-compiler` (KSP) | **1.4.0** | `@HiltWorker` for the catalog sync `CoroutineWorker` | `:core:data` |
 | Hilt testing | `com.google.dagger:hilt-android-testing` | 2.60.1 | `@HiltAndroidTest`, `@TestInstallIn` with fakes | `:app` (androidTest) |
 
@@ -113,7 +114,7 @@ The modules column follows [architecture §3](architecture.md#3-modules). "BOM" 
 | Library | Artifact | Version | Purpose | Modules |
 |---|---|---|---|---|
 | Room | `androidx.room:room-runtime`, `room-ktx`, `room-compiler` (KSP), plugin `androidx.room` | **2.8.5** | Config, menu and `pending_order` tables. Atomic menu replacement. Exported schemas (`core/data/schemas/`) for migrations (architecture §6) | `:core:data` |
-| DataStore Preferences | `androidx.datastore:datastore-preferences` | **1.3.0** | `device.preferences_pb`, `settings.preferences_pb`, PIN lockout state; the debug-only Developer options choices (`developer_options`) | `:core:data`, `:app` (debug) |
+| DataStore Preferences | `androidx.datastore:datastore-preferences` | **1.3.0** | `device.preferences_pb`, `settings.preferences_pb`, PIN lockout state; the serial-number cache `identity.preferences_pb`; the debug-only Developer options choices (`developer_options`) | `:core:data`, `:core:hardware`, `:app` (debug) |
 | DataStore + Tink | `androidx.datastore:datastore`, `androidx.datastore:datastore-tink` | **1.3.0** | Secure DataStore `secure.pb`: `AeadSerializer` encrypts each write with AES-256-GCM (ADR-0001, NFR-005) | `:core:data` |
 | Tink | `com.google.crypto.tink:tink-android` | **1.24.0** | `Aead` primitive, `AndroidKeysetManager` with an `android-keystore://` master key | `:core:data` |
 | WorkManager | `androidx.work:work-runtime-ktx` | **2.12.0** | 15-minute periodic catalog sync with a `CONNECTED` constraint (FR-028) | `:core:data` |
@@ -122,7 +123,7 @@ The modules column follows [architecture §3](architecture.md#3-modules). "BOM" 
 
 | Library | Artifact | Version | Purpose | Modules |
 |---|---|---|---|---|
-| Coil 3 | `io.coil-kt.coil3:coil-compose` | **3.6.3** | Async image loading (`AsyncImage`) placed in the `PhotoSlot` component's image slot, which shows the tone placeholder (NFR-013). `:core:designsystem` stays Compose-only (architecture §3). | `:app` |
+| Coil 3 | `io.coil-kt.coil3:coil-compose` | **3.6.3** | Async image loading (`AsyncImage`) placed in the `PhotoSlot` component's image slot, which shows the tone placeholder (NFR-013). `:core:designsystem` stays Compose-only (architecture §3). Used from 0.2.0 (merchant photo and logo) with Coil's default singleton loader; DEV-023 configures the loader below. | `:app` |
 | Coil network | `io.coil-kt.coil3:coil-network-okhttp` | **3.6.3** | Shares the app's OkHttp stack. 200 MB disk cache (A-37) and prefetch after sync (through the domain `ImagePrefetcher` port) | `:app` |
 | ZXing core | `com.google.zxing:core` | **3.5.4** | Encodes `qrString` into a `BitMatrix` that Compose draws (FR-017, DEV-048). Also decodes the bitmap in TC-079. No `zxing-android-embedded`, because nothing is scanned with the camera. | `:app` (encode), tests (decode) |
 
@@ -131,7 +132,7 @@ The modules column follows [architecture §3](architecture.md#3-modules). "BOM" 
 | Integration | Technology | Version | Purpose | Modules |
 |---|---|---|---|---|
 | iMin printer | `com.github.iminsoftware:IminPrinterLibrary` (JitPack) | V2.0.0.19 (newest tag) | Built-in printer driver and paper status (`IminPrinterDriver`, FR-022) | `:core:hardware` |
-| iMin device | `com.github.iminsoftware:IminDeviceLibrary` (JitPack) | 3.0.0 (newest tag) | Serial number on iMin devices (`DeviceIdentityProvider`, FR-002) | `:core:hardware` |
+| iMin device | `com.github.iminsoftware:IminDeviceLibrary` (JitPack) | 3.0.0 (newest tag) | **Not used** (DEV-012): its `SystemPropManager.getSn()` only reads `ro.serialno` and `persist.sys.imin.sn`, which `:core:hardware` reads itself, and it would bring Gson and `allowBackup="true"`. The catalog entry is removed when ADR-0002 is accepted | — |
 | USB printers | Android USB host API (`android.hardware.usb.UsbManager`) | platform | ESC/POS over bulk transfer (NFR-016) | `:core:hardware` |
 | Bluetooth printers | Android Bluetooth Classic (`BluetoothSocket`, SPP UUID `00001101-0000-1000-8000-00805F9B34FB`) | platform | ESC/POS to paired printers (A-21) | `:core:hardware` |
 | ESC/POS encoding | In-house `EscPosEncoder` (pure Kotlin) | n/a | Text styles, alignment, raster logo, feed, cut. Tested against golden byte files (DEV-055). | `:core:hardware` |
@@ -274,7 +275,7 @@ leakcanary = "2.14"
 jankstats = "1.0.0"
 profileinstaller = "1.4.1"
 imin-printer = "V2.0.0.19"   # confirm in DEV-056 / ADR-0004
-imin-device = "3.0.0"        # confirm in DEV-012 / ADR-0002
+imin-device = "3.0.0"        # unused (ADR-0002); remove when the ADR is accepted
 junit4 = "4.13.2"
 truth = "1.4.5"
 turbine = "1.2.1"

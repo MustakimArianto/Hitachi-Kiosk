@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Document version | 1.2 (2026-10-23) — 0.1.0 implemented (see the 0.1.0 status note) |
+| Document version | 1.3 (2026-10-23) — 0.2.0 implemented except the on-device SN spike (see the 0.2.0 status note) |
 | Requirements | [`product-requirement.md`](product-requirement.md) (FR-xxx, NFR-xxx, D-xx, A-xx, OQ-xx), [`technical-requirement.md`](technical-requirement.md) (TR-) |
 | Implementation | [`technical-design.md`](technical-design.md), [`technology-stack.md`](technology-stack.md) (versions for DEV-001) |
 | Tests | [`testing-plan.md`](testing-plan.md) (TC-xxx) |
@@ -118,7 +118,7 @@ Create a buildable, testable Android project with the architecture, design syste
 ### 0.1.0 status (2026-10-23)
 - Every other 0.1.0 task is done: `./gradlew verify` is green, and the DEV-010a edge walk (`NavigationEdgeWalkUiTest`, 7 tests) passes on an API 37 emulator (Pixel 10 AVD, 1080 × 2424).
 - **DEV-001 stays open** for its last check: installing on API 30 and API 35 emulators. Only an API 37 image was available. `scripts/create-avds.sh` creates the Kiosk-30 and Kiosk-34 emulators of testing-plan §2.3 once the SDK command-line tools are installed.
-- `:core:hardware` is an empty module until DEV-012; `buildHealth` ignores its unused dependencies until then.
+- `:core:hardware` was an empty module until DEV-012; since 0.2.0 it holds the device identity and `buildHealth` checks it like every module.
 - DEP-1: the PO builds the mock and the backend directly from `api-spec.md` (2026-10-23), so the contract needs no separate hand-over. The app runs on its in-app fakes or on Prism until that mock is up.
 - Evidence: [`docs/test-reports/0.1.0.md`](test-reports/0.1.0.md).
 
@@ -153,36 +153,44 @@ A fresh kiosk goes from first launch to "bound to a merchant". The device identi
 ### TODO checklist
 
 **Splash & routing**
-- [ ] **DEV-010** SCR-01 Splash UI with all animations per PRD §11.4 (FR-001). The version text comes from `BuildConfig`.
+- [x] **DEV-010** SCR-01 Splash UI with all animations per PRD §11.4 (FR-001). The Splash artboard shows no version; the real `versionName` from `BuildConfig` goes in the Sign in header pill (PRD §4.1 C7, DEV-013).
   - *Verify:* screenshot at t=0 and t=4 s. A motion check against the design timings.
-- [ ] **DEV-011** `StartupRouter`: in parallel, run the min 3.9 s timer and init (load the token, binding and cached config; 10 s cap), then route per FR-001 (FR-001 AC1–AC3).
+- [x] **DEV-011** `StartupRouter`: in parallel, run the min 3.9 s timer and init (load the token, binding and cached config; 10 s cap), then route per FR-001 (FR-001 AC1–AC3).
   - *Verify:* unit tests for the 4 routing cases + network timeout + corrupt storage.
 
 **Identity & activation**
-- [ ] **DEV-012** `DeviceIdentityProvider` (FR-002). This is a **spike on real iMin hardware** first (R-3).
+- [ ] **DEV-012** `DeviceIdentityProvider` (FR-002). This is a **spike on real iMin hardware** first (R-3). *Code done, device spike pending (ADR-0002 Proposed).*
   - Try the iMin SDK SN API, a system property, and `Build.getSerial()` as device owner. Document the findings in `docs/adr/0002-device-serial.md`.
   - Implement the chosen source plus the fallback chain and caching.
   - *Verify:* TC-005–TC-007. If no unit is available, record the blocker and keep the fake; the milestone may exit with this as a documented risk only if the PO accepts.
-- [ ] **DEV-013** SCR-02 Sign in UI per `Login.dc.html`. Busy state "Signing in…" with spinner, single-flight tap, error panel variants (not registered with the SN shown, disabled, network), and "Need help?" text (FR-003).
+- [x] **DEV-013** SCR-02 Sign in UI per `Login.dc.html`. Busy state "Signing in…" with spinner, single-flight tap, error panel variants (not registered with the SN shown, disabled, network), and "Need help?" text (FR-003).
   - Visual specs for the states: `S_Login_notRegistered` ("This kiosk isn't registered yet", large SN, "Try again"), `S_Login_networkTimeout` ("The connection timed out…", "Try again"). Two more states are `scenario` values only: `busy` (Log in disabled while signing in) and `snUnreadable` (Log in disabled, "Restart the kiosk…").
   - *Verify:* UI tests for each state with fake responses, plus screenshot tests against the two state boards.
-- [ ] **DEV-014** `ActivationRepository` (FR-003, NFR-005).
+- [x] **DEV-014** `ActivationRepository` (FR-003, NFR-005).
   - Calls E1 and persists `deviceToken` in the Secure DataStore (Tink AEAD + Android Keystore, architecture §6), and `deviceId`/`kioskCode`/`kioskName` in DataStore.
   - A 401 interceptor clears activation and routes to SCR-02.
   - *Verify:* unit and integration tests (MockWebServer): success, 404 `DEVICE_NOT_REGISTERED`, `DEVICE_DISABLED`, timeout, and 401 later.
 
 **Merchant**
-- [ ] **DEV-015** SCR-03 Merchant selection UI per `Merchants.dc.html` (FR-004).
-  - Live card with photo, logo, "Open now" or "Closed · opens 10:00" badge and arrow (a closed card is not tappable); **two** compact "Coming soon" disabled rows; skeletons "Loading restaurants…" [A-32]; empty state "No restaurants yet"; bind or menu-download failure with Retry (Retry shows the skeleton, then the list); and the "Log out" header button.
+- [x] **DEV-015** SCR-03 Merchant selection UI per `Merchants.dc.html` (FR-004).
+  - Live card with photo, logo, "Open now" or "Closed · opens 10:00" badge (time from E2 `opensAt`, "Closed" when missing) and arrow (a closed card is not tappable); a compact "Coming soon" disabled row for **every** coming-soon merchant, the list scrolling when needed (PO, 2026-10-23; the artboard shows two); skeletons "Loading restaurants…" [A-32]; empty state "No restaurants yet"; bind, menu-download or list-load failure with Retry (Retry shows the skeleton, then the list); a spinner on the chosen card while binding; and the "Log out" header button.
   - States are specified by `S_Merchants_skeleton`, `S_Merchants_empty`, `S_Merchants_bindFailed` and `S_Merchants_closed` (`menuDownloadFailed` is the same layout as `bindFailed`, set through the `scenario` prop).
   - *Verify:* UI tests including the TalkBack disabled semantics on soon rows, plus screenshot tests of the four state boards.
-- [ ] **DEV-016** `MerchantRepository`: E2 list, E3 bind (then trigger the config + menu fetch stub that completes in 0.3.0), and E4 unbind on Log out with local data wiped (FR-004 AC1–AC4).
+- [x] **DEV-016** `MerchantRepository`: E2 list, E3 bind (then trigger the config + menu fetch stub that completes in 0.3.0), and E4 unbind on Log out with local data wiped (FR-004 AC1–AC4).
   - *Verify:* integration tests; a failure path that keeps staff on SCR-03 with retry.
-- [ ] **DEV-017** Store `mode=SINGLE` from config. Ensure no customer merchant picker exists (FR-005).
+- [x] **DEV-017** Store `mode=SINGLE` from config. Ensure no customer merchant picker exists (FR-005).
   - *Verify:* unit test.
 
 **Testing & docs**
-- [ ] **DEV-018** Write the instrumented test for journey J5 with fakes, plus J6. Update the README "first run" section.
+- [x] **DEV-018** Write the instrumented test for journey J5 with fakes, plus J6. Update the README "first run" section.
+
+### 0.2.0 status (2026-10-23)
+- DEV-010, DEV-011 and DEV-013–DEV-018 are done: `./gradlew verify` is green, and the instrumented suite (`SetupJourneysUiTest` J5, J6 and the setup states, 11 tests; `NavigationEdgeWalkUiTest`, 5 tests) passes on the API 37 emulator.
+- **DEV-012 stays open** for its spike on the iMin device. The provider chain, the serial cache, the debug switch and an on-device diagnostics screen are built; [ADR-0002](adr/0002-device-serial.md) is *Proposed* with the procedure and an empty results table. The user has a device and runs it; the result decides the source order and whether `READ_PHONE_STATE` is requested from the PO (A-02, R-3). Until then the milestone's exit criterion "SN source decided" is open.
+- PO decisions taken during 0.2.0 (PRD 1.5): E1/E2 merchants carry an optional `opensAt` for the closed badge; SCR-03 lists every coming-soon merchant; copy for other sign-in failures and for a merchant-list failure.
+- The SCR-03 binding goes to an Idle placeholder until DEV-024 (0.3.0). The config and menu download is the 0.2.0 stub (memory only); DEV-021/DEV-022 add the Room cache.
+- Still open from 0.1.0: the API 30 and API 34/35 emulator runs (DEV-001).
+- Evidence: [`docs/test-reports/0.2.0.md`](test-reports/0.2.0.md).
 
 ### Acceptance criteria
 - FR-001 AC1–AC3, FR-002 AC1–AC3 (AC1/AC2 on real hardware if DEP-4 is available), FR-003 AC1–AC4, FR-004 AC1–AC4 and FR-005 AC1 pass.

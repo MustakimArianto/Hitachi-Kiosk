@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Document version | 1.1 (2026-10-23) — debug binding mechanism and DI modules as built in 0.1.0 |
+| Document version | 1.2 (2026-10-23) — device state, 401 handling, persistence and DI modules as built in 0.2.0 |
 | Requirements | [`product-requirement.md`](product-requirement.md): this document explains *how*; the PRD decides *what*. Where they disagree, the PRD wins. Measurable technical requirements: [`technical-requirement.md`](technical-requirement.md). |
 | Implementation | [`technical-design.md`](technical-design.md) adds the implementation detail (build, schemas, algorithms, configuration) under this structure. [`technology-stack.md`](technology-stack.md) pins the libraries and versions. |
 | Contract | [`api/api-spec.md`](api/api-spec.md) (E1–E14) |
@@ -78,7 +78,7 @@ flowchart TD
 |---|---|---|---|
 | `:app` | `MainActivity`, nav graph, feature packages, ViewModels, Hilt wiring, lock task, debug Developer options (`src/debug`) | all core modules | Contain business rules (pricing, plan search, state transitions) |
 | `:core:designsystem` | Tokens, `DesignUnit`, typography, motion specs, shared components (PRD §11.3), CompositionLocals | Compose only | Know about domain models; components take plain parameters |
-| `:core:domain` | Models, `PricingEngine`, `Cart`, `BudgetPlanner`, `OrderSession`, `PaymentStateMachine`, repository and device interfaces, `Clock` | Kotlin stdlib, coroutines | Import `android.*`, Retrofit, Room or Hilt. Enforced by being a JVM module |
+| `:core:domain` | Models (including `DeviceState`), `PricingEngine`, `Cart`, `BudgetPlanner`, `OrderSession`, `PaymentStateMachine`, repository and device interfaces, use cases that combine repositories (`setup/ActivateKiosk`), `Clock` | Kotlin stdlib, coroutines | Import `android.*`, Retrofit, Room or Hilt. Enforced by being a JVM module |
 | `:core:data` | Retrofit API, DTOs + mappers, Room, DataStore, token store, repositories, sync worker, `ConnectivityMonitor` | `:core:domain` | Leak DTOs or Room entities out of the module |
 | `:core:hardware` | `DeviceIdentityProvider`, `PrinterManager` + drivers, receipt/ticket renderers, `CardTerminal` impls | `:core:domain` | Depend on `:core:data` |
 | `:core:testing` | Scriptable fakes, fixtures (menu sample from `api-spec.md` §4), test rules | `:core:domain` | Ship in release (used by `testImplementation`, `androidTestImplementation` and the `debug` source set only) |
@@ -207,10 +207,10 @@ Everything else in a customer session is deliberately lost on process death [A-1
 | Data | Store | Notes |
 |---|---|---|
 | Device token | Secure DataStore `secure.pb` behind `TokenStore`: Tink AEAD (AES-256-GCM) serializer, keyset wrapped by an Android Keystore key (NFR-005, ADR-0001) | Cleared on 401 or Log out. If the Keystore key is lost (e.g. device restore), decryption fails → treat as not activated (FR-001) |
-| deviceId, merchant binding, kiosk name/code | DataStore `device.preferences_pb` | Not secret |
+| deviceId, merchant binding, kiosk name/code, operating mode (FR-005) | DataStore `device.preferences_pb` | Not secret. The binding is written only after the first config and menu download succeeds (FR-004) |
 | Serial number cache (FR-002) | DataStore `identity.preferences_pb`, owned by `:core:hardware` | Keeps `:core:hardware` independent of `:core:data` (§3) |
 | Device settings (order types, timeout, printers + roles, toggles, QR expiry, rounding) | DataStore `settings.preferences_pb` | Exposed as `Flow<KioskSettings>` |
-| Merchant config (E5) + ETag | Room `config` | Includes the staff PIN hash (`staffPin`, verified offline, FR-024) |
+| Merchant config (E5) + ETag | Room `config` (from 0.3.0; in 0.2.0 the last download is kept in memory only, DEV-016) | Includes the staff PIN hash (`staffPin`, verified offline, FR-024) |
 | Menu (E6) + ETag + `menuVersion` | Room `category`, `product`, `modifier_group`, `option`, `combo`, … | Replaced in one transaction (DEV-021) |
 | Pending order/payment | Room `pending_order` | §5.3 |
 | PIN lockout counter and until-time | DataStore | Survives restart (FR-024) |
@@ -224,7 +224,8 @@ Upgrades (NFR-014): Room uses explicit `Migration`s from 1.0.0 onward, with `exp
 - **Stack**: Retrofit + OkHttp + kotlinx.serialization (`ignoreUnknownKeys = true`, `explicitNulls = false`). One `KioskApi` interface mirrors E1–E14.
 - **Base URL**: `BuildConfig.API_BASE_URL` per flavor-less build config `dev | staging | prod` (DEV-007). The debug Developer options can override it at runtime.
 - **Interceptors**, in order: `Idempotency-Key` (mutating calls take a key from the caller, never generated inside the interceptor, so a retry reuses it) → auth (`Bearer`) → `Accept-Language` (fixed `en` in 1.0) / app version headers → logging (debug only, redacted).
-- **Errors**: the response envelope `{code, message, details}` is parsed into `ApiError` and mapped to `DomainError` in the repository. HTTP 401 on any authenticated call → `SessionInvalidator` clears token and binding and routes to SCR-02.
+- **Errors**: the response envelope `{code, message, details}` is parsed into `ApiError` and mapped to `DomainError` in the repository. HTTP 401 on any authenticated call → `SessionInvalidator` clears the token and binding through `DeviceSession`; `ActivationRepository.state` becomes `NotActivated`, and the app root (`SessionViewModel`) routes to SCR-02 from any screen.
+- **Device state**: `DeviceSession` in `:core:data` is the one owner of the token, the device record, the binding and the in-memory credentials OkHttp reads. Activation, binding, Log out and the 401 handler all write through it, so they cannot disagree.
 - **Timeouts and retries** (NFR-010): connect 10 s, read 15 s. Retries (1 s, 2 s, 4 s) only for GETs and for mutations that carry an Idempotency-Key. Retries are written in the repository, not as an OkHttp interceptor, so they stay visible and testable.
 - **Caching**: E5 and E6 send `If-None-Match`. A 304 keeps the Room copy.
 - **Security** (NFR-005): cleartext disabled via `network_security_config.xml`. Certificate pinning is configured in OkHttp `CertificatePinner` with a primary and a backup pin, for `staging`/`prod` only [A-36].
@@ -242,7 +243,7 @@ All interfaces live in `:core:domain`. Real implementations live in `:core:hardw
 
 | Interface | Real implementations | Fake can simulate |
 |---|---|---|
-| `DeviceIdentityProvider` | iMin SDK → `Build.getSerial()` (device owner) fallback (FR-002, ADR-0002) | success, unavailable, slow |
+| `DeviceIdentityProvider` | `IminDeviceIdentityProvider`: the system properties the iMin SDK reads (`ro.serialno`, `persist.sys.imin.sn`) and other candidates → `Build.getSerial()` (device owner + `READ_PHONE_STATE`, pending PO approval), cached (FR-002, ADR-0002) | success, unavailable, slow |
 | `PrinterManager` / `PrinterDriver` | `IminPrinterDriver`, `UsbEscPosDriver` (bulk transfer), `BtEscPosDriver` (SPP) (FR-022, ADR-0004) | ready, offline, out of paper, fails mid-job |
 | `ReceiptRenderer` | Pure Kotlin: domain order → ESC/POS command list (58/80 mm) | n/a (unit-tested directly) |
 | `CardTerminal` | Adapter per OQ-03 (ADR-0003) | approved, declined, timeout, cancelled |
@@ -251,15 +252,15 @@ All interfaces live in `:core:domain`. Real implementations live in `:core:hardw
 
 The receipt renderer produces a device-independent command list, and each driver only transports bytes. That way receipts can be checked in unit tests without hardware.
 
-**Real vs fake selection**: Hilt modules in `:app` bind real implementations. They also declare optional `BindingOverrides`, which only the `debug` source set provides: it wraps the real implementations in switchable wrappers (`SwitchableBackendApi` in 0.1.0, then `SwitchableCardTerminal` etc.) that delegate to either the real implementation or the fake, based on the Developer options choice (DEV-009, technical-design §4.3 TD-11). Release builds contain neither the wrappers nor the fakes (checked in the dex files and the R8 mapping by `scripts/check-release-apk.sh`, part of `./gradlew verify`).
+**Real vs fake selection**: Hilt modules in `:app` bind real implementations. They also declare optional `BindingOverrides`, which only the `debug` source set provides: it wraps the real implementations in switchable wrappers (`SwitchableBackendApi` in 0.1.0, `SwitchableDeviceIdentityProvider` in 0.2.0, then `SwitchableCardTerminal` etc.) that delegate to either the real implementation or the fake, based on the Developer options choice (DEV-009, technical-design §4.3 TD-11). Release builds contain neither the wrappers nor the fakes (checked in the dex files and the R8 mapping by `scripts/check-release-apk.sh`, part of `./gradlew verify`).
 
 ## 10. Dependency injection
 
 Hilt. One `@Module` per concern, installed in `SingletonComponent` unless stated otherwise:
 
-- `:core:data`: `NetworkModule`, `DatabaseModule`, `DataStoreModule`, `RepositoryModule` (`@Binds` interface → implementation).
+- `:core:data`: `NetworkModule`, `DataStoreModule`, `RepositoryModule` (`@Binds` interface → implementation, plus `UnauthorizedHandler` → `SessionInvalidator`), and `DatabaseModule` from 0.3.0. DataStore instances are process-wide (one per file), outside the Hilt graph.
 - `:core:hardware`: `HardwareModule`.
-- `:app`: `CoroutinesModule` (`@IoDispatcher`, `@DefaultDispatcher`, `@ApplicationScope`), `ClockModule` (`Clock`, `IdGenerator`), `BackendModule` (`ApiConfig`, `BackendApi` and `PaymentGateway` → `:core:data` implementations, optional debug overrides), and from 0.4.0 `SessionModule` (`OrderSessionHolder`). `src/debug` adds `DeveloperOptionsModule`.
+- `:app`: `CoroutinesModule` (`@IoDispatcher`, `@DefaultDispatcher`, `@ApplicationScope`), `ClockModule` (`Clock`, `IdGenerator`), `BackendModule` (`ApiConfig`, `BackendApi` and `PaymentGateway` → `:core:data` implementations, optional debug overrides), `HardwareBindingsModule` (`DeviceIdentityProvider` → `:core:hardware`, optional debug override), `SetupModule` (`ActivateKiosk`, `@VersionName`, `ZoneId`), and from 0.4.0 `SessionModule` (`OrderSessionHolder`). `src/debug` adds `DeveloperOptionsModule`.
 - `:core:domain` has no Hilt. Its classes use plain constructors, and modules in `:app` or `:core:data` provide them.
 
 Tests: unit tests construct classes by hand with fakes. Instrumented tests use `@TestInstallIn` to swap modules for fakes.
@@ -268,7 +269,7 @@ Tests: unit tests construct classes by hand with fakes. Instrumented tests use `
 
 - Single `MainActivity`, portrait-locked, `FLAG_KEEP_SCREEN_ON`, edge-to-edge with system bars hidden in lock task.
 - Navigation Compose with type-safe `@Serializable` route objects, one per screen SCR-01…SCR-20 (PRD §4), including Upsell and Budget Plan (SCR-19, one route with an internal step state, so Back from step 2 returns to step 1 and Back from step 1 returns to Menu). Change PIN (SCR-20) is a route inside the staff settings graph. SCR-13 ("Still there?") is an overlay hosted above the `NavHost`, not a route. The design shows it as its own board with Menu blurred behind it.
-- The **start destination is always Splash**. `StartupRouter` (DEV-011) waits for both the 3.9 s minimum and initialization (≤ 10 s network cap), then replaces the back stack with SCR-02, SCR-03 or SCR-04 (FR-001).
+- The **start destination is always Splash**. `StartupRouter` (DEV-011) waits for both the 3.9 s minimum and initialization (≤ 10 s cap), then replaces the back stack with SCR-02, SCR-03 or SCR-04 (FR-001). Activation, binding and Log out also replace the whole back stack, and the root returns to SCR-02 whenever the device state drops to `NotActivated` (HTTP 401).
 - The customer flow is a nested graph. Leaving it (Complete auto-return, timeout, cancel) pops to Idle and resets the session.
 - Staff settings are a nested graph entered only through the PIN gate (SCR-14), with their own 120 s timeout [A-22].
 - System Back is disabled on customer screens except where the design shows a Back control.
@@ -328,7 +329,7 @@ Contract tests: MockWebServer fixtures are loaded from the examples in `api-spec
 
 | Question | Affects | Resolution |
 |---|---|---|
-| OQ-01 iMin model, SN API, printer SDK | `DeviceIdentityProvider`, `IminPrinterDriver` | ADR-0002 (0.2.0), ADR-0004 (0.6.0) |
+| OQ-01 iMin model, SN API, printer SDK | `DeviceIdentityProvider`, `IminPrinterDriver` | ADR-0002 (0.2.0, Proposed: awaiting the on-device spike), ADR-0004 (0.6.0) |
 | OQ-03 EDC transport and result path | `CardTerminal` impl, whether E12 is used | ADR-0003 (0.5.0) |
 | OQ-02 Gateway spec | Backend only, unless push replaces polling | ADR-0003 |
 | OQ-10 Provisioning method | Lock task, install | `docs/provisioning.md` (DEV-101) |

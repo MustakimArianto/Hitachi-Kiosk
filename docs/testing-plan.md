@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Document version | 1.2 (2026-10-23) — 0.1.0 device notes, release-check tooling |
+| Document version | 1.3 (2026-10-23) — 0.2.0: every coming-soon row on SCR-03, closed badge from `opensAt`, TC-182–TC-184, instrumented setup journeys |
 | Requirements | [`product-requirement.md`](product-requirement.md) |
 | Development roadmap | [`dev-plan.md`](dev-plan.md) |
 | API contract | [`api/api-spec.md`](api/api-spec.md) |
@@ -127,12 +127,15 @@ Every defect records: build, device, steps, expected/actual, evidence (screensho
 | TC-011 | FR-003 | Network timeout | Mock `slow_network` (> 15 s) | Tap Log in | Network message after timeout; button re-enabled | I | M | Y |
 | TC-012 | FR-003 | Double tap | Mock default | Double-tap Log in quickly | Exactly one E1 request recorded | UI | H | Y |
 | TC-013 | FR-003 | Activation persists; 401 revokes | Activated | Kill and restart; then make the mock return 401 on E5 | Restart skips SCR-02; 401 → SCR-02 and token cleared | E2E | H | Y |
-| TC-014 | FR-004 | Merchant list renders | Mock E2 sample | Open SCR-03 | 1 live card ("Urban Grill", "Burgers & grill", "Open now"); 2 compact "Coming soon" rows with initials; matches screenshot | S | M | Y |
+| TC-014 | FR-004 | Merchant list renders | Mock E2 sample | Open SCR-03 | 1 live card ("Urban Grill", "Burgers & grill", "Open now"); a compact "Coming soon" row with its initial for each of the 4 coming-soon merchants, the list scrolling where needed; matches screenshot | S | M | Y |
 | TC-015 | FR-004 | Coming soon not tappable | — | Tap "Bella Pasta"; TalkBack focus it | No navigation; announced as disabled | UI | M | Y |
 | TC-016 | FR-004 | Bind live merchant | Mock default | Tap Urban Grill | E3 called, config + menu fetched, Idle shows "Urban Grill" with the accent within 10 s | E2E | H | Y |
 | TC-017 | FR-004 | Menu download fails after bind | Mock: E6 → 503 | Tap Urban Grill | Stays on SCR-03 with error and retry; retry succeeds → Idle | E2E | H | Y |
 | TC-018 | FR-004 | Log out / empty list | (a) Bound; (b) E2 returns [] | (a) Log out, restart; (b) open SCR-03 | (a) SCR-02 after restart; (b) "No restaurants yet" with "This account isn't linked to any merchant…" (`S_Merchants_empty`) | UI | M | Y |
 | TC-019 | FR-005 | Single mode only | Config `mode: SINGLE` | Walk J1 | No customer merchant picker anywhere | U/UI | L | Y |
+| TC-182 | FR-003 | Other sign-in failure | Fakes: E1 → 400 `VALIDATION_ERROR`, then 503, then an unreadable answer | Tap Log in each time | "Couldn't sign in" with "Try again"; the button is tappable again | U/UI | M | Y |
+| TC-183 | FR-004 | Merchant list fails to load | Fakes: E2 → network error (after its 1/2/4 s retries) | Open SCR-03, then Retry with E2 healthy | "Couldn't load restaurants" with Retry and Log out; Retry shows the skeleton, then the list | U/UI | M | Y |
+| TC-184 | FR-003, FR-004 | Merchant pre-assigned in the dashboard | Fakes: E1 `boundMerchantId: mer_urbangrill`; then the same with Urban Grill closed | Tap Log in | Open: E3, E5, E6 run and Idle shows without SCR-03; closed: SCR-03 with the closed card | U | M | Y |
 
 ### 5.2 Idle, order type, language (FR-006 – FR-008)
 
@@ -352,7 +355,7 @@ Each case below uses the state board named in the Scenario column as its visual 
 | TC-176 | FR-010, FR-011 | Item and Combo states (`S_ItemDetail_requiredMissing`, `S_ItemDetail_soldOut`, `S_Combo_requiredMissing`, `S_Combo_soldOut`) | Fakes | (a) Open an item with a required size and add nothing; (b) item that sells out while open; (c) combo with no side/drink; (d) sold-out combo option | (a) CTA disabled "Choose a size to continue"; (b) "No longer available" banner, dimmed hero, CTA disabled; (c) CTA reads "Pick side & drink" (then "Choose a side" / "Choose a drink"); (d) the option is greyed and cannot be selected | UI/S | H | Y |
 | TC-177 | FR-012, FR-015, FR-016, FR-028 | Review blocking states (`S_Payment_priceChanged`, `S_Payment_itemUnavailable`, `S_Payment_offline`, `S_Payment_noMethods`, `S_Payment_emptyTray`, `S_Payment_promoNudge`) | Fakes / mock scenarios | Trigger each state | Each shows its banner or panel as designed; Pay is disabled with the reason in every blocking state; "Review" and "Remove" clear price-changed and unavailable; the promo nudge shows "Add Rp X more to get Rp 10.000 off" with a progress bar and does not block Pay | UI/S | H | Y |
 | TC-178 | FR-019 | Checkout failure states (`S_Checkout_creating`, `S_Checkout_expired`, `S_Checkout_cancelled`, `S_Checkout_declined`, `S_Checkout_terminalTimeout`, `S_Checkout_offline`) | Mock / fakes | Reach each state; tap "Try again", the other-method button and "Cancel order" | "Creating your payment…" shows before the QR; each failure shows its own title and copy and the three actions; "Try again" creates a fresh payment; "Cancel order" → Idle; offline disables Try again and labels it "Reconnecting…"; no "Pay at the counter" button | UI/S | H | Y |
-| TC-179 | FR-003, FR-004 | Sign-in and merchant states (`S_Login_notRegistered`, `S_Login_networkTimeout`, `S_Merchants_skeleton`, `S_Merchants_empty`, `S_Merchants_bindFailed`, `S_Merchants_closed`) | Mock scenarios | Trigger each state | Login errors show the designed copy with "Try again" (serial number shown when not registered; Log in disabled while busy or when the SN is unreadable); Merchants shows "Loading restaurants…" skeletons, "No restaurants yet", a bind failure with Retry (Retry shows the skeleton, then the list), and a closed card "Closed · opens 10:00" that is not tappable | UI/S | H | Y |
+| TC-179 | FR-003, FR-004 | Sign-in and merchant states (`S_Login_notRegistered`, `S_Login_networkTimeout`, `S_Merchants_skeleton`, `S_Merchants_empty`, `S_Merchants_bindFailed`, `S_Merchants_closed`) | Mock scenarios | Trigger each state | Login errors show the designed copy with "Try again" (serial number shown when not registered; Log in disabled while busy or when the SN is unreadable); Merchants shows "Loading restaurants…" skeletons, "No restaurants yet", a bind failure with Retry (Retry shows the skeleton, then the list), a closed card "Closed · opens 10:00" (mock `merchant_closed`, E2 `opensAt`) that is not tappable, or "Closed" when `opensAt` is missing | UI/S | H | Y |
 | TC-180 | NFR-002, NFR-009 | State-board screenshot matrix | `verifyRoborazziDebug` in `verify` | Render every `S_*` board (33) and every screen artboard (20) at 1080×1920 in the app and compare with the design | Every board has a reference image reviewed against `docs/ui-design/`; any board without a screenshot test fails the check; larger-text variants exist for the money screens | S | H | Y |
 
 ---
@@ -410,7 +413,7 @@ Each milestone runs: (a) its new TCs, (b) the full automated regression of all e
 | Version | Features to validate | Required TCs (new) | Regression | Blocking defects | Required evidence | Exit |
 |---|---|---|---|---|---|---|
 | **0.1.0** | Build, modules, design units/tokens, navigation skeleton, network skeleton, fakes | TC-140, TC-141 (skeleton screen), TC-154 (partial), TC-155, TC-156 (fakes compile) + navigation edge walk | — | Build or `verify` failure; scaling wrong | `verify` report; emulator screenshots of placeholders | dev-plan 0.1.0 exit |
-| **0.2.0** | Splash, routing, SN, activation, merchants | TC-001–TC-019, TC-146, TC-179 | 0.1.0 | Wrong routing; duplicate activation; token in plain text | `verify` report; SN spike notes (ADR-0002) with device photo; J5/J6 recordings | All pass; SN source decided |
+| **0.2.0** | Splash, routing, SN, activation, merchants | TC-001–TC-019, TC-146, TC-179, TC-182–TC-184 | 0.1.0 | Wrong routing; duplicate activation; token in plain text | `verify` report; SN spike notes (ADR-0002) with device photo; J5/J6 recordings | All pass; SN source decided |
 | **0.3.0** | Idle, order type, menu, item, combo, sync/cache, images, perf baseline | TC-020–TC-049 (TC-029–TC-031 and TC-036 retired), TC-174–TC-176, TC-121, TC-124, TC-125, TC-142 (baseline), TC-157 | 0.1–0.2 | Wrong item/combo price; crash in browse; menu not cached | Screenshot diffs vs design; `docs/perf/baseline-0.3.0.md` | All pass; baseline recorded |
 | **0.4.0** | Cart, pricing, Budget Plan, review, methods, upsell, inactivity | TC-050–TC-067, TC-101–TC-104, TC-135, TC-139, TC-161–TC-167, TC-169–TC-173, TC-177 | 0.1–0.3 | Any pricing mismatch; overlay during payment; a Budget Plan plan above budget shown as "under" or as an exact match, or a person left without a meal | `docs/pricing-cases.md`; `docs/budget-plan-cases.md`; coverage report (domain ≥ 90 %) | All pass |
 | **0.5.0** | Order creation, QRIS, card (fake), failures, offline gate, recovery, clock skew | TC-068–TC-087 (TC-083 deferred to 0.9.0), TC-122, TC-123, TC-132–TC-134, TC-137, TC-138, TC-154, TC-160, TC-178, TC-181 | 0.1–0.4 | Duplicate order; "not charged" shown on unknown status; paid without PAID | Recordings of J1–J3 with fakes; mock-scenario run log | All pass; gateway/EDC spec status recorded |
@@ -428,8 +431,8 @@ Each milestone runs: (a) its new TCs, (b) the full automated regression of all e
 |---|---|---|---|
 | FR-001 | DEV-010, DEV-011 | TC-001–TC-004 | 0.2.0 |
 | FR-002 | DEV-012 | TC-005–TC-007 | 0.2.0 |
-| FR-003 | DEV-013, DEV-014 | TC-008–TC-013, TC-179 | 0.2.0 |
-| FR-004 | DEV-015, DEV-016 | TC-014–TC-018, TC-179 | 0.2.0 |
+| FR-003 | DEV-013, DEV-014 | TC-008–TC-013, TC-179, TC-182, TC-184 | 0.2.0 |
+| FR-004 | DEV-015, DEV-016 | TC-014–TC-018, TC-179, TC-183, TC-184 | 0.2.0 |
 | FR-005 | DEV-017 | TC-019 | 0.2.0 |
 | FR-006 | DEV-024 | TC-020–TC-024 | 0.3.0 |
 | FR-007 | DEV-025 | TC-025–TC-028, TC-174 | 0.3.0 |

@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Document version | 1.0 (2026-10-22) |
+| Document version | 1.1 (2026-10-23) — TR-INT-07 and the open items follow the DEV-012 findings (ADR-0002, Proposed) |
 | Answers | *What must the system satisfy technically, and how is each requirement measured?* |
 | Derived from | [`product-requirement.md`](product-requirement.md) (NFR-, FR-, BR-, D-, A-) and [`api/api-spec.md`](api/api-spec.md) (E1–E14) |
 | Satisfied by | [`technical-design.md`](technical-design.md) (how), [`architecture.md`](architecture.md) (structure), [`technology-stack.md`](technology-stack.md) (with what) |
@@ -151,7 +151,7 @@ Rows verified by a benchmark TC (TC-142, TC-143, TC-144, TC-168) are measured on
 | TR-INT-04 | The amount on the QR and the amount sent to the terminal must equal the backend order total. | FR-017, FR-018 AC2 | TC-074, TC-080 |
 | TR-INT-05 | Card terminal: the app must cancel on the terminal after 90 s with no response, and on "Back to order". The transport and protocol are decided in ADR-0003 (OQ-03) behind the `CardTerminal` interface. | FR-018, A-16 | TC-082, TC-181 |
 | TR-INT-06 | Unknown payment status: show "Checking your payment…" and poll for up to 60 s. "You have not been charged" must only appear after a backend terminal non-paid status. | FR-019, A-17 | TC-085 |
-| TR-INT-07 | Serial number: from the iMin SDK, falling back to `Build.getSerial()` as device owner. Must be identical across reinstall, data clear and reboot. | FR-002, A-02 | TC-005–TC-007 |
+| TR-INT-07 | Serial number: from the iMin system API (the system properties the iMin SDK reads, `ro.serialno` then `persist.sys.imin.sn`), falling back to `Build.getSerial()` as device owner. Must be identical across reinstall, data clear and reboot. | FR-002, A-02 | TC-005–TC-007 |
 | TR-INT-08 | Printers: built-in through the iMin SDK, USB through USB host bulk transfer, Bluetooth through Classic SPP to paired devices, all speaking ESC/POS. 58 mm and 80 mm paper, density Light, Normal and Dark. | FR-021, FR-022, NFR-016, A-21 | TC-096–TC-099 |
 | TR-INT-09 | Exactly one printer per role (Receipt, Kitchen). The receipt and ticket print within TR-PRF-12. The 58 mm layout wraps without truncating amounts. | FR-021 AC3, FR-022, BR-12 | TC-093, TC-099 |
 | TR-INT-10 | Every external system (backend, gateway via backend, card terminal, printers, device identity, clock, connectivity) must sit behind a domain interface with a scriptable fake in `:core:testing`. | NFR-012 | TC-156 |
@@ -221,6 +221,6 @@ Rows verified by a benchmark TC (TC-142, TC-143, TC-144, TC-168) are measured on
 | OQ-01 iMin model, Android version, SN and printer SDK | TR-PLT-04, TR-INT-07, TR-INT-08, all TR-PRF targets | ADR-0002 (0.2.0), ADR-0004 (0.6.0) |
 | OQ-03 EDC transport and result path | TR-INT-05 | ADR-0003 (0.5.0) |
 | A-36 Pinning acceptable to infra | TR-SEC-03 | Confirm in DEV-094 |
-| The `Build.getSerial()` fallback (A-02) needs `READ_PHONE_STATE`, which is not in PRD §12.3 | TR-INT-07, TR-SEC-09 | ADR-0002 (DEV-012). Drop the fallback if the iMin SDK works, or have the PO add the permission. |
+| The `Build.getSerial()` fallback (A-02) needs `READ_PHONE_STATE`, which is not in PRD §12.3 | TR-INT-07, TR-SEC-09 | ADR-0002 (DEV-012, Proposed; the on-device spike decides). Drop the fallback if a system property gives the label SN, or have the PO add the permission. Until then the permission is declared in the debug manifest only. |
 | FR-003 says the device token is "refreshed per §10", but PRD §10 and api-spec v1 define no refresh endpoint (E1 returns `tokenExpiresAt: null`) | TR-NET-06, TR-SEC-01 | Until the backend team defines one, the token is long-lived and a 401 sends the kiosk back to SCR-02. Agree before 0.9.0 (DEP-1). |
 | NFR-016 lists API 30–36, while TR-PLT-01 makes the target API 37 | TR-PLT-04 | The API 37 emulator is added here as a derived requirement. Ask the PO to extend NFR-016 to API 37 in the next PRD revision. |

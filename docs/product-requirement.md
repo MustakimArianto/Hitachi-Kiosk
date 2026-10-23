@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | Product | Hitachi Kiosk (Android self-ordering kiosk app) |
-| Document version | 1.2 (2026-10-22), see the [revision history](#revision-history) |
+| Document version | 1.5 (2026-10-23), see the [revision history](#revision-history) |
 | Target release | `1.0.0` |
 | Companion documents | [`technical-requirement.md`](technical-requirement.md), [`technical-design.md`](technical-design.md), [`technology-stack.md`](technology-stack.md), [`architecture.md`](architecture.md), [`dev-plan.md`](dev-plan.md), [`testing-plan.md`](testing-plan.md) |
 | Design source of truth | [`ui-design/`](ui-design/) — the final light design "Linen & Paprika": 20 screen artboards, 33 state boards (`S_<Screen>_<scenario>`), the `Photo` component, `canvas.json` and `README.md`. It is mirrored from https://claude.ai/artifact/Lv6W9bttmG8fH4ho4CkWMg |
@@ -16,6 +16,7 @@
 | 1.2 | 2026-10-22 | File renamed from `prd.md` to `product-requirement.md`. Added the companion technical documents. No CI in 1.0 [D-31]: NFR-011 static analysis and coverage are enforced by the local `./gradlew verify` gate. |
 | 1.3 | 2026-10-23 | DEP-1 owner: the PO builds the mock and the backend from `api/api-spec.md`. |
 | 1.4 | 2026-10-23 | A-42: option choice for planned items. The api-spec sample menu is complete and adds required choices on c4, r1 and d2. |
+| 1.5 | 2026-10-23 | 0.2.0 decisions (PO): a closed merchant's opening time comes from the new optional E1/E2 field `opensAt` ("Closed" when unknown); SCR-03 lists **every** coming-soon merchant and scrolls; copy for a sign-in failure outside FR-003's three cases and for a merchant-list failure; while a bind runs the chosen card shows a spinner. Design colours used by the 0.2.0 screens added to §11.1. |
 
 ## 0. How to read this document
 
@@ -281,6 +282,7 @@ Priority: **MVP** = required for 1.0.0. **Post-1.0** = specified for later, not 
   - Not registered (HTTP 404 / `DEVICE_NOT_REGISTERED`): show the panel "This kiosk isn't registered yet" / "Its serial number is not linked to a merchant account. Ask your administrator to register it, then try again." with the SN ("Serial number HK-…") and a "Try again" button [A-01].
   - Device disabled (`DEVICE_DISABLED`): show "This kiosk has been disabled. Contact your administrator."
   - Network error / timeout of 15 s: show "Can't reach Hitachi Kiosk" / "The connection timed out. Check the network cable or Wi-Fi, then try again." with "Try again".
+  - Any other failure (for example `VALIDATION_ERROR`, a 5xx, an unreadable answer): show "Couldn't sign in" / "Something went wrong. Try again. If it keeps happening, contact your administrator." with "Try again" (PO, 2026-10-23).
 - **Acceptance criteria:**
   - AC1: A registered SN moves from SCR-02 to SCR-03 within 3 s on a normal network.
   - AC2: Each error case shows its message, and the button becomes tappable again within 300 ms of the error.
@@ -290,7 +292,7 @@ Priority: **MVP** = required for 1.0.0. **Post-1.0** = specified for later, not 
 
 ### FR-004 Merchant selection and binding — MVP
 - **Description:** Staff choose the merchant this kiosk serves [V, D-07].
-- **Behavior:** SCR-03 shows "Step 1 of 2 · Set up this kiosk" and "Choose a restaurant". Live merchants appear as large cards with photo, logo, name, cuisine and an "Open now" pulse badge. Merchants with status `coming_soon` appear under "Coming soon" as compact disabled rows (the design shows two) with initial, name, type and a "Soon" pill [V]. States: while loading, "Loading restaurants…" with skeleton cards; no merchants, "No restaurants yet" / "This account isn't linked to any merchant. Ask your administrator to add one, then refresh." with "Refresh list"; a closed merchant shows a "Closed · opens {time}" badge and a disabled card; bind or menu-download failure shows "This kiosk could not be linked to {merchant}. Check the connection and retry." or "The menu for {merchant} did not finish downloading. Check the connection and retry." with "Retry" and "Log out". Tapping a live card calls `PUT /v1/devices/{id}/binding`, downloads config and menu (FR-028), then navigates to Idle and enters lock-task (FR-029). "Log out" (header) clears the device token and binding and returns to SCR-02.
+- **Behavior:** SCR-03 shows "Step 1 of 2 · Set up this kiosk" and "Choose a restaurant". Live merchants appear as large cards with photo, logo, name, cuisine and an "Open now" pulse badge. Every merchant with status `coming_soon` appears under "Coming soon" as a compact disabled row with initial, name, type and a "Soon" pill [V]; the design shows two, and the list scrolls when there are more (PO, 2026-10-23). States: while loading, "Loading restaurants…" with skeleton cards; no merchants, "No restaurants yet" / "This account isn't linked to any merchant. Ask your administrator to add one, then refresh." with "Refresh list"; a closed merchant shows a "Closed · opens {time}" badge and a disabled card, where {time} is E2 `opensAt` in device-local time, or just "Closed" when `opensAt` is missing (PO, 2026-10-23); bind or menu-download failure shows "This kiosk could not be linked to {merchant}. Check the connection and retry." or "The menu for {merchant} did not finish downloading. Check the connection and retry." with "Retry" and "Log out"; a merchant list that fails to load shows "Couldn't load restaurants" / "Check the connection and retry." in the same panel (PO, 2026-10-23). "Retry" shows the skeleton and reloads the list. While a bind and download run, the cards ignore taps and the chosen card's arrow shows a spinner. Tapping a live card calls `PUT /v1/devices/{id}/binding`, downloads config and menu (FR-028), then navigates to Idle and enters lock-task (FR-029). "Log out" (header) clears the device token and binding and returns to SCR-02.
 - **Rules:** Exactly one merchant is bound at a time. Coming-soon rows are not tappable (`aria-disabled` [V]). The "Open now" badge reflects backend `isOpen`. A closed merchant shows "Closed · opens {time}" and cannot be bound, because its card is disabled in the design [A-03].
 - **Edge cases:** Zero live merchants → show "No restaurants yet" with the refresh message above. Binding succeeds but the menu download fails → stay on SCR-03 with a retry message and do not enter Idle with an empty menu.
 - **Acceptance criteria:**
@@ -792,8 +794,8 @@ Priority: **MVP** = required for 1.0.0. **Post-1.0** = specified for later, not 
 | Screen | Loading | Empty | Success | Failure | Offline |
 |---|---|---|---|---|---|
 | SCR-01 Splash | Animations + init | — | Route | Corrupt storage → SCR-02 | Cached route |
-| SCR-02 Sign in | "Signing in…" spinner, button disabled | — | → SCR-03 | Not registered (SN shown, "Try again"), serial unreadable (button disabled), network timeout, device disabled (FR-003) | "Can't reach Hitachi Kiosk" + "Try again" |
-| SCR-03 Merchants | "Loading restaurants…" skeleton cards [A-32, V] | "No restaurants yet" + "Refresh list" | → Idle | Bind or menu-download failure + "Retry" / "Log out"; closed merchant shown disabled | Failure panel + retry |
+| SCR-02 Sign in | "Signing in…" spinner, button disabled | — | → SCR-03 | Not registered (SN shown, "Try again"), serial unreadable (button disabled), network timeout, device disabled, any other failure "Couldn't sign in" (FR-003) | "Can't reach Hitachi Kiosk" + "Try again" |
+| SCR-03 Merchants | "Loading restaurants…" skeleton cards [A-32, V]; spinner on the chosen card while binding | "No restaurants yet" + "Refresh list" | → Idle | Bind, menu-download or list-load failure + "Retry" / "Log out"; closed merchant shown disabled ("Closed · opens {time}" or "Closed") | Failure panel + retry |
 | SCR-04 Idle | Tone placeholder while images load | Tone placeholder | — | Red dot on the staff corner when a fault exists | Works from cache |
 | SCR-05 Order type | — | — | Card fills, → Menu | Single-option variant with note | Unaffected |
 | SCR-06 Menu | Tone placeholders per image | "Nothing here right now" + "See popular items" [V] | Quick-add feedback | "Maximum 20 per item" toast; required-option items show "Choose ›" | Amber banner "Ordering is paused — reconnecting…"; browse OK; add and View order disabled |
@@ -882,7 +884,7 @@ No backend exists yet [D-06]. The app **defines** the contract below, which the 
 | # | Method & path | Purpose | Used by |
 |---|---|---|---|
 | E1 | `POST /v1/devices/activate` `{serialNumber, model, appVersion}` → `{deviceId, deviceToken, kioskCode, kioskName, merchants[]}` | SN activation | FR-003 |
-| E2 | `GET /v1/devices/{id}/merchants` → `[{id, name, cuisine, logoUrl, photoUrl, status: live\|coming_soon, isOpen}]` | Merchant list | FR-004 |
+| E2 | `GET /v1/devices/{id}/merchants` → `[{id, name, cuisine, logoUrl, photoUrl, status: live\|coming_soon, isOpen, opensAt?}]` | Merchant list | FR-004 |
 | E3 | `PUT /v1/devices/{id}/binding` `{merchantId}` | Bind kiosk | FR-004 |
 | E4 | `DELETE /v1/devices/{id}/binding` | Log out / unbind | FR-004 |
 | E5 | `GET /v1/merchants/{id}/config` (ETag) → `{mode, accentColor, brandName, logoUrl, taxRate, taxLabel, roundingStepsAllowed, promos[], paymentMethods[], qrisMerchantIdMasked, staffPin: {hash, salt, algo}, receipt: {address, npwp}, upsell: {categoryIds[]}, budgetPlanner: {enabled, overCapPercent, maxGroupSize, quickBudgets[]}, idlePromos[]}` | Merchant config | FR-006, FR-013, FR-015, FR-024, FR-032 |
@@ -926,6 +928,9 @@ No backend exists yet [D-06]. The app **defines** the contract below, which the 
 | `dockTile` / `dockTileBorder` | `#211E1B` / `#2E2B27` | Payment method tiles |
 | `dockDisabled` | `#26231F` / `#8F887E` | "Add an item to pay" |
 | `surface` | `#FFFFFF` | Cards, rows, sheets |
+| `errorBg` / `errorBorder` / `errorText` | `#FBEEE8` / `#F0CDBF` / `#4F4A44` | Error panels (Sign in, Choose a restaurant) |
+| `closedDot`, `skeletonHighlight` | `#A39C92`, `#F6F3EE` | "Closed" badge dot; skeleton shimmer highlight |
+| `photoTone` | `#E9DED0` (`#E6DCD3` when the given tone is too dark) | Photo slot placeholder (`Photo.dc.html`, NFR-013) |
 | Type | Schibsted Grotesk 400/500/600/700/800 (bundled font resource, SIL OFL) | All text |
 | Type scale (dpx / weight) | display 112/800, title 80/700, section 44/700, item 36/600, body 30/400, button 34/700, meta 26/500. Nothing below 24. | Headlines are tight (−0.02 to −0.035 em) |
 | Radii | 999 (pills), 48 (docks), 40 (cards), 32/28/24 (smaller) | — |
@@ -1062,7 +1067,7 @@ Sized for one developer. Features live as packages inside `:app` rather than sep
 |---|---|---|
 | A-01 | An unregistered SN shows an error with the SN visible and "Try again". | Copy/UX change only. |
 | A-02 | As device owner, `Build.getSerial()` is a valid SN fallback. | Activation blocked (R-3). |
-| A-03 | A closed merchant is shown disabled ("Closed · opens {time}") and cannot be bound, as in the design. | Minor. |
+| A-03 | A closed merchant is shown disabled ("Closed · opens {time}", with {time} from E2 `opensAt`) and cannot be bound, as in the design. A merchant pre-assigned in the dashboard is bound at activation only when it is live and open. | Minor. |
 | A-04 | A short tap on the hidden staff corner does nothing. | A customer tap there is ignored. Minor. |
 | A-05 | With one order type enabled, SCR-05 still shows (one card). | Could skip the screen instead. Minor. |
 | A-06 | Superseded by D-29: staff settings are English. | — |
@@ -1130,8 +1135,8 @@ Development tasks: `dev-plan.md`. Test cases: `testing-plan.md`. The full matrix
 |---|---|---|---|
 | FR-001 | 0.2.0 | DEV-010, DEV-011 | TC-001–TC-004 |
 | FR-002 | 0.2.0 | DEV-012 | TC-005–TC-007 |
-| FR-003 | 0.2.0 | DEV-013, DEV-014 | TC-008–TC-013 |
-| FR-004 | 0.2.0 | DEV-015, DEV-016 | TC-014–TC-018 |
+| FR-003 | 0.2.0 | DEV-013, DEV-014 | TC-008–TC-013, TC-179, TC-182, TC-184 |
+| FR-004 | 0.2.0 | DEV-015, DEV-016 | TC-014–TC-018, TC-179, TC-183, TC-184 |
 | FR-005 | 0.2.0 | DEV-017 | TC-019 |
 | FR-006 | 0.3.0 | DEV-024 | TC-020–TC-024 |
 | FR-007 | 0.3.0 | DEV-025 | TC-025–TC-028 |

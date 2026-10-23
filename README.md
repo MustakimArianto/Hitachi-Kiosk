@@ -2,7 +2,7 @@
 
 Android self-order kiosk app for iMin kiosks (Kotlin, Jetpack Compose, `minSdk 30`, portrait 1080 × 1920). Customers order and pay by QRIS or card (EDC); staff configure printers, payment and kiosk behaviour. It runs in lock-task mode as device owner.
 
-**Status: `0.1.0` Foundation.** The app builds, has the module structure, the design-system foundation, the API contract and fakes, and launches into a navigation skeleton where every screen is a labelled placeholder. Real screens arrive milestone by milestone ([`docs/dev-plan.md`](docs/dev-plan.md)).
+**Status: `0.2.0` Device activation & setup.** On top of the 0.1.0 foundation, the kiosk now goes from first launch to "bound to a merchant": the animated Splash with startup routing, Sign in (activation by serial number, token in encrypted storage) and Choose a restaurant (bind, Log out). Idle and the screens after it are still labelled placeholders until their milestones ([`docs/dev-plan.md`](docs/dev-plan.md)). The serial-number source still needs its on-device spike ([ADR-0002](docs/adr/0002-device-serial.md)).
 
 | Start here | |
 |---|---|
@@ -41,11 +41,11 @@ The debug APK is `app/build/outputs/apk/debug/app-debug.apk`. A release build (`
 
 | Module | Holds |
 |---|---|
-| `:app` | `MainActivity`, navigation graph and placeholder screens, Hilt wiring; `src/debug`: Developer options |
+| `:app` | `MainActivity`, navigation graph, `StartupRouter`, the feature screens (`splash`, `activation`, `merchant`) and the remaining placeholders, Hilt wiring; `src/debug`: Developer options |
 | `:core:designsystem` | "Linen & Paprika" tokens, `DesignUnit` (`Int.dpx` / `Int.spx`), `DesignFrame`, Schibsted Grotesk, motion specs, `LocalReduceMotion` |
 | `:core:domain` | Pure Kotlin/JVM: models for E1–E14, `Outcome` / `DomainError`, `retryWithBackoff`, ports (`BackendApi`, `PaymentGateway`, `CardTerminal`, `PrinterDriver`, `DeviceIdentityProvider`, `ConnectivityMonitor`, `Clock`, `IdGenerator`), `KioskLog` |
-| `:core:data` | Retrofit `KioskApi`, DTOs and mappers, interceptors, error mapping, `DefaultBackendApi` |
-| `:core:hardware` | Device identity, printers and card terminal (empty until DEV-012) |
+| `:core:data` | Retrofit `KioskApi`, DTOs and mappers, interceptors, error mapping, `DefaultBackendApi`; the device state (`DeviceSession`, encrypted `secure.pb`, `device.preferences_pb`) and the activation, merchant and catalog repositories |
+| `:core:hardware` | Device identity (`IminDeviceIdentityProvider` + serial cache); printers and card terminal from 0.5.0/0.6.0 |
 | `:core:testing` | Scriptable fakes for every port, `SampleData`, API fixtures, test rules. Test and debug builds only. |
 | `build-logic` | Convention plugins `kiosk.*` and the `verify` gate |
 
@@ -57,9 +57,22 @@ Every external system sits behind a domain interface with a scriptable fake in `
 
 - **Backend**: *In-app fakes* (default, no network), *Mock server* (Prism on the host at `http://10.0.2.2:4010/`), or *Real backend* (the build's environment).
 - **Scenario**: the mock scenarios of [api-spec §4](docs/api/api-spec.md#4-mock-data-checklist) (`activate_unregistered`, `order_price_changed`, `card_declined`, …). Fakes apply all of them; the mock server applies those Prism can express through a `Prefer` header.
+- **Serial number source**: *Fake* (default, `IMN24K0003118`, so emulators can sign in), *Fake: unavailable*, *Fake: slow (5 s)*, or *Real device*.
+- **Serial number diagnostics**: what every serial-number source returns on this device, the cached value, device-owner and permission state, and the window size and orientation, with Read again, Clear serial cache, Copy and Share. This is the DEV-012 spike; the procedure is in [ADR-0002](docs/adr/0002-device-serial.md). Each row is also logged: `adb logcat -d | grep serial_spike`.
 - **Build** information: version, build type, environment and backend URL.
 
 Release builds contain none of this (`scripts/check-release-apk.sh`).
+
+## First run (journey J5)
+
+With the debug build on the in-app fakes (the default):
+
+1. Launch the app. The Splash animation runs for 3.9 s, then routes by the stored state: Sign in on a fresh install.
+2. **Sign in** reads the serial number, then *Log in* activates the kiosk (E1). The device token is stored encrypted (Tink + Android Keystore); nothing else is entered.
+3. **Choose a restaurant** lists the merchants (E2). Tap *Urban Grill*: the kiosk binds it (E3), downloads its config and menu (E5, E6) and opens Idle (still a placeholder in 0.2.0).
+4. Restart the app: a bound kiosk goes straight to Idle. *Log out* on Choose a restaurant forgets the activation and returns to Sign in.
+
+Other first-run states come from the Developer options scenario: `activate_unregistered` (journey J6: "This kiosk isn't registered yet" with the serial number and *Try again*), `activate_disabled`, `slow_network`, `merchants_empty`, `merchant_closed` and `menu_download_failed`. The serial-number source setting covers "Can't read this device's serial number".
 
 Start the mock server from the repository root:
 
