@@ -1,0 +1,1 @@
+{ "code": "PAYMENT_NOT_CANCELLABLE", "message": "Payment already completed.", "details": { "status": "PAID" } }

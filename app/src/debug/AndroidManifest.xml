@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Debug only (DEV-009). Release builds must not contain this activity (scripts/check-release-apk.sh). -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+    <application>
+        <activity
+            android:name="com.hitachi.kiosk.debug.DeveloperOptionsActivity"
+            android:exported="false"
+            android:label="@string/dev_options_title"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.Kiosk"
+            tools:ignore="DiscouragedApi,LockedOrientationActivity" />
+    </application>
+</manifest>

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Window and launcher colors only. Compose reads every color from KioskTheme (PRD §11.1). -->
+    <color name="kiosk_linen">#FAF8F5</color>
+    <color name="kiosk_ink">#171513</color>
+    <color name="kiosk_paprika">#C8552B</color>
+</resources>

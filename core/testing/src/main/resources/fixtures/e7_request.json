@@ -1,0 +1,35 @@
+{
+  "merchantId": "mer_urbangrill",
+  "orderType": "DINE_IN",
+  "language": "en",
+  "menuVersion": "menu-118",
+  "configVersion": "cfg-42",
+  "roundingStep": 0,
+  "lines": [
+    {
+      "lineId": "l1",
+      "kind": "PRODUCT",
+      "productId": "b2",
+      "quantity": 1,
+      "selections": [
+        { "groupId": "mg_b2_size", "optionId": "opt_b2_regular" },
+        { "groupId": "mg_meal_upgrade", "optionId": "opt_make_meal" },
+        { "groupId": "mg_b2_ingredients", "optionId": "ing_cheddar", "level": "EXTRA" },
+        { "groupId": "mg_b2_ingredients", "optionId": "ing_onion", "level": "NONE" }
+      ],
+      "unitPrice": 75000,
+      "lineTotal": 75000
+    },
+    { "lineId": "l2", "kind": "PRODUCT", "productId": "c1", "quantity": 1, "selections": [], "unitPrice": 38000, "lineTotal": 38000 },
+    { "lineId": "l3", "kind": "PRODUCT", "productId": "s1", "quantity": 1, "selections": [ { "groupId": "mg_fries_size", "optionId": "opt_large" } ], "unitPrice": 22000, "lineTotal": 22000 },
+    { "lineId": "l4", "kind": "PRODUCT", "productId": "d1", "quantity": 2, "selections": [ { "groupId": "mg_ice", "optionId": "opt_ice_less" } ], "unitPrice": 16000, "lineTotal": 32000 }
+  ],
+  "clientTotals": {
+    "subtotal": 167000,
+    "discount": 10000,
+    "promoId": "promo_10k_over_100k",
+    "tax": 15700,
+    "rounding": 0,
+    "total": 172700
+  }
+}

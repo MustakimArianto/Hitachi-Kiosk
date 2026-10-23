@@ -1,0 +1,17 @@
+{
+  "merchants": [
+    {
+      "id": "mer_urbangrill",
+      "name": "Urban Grill",
+      "cuisine": { "en": "Burgers & grill", "id": "Burger & panggangan" },
+      "logoUrl": "https://cdn.example/mer_urbangrill/logo.png",
+      "photoUrl": "https://cdn.example/mer_urbangrill/cover.jpg",
+      "status": "live",
+      "isOpen": true
+    },
+    { "id": "mer_bellapasta", "name": "Bella Pasta",  "cuisine": { "en": "Italian kitchen",        "id": "Dapur Italia" },        "logoUrl": null, "photoUrl": null, "status": "coming_soon", "isOpen": false },
+    { "id": "mer_sakura",     "name": "Sakura Ramen", "cuisine": { "en": "Japanese noodles",       "id": "Mi Jepang" },           "logoUrl": null, "photoUrl": null, "status": "coming_soon", "isOpen": false },
+    { "id": "mer_tacoloco",   "name": "Taco Loco",    "cuisine": { "en": "Mexican street food",    "id": "Jajanan Meksiko" },     "logoUrl": null, "photoUrl": null, "status": "coming_soon", "isOpen": false },
+    { "id": "mer_freshbowl",  "name": "Fresh Bowl",   "cuisine": { "en": "Salads & healthy bowls", "id": "Salad & mangkuk sehat" }, "logoUrl": null, "photoUrl": null, "status": "coming_soon", "isOpen": false }
+  ]
+}

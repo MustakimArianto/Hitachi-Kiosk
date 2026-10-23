@@ -1,0 +1,5 @@
+{
+  "code": "PRICE_CHANGED",
+  "message": "Prices have changed since the menu was loaded.",
+  "details": { }
+}

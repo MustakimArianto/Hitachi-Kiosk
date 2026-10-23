@@ -1,0 +1,10 @@
+{
+  "paymentId": "pay_C7m2",
+  "method": "CARD",
+  "status": "PENDING",
+  "amount": 172700,
+  "terminalRef": "TRX-20261022-000247",
+  "terminal": { "tid": "TID 0003 1182", "connection": "USB" },
+  "timeoutSeconds": 90,
+  "createdAt": "2026-10-22T07:15:31Z"
+}

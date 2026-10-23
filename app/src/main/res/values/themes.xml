@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- System splash in linen that hands straight to the Compose splash (technical-design §4.2). -->
+    <style name="Theme.Kiosk.Starting" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/kiosk_linen</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_splash_blank</item>
+        <item name="postSplashScreenTheme">@style/Theme.Kiosk</item>
+    </style>
+
+    <style name="Theme.Kiosk" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/kiosk_linen</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+    </style>
+</resources>

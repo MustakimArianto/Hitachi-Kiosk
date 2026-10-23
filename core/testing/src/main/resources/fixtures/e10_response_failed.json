@@ -1,0 +1,1 @@
+{ "paymentId": "pay_C7m2", "method": "CARD", "status": "FAILED", "amount": 172700, "reason": "DECLINED", "message": { "en": "Your bank declined the card.", "id": "Bank Anda menolak kartu." } }

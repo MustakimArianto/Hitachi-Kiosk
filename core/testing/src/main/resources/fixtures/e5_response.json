@@ -1,0 +1,50 @@
+{
+  "configVersion": "cfg-42",
+  "merchantId": "mer_urbangrill",
+  "mode": "SINGLE",
+  "brandName": "Urban Grill",
+  "accentColor": "#C8552B",
+  "logoUrl": "https://cdn.example/mer_urbangrill/logo.png",
+  "heroPhotoUrl": "https://cdn.example/mer_urbangrill/hero.jpg",
+  "isOpen": true,
+  "currency": "IDR",
+  "tax": {
+    "label": { "en": "Restaurant tax (PB1 10%)", "id": "Pajak restoran (PB1 10%)" },
+    "rateBasisPoints": 1000,
+    "inclusive": false
+  },
+  "rounding": { "allowedSteps": [0, 100, 500], "default": 0, "mode": "UP" },
+  "promos": [
+    {
+      "id": "promo_10k_over_100k",
+      "type": "THRESHOLD_FIXED",
+      "threshold": 100000,
+      "amount": 10000,
+      "label": { "en": "Rp 10.000 off over Rp 100.000", "id": "Potongan Rp 10.000 untuk belanja di atas Rp 100.000" }
+    }
+  ],
+  "orderTypes": ["DINE_IN", "TAKEAWAY"],
+  "paymentMethods": [
+    { "method": "QRIS", "enabled": true, "qrisMerchantIdMasked": "ID10 •••• 4721", "qrExpirySecondsAllowed": [180, 300, 600], "qrExpirySecondsDefault": 300 },
+    { "method": "CARD", "enabled": true, "terminal": { "tid": "TID 0003 1182", "connection": "USB" } }
+  ],
+  "staffPin": {
+    "algorithm": "PBKDF2WithHmacSHA256",
+    "iterations": 120000,
+    "salt": "b64:3q2+7w==",
+    "hash": "b64:8Jw3k1m0…",
+    "version": 3
+  },
+  "receipt": {
+    "address": "Jl. Sudirman No. 1, Jakarta",
+    "npwp": null,
+    "defaultFooter": { "en": "Thank you for dining with us!", "id": "Terima kasih telah makan bersama kami!" }
+  },
+  "upsell": { "categoryIds": ["cat_sides", "cat_desserts"], "maxSuggestions": 4 },
+  "budgetPlanner": { "enabled": true, "overCapPercent": 10, "maxGroupSize": 10, "quickBudgets": [50000, 100000, 150000, 200000] },
+  "idlePromos": [
+    { "imageUrl": "https://cdn.example/mer_urbangrill/idle1.jpg" },
+    { "imageUrl": "https://cdn.example/mer_urbangrill/idle2.jpg" },
+    { "imageUrl": "https://cdn.example/mer_urbangrill/idle3.jpg" }
+  ]
+}

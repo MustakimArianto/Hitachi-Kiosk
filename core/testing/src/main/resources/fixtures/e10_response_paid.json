@@ -1,0 +1,10 @@
+{
+  "paymentId": "pay_Q1x8",
+  "method": "QRIS",
+  "status": "PAID",
+  "amount": 172700,
+  "paidAt": "2026-10-22T07:16:02Z",
+  "reference": "QR-8812-4471-0091",
+  "issuer": "GoPay",
+  "order": { "orderId": "ord_7Hq2k9", "orderNumber": "A247", "status": "PAID" }
+}

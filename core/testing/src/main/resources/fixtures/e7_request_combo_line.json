@@ -1,0 +1,3 @@
+{ "lineId": "l5", "kind": "COMBO", "comboId": "combo_burger", "quantity": 1,
+  "comboSelections": { "sideId": "cs_cheese", "drinkId": "cd_coffee", "size": "LARGE" },
+  "unitPrice": 74000, "lineTotal": 74000 }

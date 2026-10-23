@@ -1,0 +1,177 @@
+{
+  "menuVersion": "menu-118",
+  "categories": [
+    { "id": "cat_burgers",  "name": { "en": "Burgers",    "id": "Burger" },      "sort": 1, "tone": "#E9DED0" },
+    { "id": "cat_chicken",  "name": { "en": "Chicken",    "id": "Ayam" },        "sort": 2, "tone": "#E3D4C2" },
+    { "id": "cat_bowls",    "name": { "en": "Rice bowls", "id": "Nasi mangkuk" }, "sort": 3, "tone": "#EADCCB" },
+    { "id": "cat_sides",    "name": { "en": "Sides",      "id": "Pendamping" },  "sort": 5, "tone": "#E6DCD3" },
+    { "id": "cat_drinks",   "name": { "en": "Drinks",     "id": "Minuman" },     "sort": 6, "tone": "#DFE3DC" },
+    { "id": "cat_desserts", "name": { "en": "Desserts",   "id": "Pencuci mulut" }, "sort": 7, "tone": "#EADCCB" }
+  ],
+  "combosCategory": { "name": { "en": "Meals", "id": "Paket" }, "sort": 4 },
+  "featuredProductIds": ["b2", "c1", "r1", "d1"],
+  "promoBanners": [
+    { "id": "pb1", "tag": { "en": "New", "id": "Baru" },             "title": { "en": "Smoky Double", "id": "Smoky Double" }, "priceText": { "en": "Rp 52.000", "id": "Rp 52.000" },                 "imageUrl": null, "target": { "type": "PRODUCT", "id": "b2" } },
+    { "id": "pb2", "tag": { "en": "Meal deal", "id": "Paket hemat" }, "title": { "en": "Burger Meal", "id": "Paket Burger" },   "priceText": { "en": "Only Rp 56.000", "id": "Hanya Rp 56.000" },      "imageUrl": null, "target": { "type": "COMBO", "id": "combo_burger" } },
+    { "id": "pb3", "tag": { "en": "Share it", "id": "Untuk berbagi" }, "title": { "en": "Family Bucket", "id": "Family Bucket" }, "priceText": { "en": "8 pc · Rp 129.000", "id": "8 pcs · Rp 129.000" }, "imageUrl": null, "target": { "type": "PRODUCT", "id": "c4" } }
+  ],
+  "products": [
+    { "id": "b1", "categoryId": "cat_burgers", "name": { "en": "Classic Cheeseburger", "id": "Cheeseburger Klasik" }, "description": null, "price": 38000, "kcal": 540, "badge": null, "tags": null, "imageUrl": null, "available": true, "modifierGroupIds": [], "role": "MAIN", "kidFriendly": true, "servesAdults": 1, "shareable": false, "plannerWeight": 0 },
+    {
+      "id": "b2",
+      "categoryId": "cat_burgers",
+      "name": { "en": "Smoky Double Burger", "id": "Smoky Double Burger" },
+      "description": { "en": "Two flame-grilled beef patties, smoked cheddar, pickles, onion and smoky house sauce on a toasted sesame bun.", "id": "Dua patty sapi panggang, keju cheddar asap, acar, bawang, dan saus asap khas di roti wijen panggang." },
+      "price": 52000,
+      "kcal": 780,
+      "badge": { "type": "NEW", "label": { "en": "New", "id": "Baru" } },
+      "tags": { "en": "Beef · Contains gluten, dairy", "id": "Sapi · Mengandung gluten, susu" },
+      "imageUrl": null,
+      "available": true,
+      "modifierGroupIds": ["mg_b2_size", "mg_meal_upgrade", "mg_b2_ingredients", "mg_burger_extras"],
+      "role": "MAIN",
+      "kidFriendly": false,
+      "servesAdults": 1,
+      "shareable": false,
+      "plannerWeight": 5
+    },
+    { "id": "b3", "categoryId": "cat_burgers", "name": { "en": "Hot Honey Chicken Burger", "id": "Burger Ayam Madu Pedas" }, "description": null, "price": 42000, "kcal": 620, "badge": { "type": "SPICY", "label": { "en": "Spicy", "id": "Pedas" } }, "tags": null, "imageUrl": null, "available": true, "modifierGroupIds": [], "role": "MAIN", "kidFriendly": false, "servesAdults": 1, "shareable": false, "plannerWeight": 0 },
+    { "id": "b4", "categoryId": "cat_burgers", "name": { "en": "BBQ Beef Bacon Burger", "id": "Burger Beef Bacon BBQ" }, "description": null, "price": 45000, "kcal": 710, "badge": null, "tags": null, "imageUrl": null, "available": true, "modifierGroupIds": [], "role": "MAIN", "kidFriendly": false, "servesAdults": 1, "shareable": false, "plannerWeight": 0 },
+    { "id": "c1", "categoryId": "cat_chicken", "name": { "en": "Crispy Chicken (2 pc)", "id": "Ayam Krispi (2 pcs)" }, "description": { "en": "Original recipe", "id": "Resep original" }, "price": 38000, "kcal": 560, "badge": { "type": "BEST_SELLER", "label": { "en": "Best seller", "id": "Terlaris" } }, "tags": null, "imageUrl": null, "available": true, "modifierGroupIds": [], "role": "MAIN", "kidFriendly": false, "servesAdults": 1, "shareable": false, "plannerWeight": 0 },
+    { "id": "c2", "categoryId": "cat_chicken", "name": { "en": "Spicy Wings (6 pc)", "id": "Sayap Pedas (6 pcs)" }, "description": null, "price": 36000, "kcal": 480, "badge": { "type": "SPICY", "label": { "en": "Spicy", "id": "Pedas" } }, "tags": null, "imageUrl": null, "available": true, "modifierGroupIds": [], "role": "MAIN", "kidFriendly": false, "servesAdults": 1, "shareable": false, "plannerWeight": 0 },
+    { "id": "c3", "categoryId": "cat_chicken", "name": { "en": "Chicken Nuggets (9 pc)", "id": "Nugget Ayam (9 pcs)" }, "description": null, "price": 32000, "kcal": 430, "badge": null, "tags": null, "imageUrl": null, "available": true, "modifierGroupIds": [], "role": "MAIN", "kidFriendly": true, "servesAdults": 1, "shareable": false, "plannerWeight": 0 },
+    { "id": "c4", "categoryId": "cat_chicken", "name": { "en": "Family Bucket (8 pc)", "id": "Family Bucket (8 pcs)" }, "description": null, "price": 129000, "kcal": 2240, "badge": { "type": "SHARE", "label": { "en": "Share", "id": "Untuk berbagi" } }, "tags": null, "imageUrl": null, "available": true, "modifierGroupIds": ["mg_bucket_flavour"], "role": "MAIN", "kidFriendly": false, "servesAdults": 4, "shareable": true, "plannerWeight": 0 },
+    { "id": "r1", "categoryId": "cat_bowls", "name": { "en": "Sambal Matah Rice Bowl", "id": "Nasi Mangkuk Sambal Matah" }, "description": null, "price": 34000, "kcal": 610, "badge": { "type": "LOCAL", "label": { "en": "Local", "id": "Lokal" } }, "tags": null, "imageUrl": null, "available": true, "modifierGroupIds": ["mg_spice_level"], "role": "MAIN", "kidFriendly": false, "servesAdults": 1, "shareable": false, "plannerWeight": 0 },
+    { "id": "r2", "categoryId": "cat_bowls", "name": { "en": "Teriyaki Chicken Bowl", "id": "Nasi Mangkuk Ayam Teriyaki" }, "description": null, "price": 32000, "kcal": 590, "badge": null, "tags": null, "imageUrl": null, "available": true, "modifierGroupIds": [], "role": "MAIN", "kidFriendly": true, "servesAdults": 1, "shareable": false, "plannerWeight": 0 },
+    { "id": "r3", "categoryId": "cat_bowls", "name": { "en": "Ayam Geprek Bowl", "id": "Nasi Mangkuk Ayam Geprek" }, "description": null, "price": 30000, "kcal": 640, "badge": { "type": "SPICY", "label": { "en": "Spicy", "id": "Pedas" } }, "tags": null, "imageUrl": null, "available": true, "modifierGroupIds": [], "role": "MAIN", "kidFriendly": false, "servesAdults": 1, "shareable": false, "plannerWeight": 0 },
+    { "id": "r4", "categoryId": "cat_bowls", "name": { "en": "Black Pepper Beef Bowl", "id": "Nasi Mangkuk Sapi Lada Hitam" }, "description": null, "price": 39000, "kcal": 660, "badge": null, "tags": null, "imageUrl": null, "available": true, "modifierGroupIds": [], "role": "MAIN", "kidFriendly": false, "servesAdults": 1, "shareable": false, "plannerWeight": 0 },
+    { "id": "s1", "categoryId": "cat_sides", "name": { "en": "French Fries", "id": "Kentang Goreng" }, "description": { "en": "Sea salt", "id": "Garam laut" }, "price": 18000, "kcal": 320, "badge": null, "tags": null, "imageUrl": null, "available": true, "modifierGroupIds": ["mg_fries_size"], "role": "SIDE", "kidFriendly": true, "servesAdults": 1, "shareable": true, "plannerWeight": 0 },
+    { "id": "s2", "categoryId": "cat_sides", "name": { "en": "Cheese Fries", "id": "Kentang Keju" }, "description": { "en": "Melted cheddar", "id": "Cheddar leleh" }, "price": 26000, "kcal": 450, "badge": null, "tags": null, "imageUrl": null, "available": true, "modifierGroupIds": [], "role": "SIDE", "kidFriendly": false, "servesAdults": 1, "shareable": false, "plannerWeight": 0 },
+    { "id": "s3", "categoryId": "cat_sides", "name": { "en": "Chicken Nuggets (4 pc)", "id": "Nugget Ayam (4 pcs)" }, "description": null, "price": 16000, "kcal": 190, "badge": null, "tags": null, "imageUrl": null, "available": true, "modifierGroupIds": [], "role": "SIDE", "kidFriendly": true, "servesAdults": 1, "shareable": false, "plannerWeight": 0 },
+    { "id": "s4", "categoryId": "cat_sides", "name": { "en": "Spicy Wings (3 pc)", "id": "Sayap Pedas (3 pcs)" }, "description": null, "price": 19000, "kcal": 240, "badge": null, "tags": null, "imageUrl": null, "available": true, "modifierGroupIds": [], "role": "SIDE", "kidFriendly": false, "servesAdults": 1, "shareable": false, "plannerWeight": 0 },
+    { "id": "d1", "categoryId": "cat_drinks", "name": { "en": "Iced Lychee Tea", "id": "Es Teh Leci" }, "description": null, "price": 16000, "kcal": 140, "badge": null, "tags": null, "imageUrl": null, "available": true, "modifierGroupIds": ["mg_ice"], "role": "DRINK", "kidFriendly": false, "servesAdults": 1, "shareable": false, "plannerWeight": 0 },
+    { "id": "d2", "categoryId": "cat_drinks", "name": { "en": "Cola (Regular)", "id": "Cola (Reguler)" }, "description": null, "price": 14000, "kcal": 150, "badge": null, "tags": null, "imageUrl": null, "available": true, "modifierGroupIds": ["mg_cola_type"], "role": "DRINK", "kidFriendly": true, "servesAdults": 1, "shareable": false, "plannerWeight": 0 },
+    { "id": "d3", "categoryId": "cat_drinks", "name": { "en": "Iced Coffee Latte", "id": "Es Kopi Latte" }, "description": null, "price": 18000, "kcal": 180, "badge": null, "tags": null, "imageUrl": null, "available": true, "modifierGroupIds": [], "role": "DRINK", "kidFriendly": false, "servesAdults": 1, "shareable": false, "plannerWeight": 0 },
+    { "id": "d4", "categoryId": "cat_drinks", "name": { "en": "Mineral Water 600 ml", "id": "Air Mineral 600 ml" }, "description": null, "price": 8000, "kcal": 0, "badge": null, "tags": null, "imageUrl": null, "available": true, "modifierGroupIds": [], "role": "DRINK", "kidFriendly": true, "servesAdults": 1, "shareable": false, "plannerWeight": 0 },
+    { "id": "e1", "categoryId": "cat_desserts", "name": { "en": "Caramel Sundae", "id": "Sundae Karamel" }, "description": { "en": "Soft serve", "id": "Es krim lembut" }, "price": 15000, "kcal": 330, "badge": null, "tags": null, "imageUrl": null, "available": true, "modifierGroupIds": [], "role": "DESSERT", "kidFriendly": true, "servesAdults": 1, "shareable": false, "plannerWeight": 0 },
+    { "id": "e2", "categoryId": "cat_desserts", "name": { "en": "Chocolate Sundae", "id": "Sundae Cokelat" }, "description": null, "price": 15000, "kcal": 350, "badge": null, "tags": null, "imageUrl": null, "available": true, "modifierGroupIds": [], "role": "DESSERT", "kidFriendly": true, "servesAdults": 1, "shareable": false, "plannerWeight": 0 },
+    { "id": "e3", "categoryId": "cat_desserts", "name": { "en": "Pandan Soft Serve", "id": "Es Krim Pandan" }, "description": { "en": "Local favourite", "id": "Favorit lokal" }, "price": 12000, "kcal": 210, "badge": { "type": "LOCAL", "label": { "en": "Local", "id": "Lokal" } }, "tags": null, "imageUrl": null, "available": true, "modifierGroupIds": [], "role": "DESSERT", "kidFriendly": true, "servesAdults": 1, "shareable": false, "plannerWeight": 0 }
+  ],
+  "modifierGroups": [
+    {
+      "id": "mg_b2_size",
+      "name": { "en": "Choose a size", "id": "Pilih ukuran" },
+      "type": "SINGLE",
+      "required": true,
+      "min": 1, "max": 1,
+      "options": [
+        { "id": "opt_b2_regular", "name": { "en": "Regular", "id": "Reguler" }, "description": { "en": "Two patties", "id": "Dua patty" }, "priceDelta": 0, "default": false, "imageUrl": null },
+        { "id": "opt_b2_large", "name": { "en": "Large", "id": "Besar" }, "description": { "en": "Three patties", "id": "Tiga patty" }, "priceDelta": 6000, "default": false, "imageUrl": null }
+      ]
+    },
+    {
+      "id": "mg_meal_upgrade",
+      "name": { "en": "Make it a meal?", "id": "Jadikan paket?" },
+      "type": "SINGLE",
+      "required": true,
+      "min": 1, "max": 1,
+      "options": [
+        { "id": "opt_burger_only", "name": { "en": "Burger only", "id": "Burger saja" }, "description": { "en": "Just the burger", "id": "Hanya burger" }, "priceDelta": 0, "default": true, "imageUrl": null },
+        { "id": "opt_make_meal", "name": { "en": "Make it a meal", "id": "Jadikan paket" }, "description": { "en": "Adds fries & a drink", "id": "Tambah kentang & minuman" }, "priceDelta": 18000, "default": false, "imageUrl": null }
+      ]
+    },
+    {
+      "id": "mg_b2_ingredients",
+      "name": { "en": "Customize", "id": "Sesuaikan" },
+      "type": "LEVEL",
+      "required": false,
+      "options": [
+        { "id": "ing_cheddar", "name": { "en": "Smoked cheddar", "id": "Cheddar asap" }, "note": { "en": "Extra +Rp 5.000", "id": "Ekstra +Rp 5.000" }, "levels": [ { "level": "NONE", "priceDelta": 0 }, { "level": "REGULAR", "priceDelta": 0 }, { "level": "EXTRA", "priceDelta": 5000 } ], "defaultLevel": "REGULAR" },
+        { "id": "ing_onion",   "name": { "en": "Onion", "id": "Bawang" },            "note": { "en": "Fresh, diced", "id": "Segar, dipotong dadu" }, "levels": [ { "level": "NONE", "priceDelta": 0 }, { "level": "REGULAR", "priceDelta": 0 }, { "level": "EXTRA", "priceDelta": 0 } ], "defaultLevel": "REGULAR" },
+        { "id": "ing_pickles", "name": { "en": "Pickles", "id": "Acar" },            "note": { "en": "Dill", "id": "Dill" },                         "levels": [ { "level": "NONE", "priceDelta": 0 }, { "level": "REGULAR", "priceDelta": 0 }, { "level": "EXTRA", "priceDelta": 0 } ], "defaultLevel": "REGULAR" },
+        { "id": "ing_sauce",   "name": { "en": "Smoky sauce", "id": "Saus asap" },   "note": { "en": "House recipe", "id": "Resep khas" },           "levels": [ { "level": "NONE", "priceDelta": 0 }, { "level": "REGULAR", "priceDelta": 0 }, { "level": "EXTRA", "priceDelta": 0 } ], "defaultLevel": "REGULAR" }
+      ]
+    },
+    {
+      "id": "mg_burger_extras",
+      "name": { "en": "Add extras", "id": "Tambahan" },
+      "type": "MULTI",
+      "required": false,
+      "min": 0, "max": 3,
+      "options": [
+        { "id": "ext_bacon", "name": { "en": "Beef bacon", "id": "Beef bacon" }, "priceDelta": 8000, "default": false, "imageUrl": null },
+        { "id": "ext_egg",   "name": { "en": "Fried egg", "id": "Telur goreng" }, "priceDelta": 6000, "default": false, "imageUrl": null },
+        { "id": "ext_jala",  "name": { "en": "Jalapeños", "id": "Jalapeño" },     "priceDelta": 4000, "default": false, "imageUrl": null }
+      ]
+    },
+    {
+      "id": "mg_fries_size", "name": { "en": "Size", "id": "Ukuran" }, "type": "SINGLE", "required": true, "min": 1, "max": 1,
+      "options": [
+        { "id": "opt_regular", "name": { "en": "Regular", "id": "Reguler" }, "priceDelta": 0, "default": true },
+        { "id": "opt_large",   "name": { "en": "Large", "id": "Besar" },     "priceDelta": 4000, "default": false }
+      ]
+    },
+    {
+      "id": "mg_ice", "name": { "en": "Ice", "id": "Es" }, "type": "SINGLE", "required": true, "min": 1, "max": 1,
+      "options": [
+        { "id": "opt_ice_regular", "name": { "en": "Regular ice", "id": "Es normal" }, "priceDelta": 0, "default": true },
+        { "id": "opt_ice_less",    "name": { "en": "Less ice", "id": "Sedikit es" },   "priceDelta": 0, "default": false }
+      ]
+    },
+    {
+      "id": "mg_bucket_flavour", "name": { "en": "Choose a flavour", "id": "Pilih rasa" }, "type": "SINGLE", "required": true, "min": 1, "max": 1,
+      "options": [
+        { "id": "opt_flavour_original", "name": { "en": "Original", "id": "Original" }, "priceDelta": 0, "default": false },
+        { "id": "opt_flavour_spicy", "name": { "en": "Spicy", "id": "Pedas" }, "priceDelta": 0, "default": false },
+        { "id": "opt_flavour_half", "name": { "en": "Half & half", "id": "Setengah-setengah" }, "priceDelta": 0, "default": false }
+      ]
+    },
+    {
+      "id": "mg_spice_level", "name": { "en": "Spice level", "id": "Tingkat pedas" }, "type": "SINGLE", "required": true, "min": 1, "max": 1,
+      "options": [
+        { "id": "opt_spice_mild", "name": { "en": "Mild", "id": "Tidak pedas" }, "priceDelta": 0, "default": false },
+        { "id": "opt_spice_medium", "name": { "en": "Medium", "id": "Sedang" }, "priceDelta": 0, "default": false },
+        { "id": "opt_spice_hot", "name": { "en": "Hot", "id": "Pedas" }, "priceDelta": 0, "default": false }
+      ]
+    },
+    {
+      "id": "mg_cola_type", "name": { "en": "Choose a cola", "id": "Pilih cola" }, "type": "SINGLE", "required": true, "min": 1, "max": 1,
+      "options": [
+        { "id": "opt_cola_classic", "name": { "en": "Classic", "id": "Klasik" }, "priceDelta": 0, "default": false },
+        { "id": "opt_cola_zero", "name": { "en": "Zero sugar", "id": "Tanpa gula" }, "priceDelta": 0, "default": false }
+      ]
+    }
+  ],
+  "combos": [
+    {
+      "id": "combo_burger",
+      "name": { "en": "Cheeseburger Meal", "id": "Paket Cheeseburger" },
+      "shortName": { "en": "Cheeseburger Meal", "id": "Paket Cheeseburger" },
+      "includes": { "en": "Cheeseburger, side, drink", "id": "Cheeseburger, pendamping, minuman" },
+      "price": 56000,
+      "separatePrice": 70000,
+      "serves": 1,
+      "imageUrl": null,
+      "tone": "#E9DED0",
+      "available": true
+    },
+    { "id": "combo_chicken", "name": { "en": "Crispy Chicken Meal", "id": "Paket Ayam Krispi" }, "shortName": { "en": "Chicken Meal", "id": "Paket Ayam" }, "includes": { "en": "2 pc chicken, side, drink", "id": "2 pcs ayam, pendamping, minuman" }, "price": 59000, "separatePrice": 70000, "serves": 1, "imageUrl": null, "tone": "#E3D4C2", "available": true },
+    { "id": "combo_bowl", "name": { "en": "Rice Bowl Combo", "id": "Paket Nasi Mangkuk" }, "shortName": { "en": "Rice Bowl Combo", "id": "Paket Nasi Mangkuk" }, "includes": { "en": "Sambal matah bowl, side, drink", "id": "Nasi sambal matah, pendamping, minuman" }, "price": 52000, "separatePrice": 64000, "serves": 1, "imageUrl": null, "tone": "#EADCCB", "available": true },
+    { "id": "combo_feast", "name": { "en": "Feast for Two", "id": "Paket Berdua" }, "shortName": { "en": "Feast for Two", "id": "Paket Berdua" }, "includes": { "en": "2 burgers, 2 sides, 2 drinks", "id": "2 burger, 2 pendamping, 2 minuman" }, "price": 109000, "separatePrice": 140000, "serves": 2, "imageUrl": null, "tone": "#E6DCD3", "available": true }
+  ],
+  "comboSlots": {
+    "SIDE": [
+      { "id": "cs_fries",   "name": { "en": "Fries", "id": "Kentang goreng" },      "upcharge": 0,    "imageUrl": null },
+      { "id": "cs_cheese",  "name": { "en": "Cheese fries", "id": "Kentang keju" }, "upcharge": 8000, "imageUrl": null },
+      { "id": "cs_nuggets", "name": { "en": "Nuggets", "id": "Nugget" },            "upcharge": 4000, "imageUrl": null },
+      { "id": "cs_corn",    "name": { "en": "Corn cup", "id": "Jagung cup" },       "upcharge": 0,    "imageUrl": null }
+    ],
+    "DRINK": [
+      { "id": "cd_cola",   "name": { "en": "Cola", "id": "Cola" },             "upcharge": 0,    "imageUrl": null },
+      { "id": "cd_tea",    "name": { "en": "Lychee tea", "id": "Teh leci" },   "upcharge": 2000, "imageUrl": null },
+      { "id": "cd_coffee", "name": { "en": "Iced latte", "id": "Es latte" },   "upcharge": 4000, "imageUrl": null },
+      { "id": "cd_water",  "name": { "en": "Water", "id": "Air mineral" },     "upcharge": 0,    "imageUrl": null }
+    ],
+    "SIZE_LARGE_UPCHARGE": 6000
+  }
+}

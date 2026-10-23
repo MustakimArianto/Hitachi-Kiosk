@@ -1,0 +1,38 @@
+package com.hitachi.kiosk.core.designsystem.theme
+
+import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.ui.graphics.Color
+
+/**
+ * The color roles of PRD §11.1 (DEV-004). Light theme only (TR-DSP-05). [accent] comes from merchant config
+ * `accentColor` (A-38) through `KioskTheme(accent = …)` and equals [LocalAccent].
+ */
+@Immutable
+data class KioskColors(
+    val bg: Color = KioskPalette.Bg,
+    val surface: Color = KioskPalette.Surface,
+    val surfaceAlt: Color = KioskPalette.SurfaceAlt,
+    val ink: Color = KioskPalette.Ink,
+    val muted: Color = KioskPalette.Muted,
+    val line: Color = KioskPalette.Line,
+    val cardBorder: Color = KioskPalette.CardBorder,
+    val radioOff: Color = KioskPalette.RadioOff,
+    val success: Color = KioskPalette.Success,
+    val successBg: Color = KioskPalette.SuccessBg,
+    val successBgAlt: Color = KioskPalette.SuccessBgAlt,
+    val accent: Color = KioskPalette.AccentPaprika,
+    val dockMuted: Color = KioskPalette.DockMuted,
+    val dockMutedAlt: Color = KioskPalette.DockMutedAlt,
+    val dockTile: Color = KioskPalette.DockTile,
+    val dockTileBorder: Color = KioskPalette.DockTileBorder,
+    val dockDisabled: Color = KioskPalette.DockDisabled,
+    val dockDisabledText: Color = KioskPalette.DockDisabledText,
+    val floatingShadow: Color = KioskPalette.FloatingShadow,
+)
+
+/** The [KioskColors] of the current [KioskTheme] (DEV-004). */
+val LocalKioskColors = staticCompositionLocalOf { KioskColors() }
+
+/** The merchant accent color (A-38), set by [KioskTheme]. Defaults to [KioskPalette.AccentPaprika]. */
+val LocalAccent = staticCompositionLocalOf { KioskPalette.AccentPaprika }

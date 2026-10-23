@@ -1,0 +1,19 @@
+{
+  "deviceId": "dev_0003",
+  "deviceToken": "dvt_9f2c4a7e1b8d4f0aa3c6e2b17d5f9e01",
+  "tokenExpiresAt": null,
+  "kioskCode": "KSK-0003",
+  "kioskName": "Kiosk 3",
+  "boundMerchantId": null,
+  "merchants": [
+    {
+      "id": "mer_urbangrill",
+      "name": "Urban Grill",
+      "cuisine": { "en": "Burgers & grill", "id": "Burger & panggangan" },
+      "logoUrl": "https://cdn.example/mer_urbangrill/logo.png",
+      "photoUrl": "https://cdn.example/mer_urbangrill/cover.jpg",
+      "status": "live",
+      "isOpen": true
+    }
+  ]
+}

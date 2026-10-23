@@ -1,0 +1,114 @@
+# detekt for the verify gate (NFR-011). Builds on the default config (buildUponDefaultConfig = true);
+# only deviations are listed here.
+
+config:
+  validation: true
+  # compose-rules reads this key, but its bundled config.yml does not declare it.
+  excludes: 'Compose>CompositionLocalAllowlist>allowedCompositionLocals'
+
+naming:
+  FunctionNaming:
+    # Tests use backticked sentences (conventions §2); `test*` also covers testDebug and testRelease.
+    excludes: ['**/test*/**', '**/androidTest/**']
+    ignoreAnnotated: ['Composable']
+  TopLevelPropertyNaming:
+    constantPattern: '[A-Z][A-Za-z0-9_]*'
+  MatchingDeclarationName:
+    active: false
+
+complexity:
+  LongParameterList:
+    functionThreshold: 8
+    constructorThreshold: 12
+    ignoreDefaultParameters: true
+    ignoreDataClasses: true
+    ignoreAnnotated: ['Composable']
+  TooManyFunctions:
+    excludes: ['**/test*/**', '**/androidTest/**']
+    ignorePrivate: true
+    thresholdInInterfaces: 20
+    thresholdInClasses: 20
+    thresholdInFiles: 20
+  LongMethod:
+    ignoreAnnotated: ['Composable', 'Test']
+
+style:
+  ReturnCount:
+    max: 3
+    excludeGuardClauses: true
+  MagicNumber:
+    excludes: ['**/test*/**', '**/androidTest/**', '**/*.kts']
+    ignorePropertyDeclaration: true
+    ignoreCompanionObjectPropertyDeclaration: true
+    ignoreNamedArgument: true
+    ignoreEnums: true
+    ignoreAnnotated: ['Preview']
+  UnusedPrivateMember:
+    ignoreAnnotated: ['Preview']
+  ForbiddenComment:
+    active: true
+  MaxLineLength:
+    maxLineLength: 120
+    excludeCommentStatements: true
+
+# Compose rules (io.nlopez.compose.rules:detekt)
+Compose:
+  CompositionLocalAllowlist:
+    active: true
+    allowedCompositionLocals:
+      - LocalDesignScale
+      - LocalLargeText
+      - LocalReduceMotion
+      - LocalAccent
+      - LocalKioskColors
+      - LocalKioskTypography
+      - LocalKioskShapes
+      - LocalKioskSpacing
+  CompositionLocalNaming:
+    active: true
+  ContentEmitterReturningValues:
+    active: true
+  ContentTrailingLambda:
+    active: true
+  DefaultsVisibility:
+    active: true
+  LambdaParameterInRestartableEffect:
+    active: true
+  ModifierClickableOrder:
+    active: true
+  ModifierComposed:
+    active: true
+  ModifierMissing:
+    active: true
+  ModifierNaming:
+    active: true
+  ModifierNotUsedAtRoot:
+    active: true
+  ModifierReused:
+    active: true
+  ModifierWithoutDefault:
+    active: true
+  MultipleEmitters:
+    active: true
+  MutableParams:
+    active: true
+  MutableStateAutoboxing:
+    active: true
+  MutableStateParam:
+    active: true
+  ParameterNaming:
+    active: true
+  PreviewAnnotationNaming:
+    active: true
+  PreviewPublic:
+    active: true
+  RememberMissing:
+    active: true
+  RememberContentMissing:
+    active: true
+  UnstableCollections:
+    active: false # UiState lists are read-only and checked with compiler reports (technical-design §10.4)
+  ViewModelForwarding:
+    active: true
+  ViewModelInjection:
+    active: true

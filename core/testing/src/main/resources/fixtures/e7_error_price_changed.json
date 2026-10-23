@@ -1,0 +1,5 @@
+{
+  "code": "PRICE_CHANGED",
+  "message": "Prices have changed since the menu was loaded.",
+  "details": { "menuVersion": "menu-119", "configVersion": "cfg-42", "serverTotals": { "subtotal": 169000, "discount": 10000, "tax": 15900, "rounding": 0, "total": 174900 } }
+}

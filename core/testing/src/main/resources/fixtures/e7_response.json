@@ -1,0 +1,17 @@
+{
+  "orderId": "ord_7Hq2k9",
+  "orderNumber": "A247",
+  "status": "AWAITING_PAYMENT",
+  "createdAt": "2026-10-22T07:15:30Z",
+  "totals": {
+    "subtotal": 167000,
+    "discount": 10000,
+    "promoId": "promo_10k_over_100k",
+    "tax": 15700,
+    "rounding": 0,
+    "total": 172700
+  },
+  "lines": [
+    { "lineId": "l1", "description": { "en": "Fries · Cola · Extra cheddar · No onion", "id": "Kentang · Cola · Ekstra cheddar · Tanpa bawang" }, "lineTotal": 75000 }
+  ]
+}

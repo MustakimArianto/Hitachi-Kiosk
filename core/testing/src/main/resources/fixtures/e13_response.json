@@ -1,0 +1,3 @@
+{
+  "staffPin": { "algorithm": "PBKDF2WithHmacSHA256", "iterations": 120000, "salt": "b64:Zm9v", "hash": "b64:YmFy…", "version": 4 }
+}

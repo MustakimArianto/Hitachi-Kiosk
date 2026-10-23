@@ -1,0 +1,9 @@
+{
+  "status": "OK",
+  "serverTime": "2026-10-22T07:15:30Z",
+  "components": {
+    "api": "OK",
+    "database": "OK",
+    "paymentGateway": "OK"
+  }
+}

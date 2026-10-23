@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+# Optional local gate (D-31): runs ./gradlew verify before every push.
+# Install once with: git config core.hooksPath scripts/git-hooks
+set -euo pipefail
+cd "$(git rev-parse --show-toplevel)"
+echo "pre-push: running ./gradlew verify (skip with git push --no-verify)"
+./gradlew verify

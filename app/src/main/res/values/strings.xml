@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Hitachi Kiosk</string>
+
+    <!-- Navigation skeleton (DEV-010a). Each screen is a placeholder until its milestone builds it. -->
+    <string name="placeholder_caption">Placeholder screen</string>
+    <string name="placeholder_developer_mark">Brand mark</string>
+
+    <string name="screen_splash">Splash</string>
+    <string name="screen_sign_in">Sign in</string>
+    <string name="screen_merchants">Choose a restaurant</string>
+    <string name="screen_idle">Idle</string>
+    <string name="screen_order_type">Dine in or takeaway</string>
+    <string name="screen_menu">Menu</string>
+    <string name="screen_combo">Combos</string>
+    <string name="screen_item">Item</string>
+    <string name="screen_upsell">Anything on the side?</string>
+    <string name="screen_your_order">Your order</string>
+    <string name="screen_checkout">Checkout</string>
+    <string name="screen_complete">Transaction complete</string>
+    <string name="screen_still_there">Still there?</string>
+    <string name="screen_staff_pin">Staff PIN</string>
+    <string name="screen_settings_home">Settings</string>
+    <string name="screen_settings_printer">Receipt printer</string>
+    <string name="screen_settings_payment">Payment</string>
+    <string name="screen_settings_kiosk">Kiosk behaviour</string>
+    <string name="screen_settings_device">Device &amp; network</string>
+    <string name="screen_budget_plan">Budget Plan</string>
+    <string name="screen_change_pin">Change PIN</string>
+    <string name="budget_plan_step">Step %1$d: %2$s</string>
+    <string name="budget_plan_step_table">Your table</string>
+    <string name="budget_plan_step_plan">Your plan</string>
+
+    <!-- Edges of PRD §5.1 -->
+    <string name="nav_not_activated">Not activated</string>
+    <string name="nav_activated_no_merchant">Activated, no merchant</string>
+    <string name="nav_merchant_bound">Activated and bound</string>
+    <string name="nav_activation_ok">Activation OK</string>
+    <string name="nav_pick_merchant">Pick a live merchant</string>
+    <string name="nav_log_out">Log out</string>
+    <string name="nav_tap_anywhere">Tap anywhere</string>
+    <string name="nav_hold_staff_entry">Hold bottom right for 2 s</string>
+    <string name="nav_pick_order_type">Pick an order type</string>
+    <string name="nav_product_card">Product card</string>
+    <string name="nav_plan_by_budget">Plan by budget</string>
+    <string name="nav_meals">Meals</string>
+    <string name="nav_change_order_type">Change order type</string>
+    <string name="nav_cancel_order">Cancel</string>
+    <string name="nav_view_order_with_upsell">View order (Upsell not shown yet)</string>
+    <string name="nav_view_order">View order</string>
+    <string name="nav_keep_ordering">Keep ordering</string>
+    <string name="nav_back_to_menu">Menu</string>
+    <string name="nav_my_order">My order</string>
+    <string name="nav_see_plans">See plans</string>
+    <string name="nav_back">Back</string>
+    <string name="nav_add_plan">Add plan to order</string>
+    <string name="nav_continue_to_order">Continue to your order</string>
+    <string name="nav_add_more">Add more</string>
+    <string name="nav_pay">Pay</string>
+    <string name="nav_back_to_order">Back to order</string>
+    <string name="nav_paid">Paid</string>
+    <string name="nav_done">Done</string>
+    <string name="nav_pin_accepted">PIN accepted</string>
+    <string name="nav_exit_settings">Exit</string>
+    <string name="nav_change_pin">Change PIN</string>
+    <string name="nav_pin_updated">PIN updated</string>
+    <string name="nav_simulate_inactivity">Simulate inactivity</string>
+    <string name="nav_still_here">I\'m still here</string>
+    <string name="nav_no_response">No response</string>
+</resources>
