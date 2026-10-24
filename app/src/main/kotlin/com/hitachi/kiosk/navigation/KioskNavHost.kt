@@ -20,6 +20,7 @@ import com.hitachi.kiosk.feature.idle.IdleRoute as IdleFeatureRoute
 import com.hitachi.kiosk.feature.item.ItemDetailRoute as ItemDetailFeatureRoute
 import com.hitachi.kiosk.feature.menu.MenuRoute as MenuFeatureRoute
 import com.hitachi.kiosk.feature.merchant.MerchantsRoute as MerchantsFeatureRoute
+import com.hitachi.kiosk.feature.order.YourOrderRoute as YourOrderFeatureRoute
 import com.hitachi.kiosk.feature.ordertype.OrderTypeRoute as OrderTypeFeatureRoute
 import com.hitachi.kiosk.feature.splash.SplashRoute as SplashFeatureRoute
 import com.hitachi.kiosk.feature.upsell.UpsellRoute as UpsellFeatureRoute
@@ -136,15 +137,10 @@ private fun NavGraphBuilder.checkoutDestinations(
         )
     }
     composable<YourOrderRoute> {
-        PlaceholderScreen(
-            screenId = "SCR-10",
-            title = R.string.screen_your_order,
-            actions =
-                listOf(
-                    PlaceholderAction(R.string.nav_add_more) { navController.popBackStack(MenuRoute, false) },
-                    PlaceholderAction(R.string.nav_pay) { navController.navigate(CheckoutRoute) },
-                    inactivity,
-                ),
+        YourOrderFeatureRoute(
+            onBackToMenu = { navController.popBackStack(MenuRoute, false) },
+            // The chosen method reaches Checkout with order submission in 0.5.0 (DEV-046).
+            onPay = { navController.navigate(CheckoutRoute) },
         )
     }
     composable<CheckoutRoute> {

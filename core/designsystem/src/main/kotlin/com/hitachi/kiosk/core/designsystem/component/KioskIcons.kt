@@ -103,6 +103,60 @@ object KioskIcons {
     /** "⌄" of collapsible rows and "More sides", stroke 2.2. */
     val ChevronDown: ImageVector = lineIcon("ChevronDown", "M6 9l6 6 6-6", strokeWidth = 2.2f)
 
+    /** The trash can of a Your order "−" at quantity 1 (`Payment.dc.html`), stroke 1.8. */
+    val Trash: ImageVector =
+        lineIcon(
+            "Trash",
+            "M5 7h14M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3",
+            strokeWidth = 1.8f,
+        )
+
+    /** The QRIS payment method tile, stroke 1.8. */
+    val QrCode: ImageVector =
+        lineIcon(
+            "QrCode",
+            "M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h2v2h-2z" +
+                "M18 14h2v2h-2zM14 18h2v2h-2zM18 18h2v2h-2zM16 16h2v2h-2z",
+            strokeWidth = 1.8f,
+        )
+
+    /** The Card payment method tile, stroke 1.8. */
+    val Card: ImageVector =
+        lineIcon(
+            "Card",
+            "M3 6.5A1.5 1.5 0 0 1 4.5 5h15A1.5 1.5 0 0 1 21 6.5v11a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 17.5z" +
+                "M3 9.5h18M6.5 15h4",
+            strokeWidth = 1.8f,
+        )
+
+    /** A struck-through card: "No payment methods right now" (`S_Payment_noMethods`), stroke 1.8. */
+    val CardOff: ImageVector =
+        lineIcon(
+            "CardOff",
+            "M3 6.5A1.5 1.5 0 0 1 4.5 5h15A1.5 1.5 0 0 1 21 6.5v11a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 17.5z" +
+                "M3 9.5h18M4 4l16 16",
+            strokeWidth = 1.8f,
+        )
+
+    /** The warning triangle of the price-changed and unavailable banners (`S_Payment_*`), stroke 2. */
+    val Warning: ImageVector =
+        lineIcon(
+            "Warning",
+            "M12 8v5M12 16.5v.5M10.3 4.6L3.5 17a2 2 0 0 0 1.7 3h13.6a2 2 0 0 0 1.7-3L13.7 4.6a2 2 0 0 0-3.4 0z",
+            strokeWidth = 2f,
+        )
+
+    /** The price tag of the promo nudge banner (`S_Payment_promoNudge`), stroke 2. */
+    val Tag: ImageVector = lineIcon("Tag", "M3 12V4h8l10 10-8 8L3 12zM7.5 8.5h.01", strokeWidth = 2f)
+
+    /** The lighter paper bag of the "Your tray is empty" state (`S_Payment_emptyTray`), stroke 1.6. */
+    val BagLight: ImageVector =
+        lineIcon(
+            "BagLight",
+            "M5 8h14l-1.2 12.2a1 1 0 0 1-1 .8H7.2a1 1 0 0 1-1-.8L5 8zM9 8V6a3 3 0 0 1 6 0v2",
+            strokeWidth = 1.6f,
+        )
+
     /** "ⓘ" of notes (Order type single option): a circle at stroke 2 with an "i" at stroke 2.2. */
     val Info: ImageVector =
         lineIcon(

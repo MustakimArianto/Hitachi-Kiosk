@@ -118,6 +118,12 @@ object KioskPalette {
     /** `dockSubtle`: secondary text on the dark "Plan by budget" row (`Menu.dc.html`). */
     val DockSubtle = Color(0xFFCFC8BE)
 
+    /** `dockChipText`: the "Details" chip on the Your order summary panel (`Payment.dc.html`). */
+    val DockChipText = Color(0xFFD8D2C8)
+
+    /** `dockRingOff`: the unselected ring of a payment method tile on the dark panel (`Payment.dc.html`). */
+    val DockRingOff = Color(0xFF4A453F)
+
     /** The floating elevation's shadow color, `rgba(23,21,19,.10)` (PRD §11.1). */
     val FloatingShadow = Ink.copy(alpha = 0.10f)
 

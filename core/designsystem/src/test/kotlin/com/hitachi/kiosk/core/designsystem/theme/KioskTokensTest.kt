@@ -58,6 +58,8 @@ class KioskTokensTest {
                 "dockControl" to c.dockControl,
                 "dockTrack" to c.dockTrack,
                 "dockSubtle" to c.dockSubtle,
+                "dockChipText" to c.dockChipText,
+                "dockRingOff" to c.dockRingOff,
             ).mapValues { it.value.hex() }
 
         assertThat(actual).containsExactlyEntriesIn(
@@ -95,6 +97,8 @@ class KioskTokensTest {
                 "dockControl" to "#3A3632",
                 "dockTrack" to "#2A2724",
                 "dockSubtle" to "#CFC8BE",
+                "dockChipText" to "#D8D2C8",
+                "dockRingOff" to "#4A453F",
             ),
         )
     }
@@ -137,6 +141,8 @@ class KioskTokensTest {
                 c.dockControl,
                 c.dockTrack,
                 c.dockSubtle,
+                c.dockChipText,
+                c.dockRingOff,
                 KioskPalette.PhotoToneFallback,
             )
 

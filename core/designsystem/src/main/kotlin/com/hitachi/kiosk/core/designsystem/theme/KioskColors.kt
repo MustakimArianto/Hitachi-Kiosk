@@ -45,6 +45,8 @@ data class KioskColors(
     val dockControl: Color = KioskPalette.DockControl,
     val dockTrack: Color = KioskPalette.DockTrack,
     val dockSubtle: Color = KioskPalette.DockSubtle,
+    val dockChipText: Color = KioskPalette.DockChipText,
+    val dockRingOff: Color = KioskPalette.DockRingOff,
 )
 
 /** The [KioskColors] of the current [KioskTheme] (DEV-004). */
