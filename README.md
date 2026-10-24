@@ -2,7 +2,7 @@
 
 Android self-order kiosk app for iMin kiosks (Kotlin, Jetpack Compose, `minSdk 30`, portrait 1080 × 1920). Customers order and pay by QRIS or card (EDC); staff configure printers, payment and kiosk behaviour. It runs in lock-task mode as device owner.
 
-**Status: `0.4.0` Cart, pricing, Budget Plan, upsell & inactivity.** On top of device activation (0.2.0) and the cached, synced menu (0.3.0: Idle, Order type, Menu, Item detail, Combo), a customer can complete the ordering half of the journey: the Upsell step, Your order with live totals (promo, PB1, rounding) and the QRIS / Card choice, the Budget Plan group meal planner, and the "Still there?" inactivity overlay. Checkout and the screens after it are still labelled placeholders until their milestones ([`docs/dev-plan.md`](docs/dev-plan.md)). The serial-number source still needs its on-device spike ([ADR-0002](docs/adr/0002-device-serial.md)).
+**Status: `0.5.0` Order submission & payments (fakes).** On top of device activation (0.2.0), the cached, synced menu (0.3.0) and the ordering half of the journey (0.4.0: Upsell, Your order with live totals, the Budget Plan, the "Still there?" overlay), a customer can now pay against the fakes. Pay submits the order (once, with an idempotency key, handling changed prices and unavailable items), Checkout shows the QRIS code with its countdown or the card prompt, and every failure has its screen: expired, cancelled, declined, terminal not responding, "Checking your payment…" and offline. A payment that was pending when the app was killed is recovered at the next start, and the connectivity gate probes the backend health (E14). Complete and printing are still placeholders until 0.6.0 ([`docs/dev-plan.md`](docs/dev-plan.md)). The gateway and EDC specs have not arrived, so there is no real payment adapter: release builds have a card terminal that fails every sale until 0.9.0. The serial-number source still needs its on-device spike ([ADR-0002](docs/adr/0002-device-serial.md)).
 
 | Start here | |
 |---|---|
@@ -41,11 +41,11 @@ The debug APK is `app/build/outputs/apk/debug/app-debug.apk`. A release build (`
 
 | Module | Holds |
 |---|---|
-| `:app` | `MainActivity`, navigation graph, `StartupRouter`, the feature screens (`splash`, `activation`, `merchant`, `idle`, `ordertype`, `menu`, `item`, `combo`) and the remaining placeholders, the sync triggers, Coil and WorkManager setup, Hilt wiring; `src/debug`: Developer options |
+| `:app` | `MainActivity`, navigation graph, `StartupRouter`, the feature screens (`splash`, `activation`, `merchant`, `idle`, `ordertype`, `menu`, `item`, `combo`, `upsell`, `order` (Your order), `budgetplan`, `checkout`) and the remaining placeholders (Complete, staff), the sync and pending-order recovery triggers, the QR encoder, Coil and WorkManager setup, Hilt wiring; `src/debug`: Developer options, the Checkout simulate bar, demo images |
 | `:core:designsystem` | "Linen & Paprika" tokens, `DesignUnit` (`Int.dpx` / `Int.spx`), `DesignFrame`, Schibsted Grotesk, motion specs, `LocalReduceMotion` |
-| `:core:domain` | Pure Kotlin/JVM: models for E1–E14, `Outcome` / `DomainError`, `retryWithBackoff`, the cart, item and combo pricing, the order session, `IdrFormatter`, ports (`BackendApi`, `PaymentGateway`, `CardTerminal`, `PrinterDriver`, `DeviceIdentityProvider`, `ConnectivityMonitor`, `CatalogRepository`, `ImagePrefetcher`, `Clock`, `IdGenerator`), `KioskLog` |
-| `:core:data` | Retrofit `KioskApi`, DTOs and mappers, interceptors, error mapping, `DefaultBackendApi`; the device state (`DeviceSession`, encrypted `secure.pb`, `device.preferences_pb`); the Room catalog cache and its sync and worker; the connectivity monitor; the activation and merchant repositories |
-| `:core:hardware` | Device identity (`IminDeviceIdentityProvider` + serial cache); printers and card terminal from 0.5.0/0.6.0 |
+| `:core:domain` | Pure Kotlin/JVM: models for E1–E14, `Outcome` / `DomainError`, `retryWithBackoff`, the cart, pricing, the Budget Plan planner, the order session, `SubmitOrder`, the `PaymentStateMachine`, `RecoverPendingOrder`, `IdrFormatter`, ports (`BackendApi`, `PaymentGateway`, `OrderRepository`, `CardTerminal`, `PrinterDriver`, `DeviceIdentityProvider`, `ConnectivityMonitor`, `CatalogRepository`, `ImagePrefetcher`, `Clock`, `IdGenerator`), `KioskLog` |
+| `:core:data` | Retrofit `KioskApi`, DTOs and mappers, interceptors, error mapping, `DefaultBackendApi`; the device state (`DeviceSession`, encrypted `secure.pb`, `device.preferences_pb`); the Room catalog cache and the pending order (database version 2) and the sync and worker; the connectivity engine and monitor; the activation, merchant and order repositories |
+| `:core:hardware` | Device identity (`IminDeviceIdentityProvider` + serial cache); `UnavailableCardTerminal` (the release card terminal until the 0.9.0 adapter); printers from 0.6.0 |
 | `:core:testing` | Scriptable fakes for every port, `SampleData`, API fixtures, test rules. Test and debug builds only. |
 | `build-logic` | Convention plugins `kiosk.*` and the `verify` gate |
 
@@ -59,6 +59,9 @@ Every external system sits behind a domain interface with a scriptable fake in `
 - **Scenario**: the mock scenarios of [api-spec §4](docs/api/api-spec.md#4-mock-data-checklist) (`activate_unregistered`, `order_price_changed`, `card_declined`, …). Fakes apply all of them; the mock server applies those Prism can express through a `Prefer` header.
 - **Serial number source**: *Fake* (default, `IMN24K0003118`, so emulators can sign in), *Fake: unavailable*, *Fake: slow (5 s)*, or *Real device*.
 - **Serial number diagnostics**: what every serial-number source returns on this device, the cached value, device-owner and permission state, and the window size and orientation, with Read again, Clear serial cache, Copy and Share. This is the DEV-012 spike; the procedure is in [ADR-0002](docs/adr/0002-device-serial.md). Each row is also logged: `adb logcat -d | grep serial_spike`.
+- **Card terminal**: *Fake: wait for the simulate bar* (default), *Fake: approve*, *Fake: decline*, *Fake: cancelled at the terminal*, *Fake: error*, *Fake: no answer* (runs the 90 s timeout), or *Release adapter* (no EDC adapter exists before 0.9.0, so every sale fails).
+- **Checkout simulate bar**: on Checkout, the design's "Prototype only · simulate the result" bar approves or declines the payment against the in-app fakes.
+- **Demo images**: the sample catalog shows photos from `app/src/debug/assets/demo` on the fakes and the Prism mock (a real backend's image URLs are never replaced).
 - **Build** information: version, build type, environment and backend URL.
 
 Release builds contain none of this (`scripts/check-release-apk.sh`).
@@ -72,9 +75,11 @@ With the debug build on the in-app fakes (the default):
 3. **Choose a restaurant** lists the merchants (E2). Tap *Urban Grill*: the kiosk binds it (E3), downloads and caches its config and menu (E5, E6) and opens Idle.
 4. Restart the app: a bound kiosk goes straight to Idle. *Log out* on Choose a restaurant forgets the activation and returns to Sign in.
 
-## Ordering (the start of journey J1)
+## Ordering and paying (journey J1)
 
-From Idle: tap anywhere → **Order type** (Dine in or Takeaway) → **Menu**. Tap "+" to quick-add (identical lines merge, up to 20 per item), or open a product for **Item detail** (sizes, meal, Customize, extras), or the *Meals ↗* pill for **Combo**. *View order* opens the Your order placeholder until 0.4.0; *Cancel* returns to Idle and clears the order. Hold the bottom-right corner of Idle for 2 s to reach the staff placeholder. Turn on airplane mode to see the offline banner; the menu keeps working from the cache. Images come from the 200 MB Coil disk cache once synced.
+From Idle: tap anywhere → **Order type** (Dine in or Takeaway) → **Menu**. Tap "+" to quick-add (identical lines merge, up to 20 per item), or open a product for **Item detail** (sizes, meal, Customize, extras), the *Meals ↗* pill for **Combo**, or the *Plan by budget* row for the **Budget Plan**. *View order* goes through **Upsell** the first time, then **Your order**: live totals (promo, PB1, rounding) and the QRIS or Card choice. **Pay** opens **Checkout**: the order is submitted, then the QR code (with its expiry ring) or the card prompt shows. With the default fakes, use the simulate bar (or the Developer options *Card terminal* setting) to approve or decline; the payment completes only when the backend says `PAID`, and then leaves for the Complete placeholder. Failures offer *Try again*, the other method and *Cancel order*; *Back to order* returns with the cart intact. *Cancel* on the Menu returns to Idle and clears the order. Hold the bottom-right corner of Idle for 2 s to reach the staff placeholder. Turn on airplane mode to see the offline banner: the menu keeps working from the cache, and Pay is disabled until the connection is back. If the app is killed while a payment is pending, the next start asks the backend: a paid order goes to Complete, anything else is cancelled. Images come from the 200 MB Coil disk cache once synced.
+
+With the Prism mock the order total must equal the mock's canned total (Rp 172.700, the design sample cart), because the kiosk refuses an order whose total differs from the one it sent; the in-app fakes answer with the total of any cart.
 
 Other first-run states come from the Developer options scenario: `activate_unregistered` (journey J6: "This kiosk isn't registered yet" with the serial number and *Try again*), `activate_disabled`, `slow_network`, `merchants_empty`, `merchant_closed` and `menu_download_failed`. The serial-number source setting covers "Can't read this device's serial number".
 

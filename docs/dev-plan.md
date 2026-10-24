@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Document version | 1.5 (2026-10-24) — 0.4.0 implemented (see the 0.4.0 status note); 1.4: 0.3.0 implemented and the benchmarks (DEV-031) moved to 1.0.0 |
+| Document version | 1.6 (2026-10-24) — 0.5.0 implemented, exit criteria not all met (see the 0.5.0 status note); 1.5: 0.4.0 implemented; 1.4: 0.3.0 implemented and the benchmarks (DEV-031) moved to 1.0.0 |
 | Requirements | [`product-requirement.md`](product-requirement.md) (FR-xxx, NFR-xxx, D-xx, A-xx, OQ-xx), [`technical-requirement.md`](technical-requirement.md) (TR-) |
 | Implementation | [`technical-design.md`](technical-design.md), [`technology-stack.md`](technology-stack.md) (versions for DEV-001) |
 | Tests | [`testing-plan.md`](testing-plan.md) (TC-xxx) |
@@ -280,7 +280,7 @@ A customer can start an order and browse and customize the full menu with design
 - DEV-020–DEV-025 and DEV-027–DEV-030 are done: `./gradlew verify` is green, and the instrumented suite (26 tests: `IdleOrderTypeUiTest`, `MenuUiTest`, `ItemComboUiTest`, `SetupJourneysUiTest`, `NavigationEdgeWalkUiTest`) passes on the API 37 emulator.
 - **DEV-031 moved to 1.0.0** (PO, 2026-10-24), together with the benchmark runs of DEV-082 (TC-142–TC-144, TC-168).
 - PO decisions taken during 0.3.0 (PRD 1.6): "Choose ›" only for a required group without a default; OQ-08 closed (sold-out products hidden); A-29 kept strictly for the Item sold-out state; sold-out combo sides and drinks (new optional E6 `available`); the offline banner follows the validated network until DEV-051 (technical-design TD-12).
-- Built ahead of later tasks, so those tasks extend it: `Cart.add` and the structured line choices (DEV-036), `OrderSessionHolder` with the TypeChosen and Building states (DEV-041), the validated-network monitor and the reconnect sync (DEV-051).
+- Built ahead of later tasks, so those tasks extend it: `Cart.add` and the structured line choices (DEV-036), `OrderSessionHolder` with the TypeChosen and Building states (DEV-041), the validated-network monitor and the reconnect sync (DEV-051, completed in 0.5.0).
 - Open items (the DEV-012 serial-number spike, TC-125 and TC-146 on the device, the API 30 and API 34/35 emulator runs, the rest of TC-157, the J5/J6 recordings) are listed in [`todo.md`](../todo.md) and run after the 1.0.0 implementation (PO, 2026-10-24).
 - Evidence: [`docs/test-reports/0.3.0.md`](test-reports/0.3.0.md).
 
@@ -377,7 +377,7 @@ Complete the ordering half of the journey:
 - All twelve 0.4.0 tasks are done: `./gradlew verify` is green, and the instrumented suite (31 tests, including the new `OrderingUiTest`) passes on the API 37 emulator. Evidence: [`docs/test-reports/0.4.0.md`](test-reports/0.4.0.md).
 - PO decision (2026-10-24, PRD 1.7): the first "View order" on the Menu in every order goes through SCR-09 when "Suggest add-ons" is on; with nothing left to suggest SCR-09 shows "Nothing more to suggest" (FR-014, TC-172).
 - New in `:core:domain`: `KioskSettings` + `SettingsRepository` (the four keys the ordering screens read; `SettingsStore` on `settings.preferences_pb` in `:core:data`). The 0.7.0 settings screens (DEV-068, DEV-069) write through the same repository.
-- Built ahead of later tasks, so those tasks extend it: the Pay gate when offline on SCR-10 (DEV-051 adds the E14 probe and the checkout gate) and the `S_Payment_priceChanged` / `S_Payment_itemUnavailable` visuals and their Review / Remove actions (DEV-046 feeds them from E7). The SCR-10 Pay button only navigates to the Checkout placeholder; `OrderSession.submit()` is called by DEV-045.
+- Built ahead of later tasks, so those tasks extend it: the Pay gate when offline on SCR-10 (DEV-051 adds the E14 probe and the checkout gate) and the `S_Payment_priceChanged` / `S_Payment_itemUnavailable` visuals and their Review / Remove actions (DEV-046 feeds them from E7). The SCR-10 Pay button only navigates to the Checkout placeholder; `OrderSession.submit()` is called by DEV-045. All of this was completed in 0.5.0 (see its status note).
 - Not in 0.4.0: the staff settings' own 120 s timeout of TC-104 (A-22) comes with the PIN gate (DEV-066, 0.7.0); TC-104 here covers Checkout, Complete and the staff placeholders (timer off).
 - `docs/pricing-cases.md` (25 carts) and `docs/budget-plan-cases.md` (16 cases, computed by an independent exhaustive search) are checked row by row by the tests. The planner takes about 0.7 ms (P95) for 10 adults on the JVM, and about 45 ms on a menu whose prices share only Rp 1; the device benchmark is TC-168 in 1.0.0.
 - Open for the PO, listed in [`todo.md`](../todo.md): the review of the built Upsell and Budget Plan screens against their designs (exit criterion), the 20-cart pricing spreadsheet spot check and the 10-combination plan sanity review (manual testing requirements), and the API 30 and API 34/35 emulator runs.
@@ -409,45 +409,60 @@ Implement the full order and payment lifecycle, including every failure, retry, 
 
 ### Scope
 **Included:** Order creation with idempotency, price-mismatch/unavailable handling, QRIS flow, card flow via the `CardTerminal` interface, Processing/Failed states, method switch, debug simulate bar, the connectivity gate and offline banner, payment recovery after process death.
-**Excluded:** Real gateway/EDC adapters (0.9.0), printing on success (0.6.0; success goes to the 0.6.0 Complete placeholder).
+**Excluded:** Real gateway/EDC adapters (0.9.0), printing on success (0.6.0; success goes to the Complete placeholder until then).
 
 ### TODO checklist
-- [ ] **DEV-045** `OrderRepository.create()` (FR-016).
+- [x] **DEV-045** `OrderRepository.create()` (FR-016).
   - E7 with a UUID `Idempotency-Key` per checkout attempt (a new key when the body changes or after "Back to order", technical-design §5.3), and retries with 1/2/4 s backoff on network errors, 5xx and 429 (TC-070).
-  - Persists the pending order/payment IDs in Room for recovery. Cancel uses E8.
-  - *Verify:* TC-068–TC-070.
-- [ ] **DEV-046** Mismatch handling (FR-016): `PRICE_CHANGED` → refresh catalog, re-price, back to SCR-10 with the message; `ITEM_UNAVAILABLE` → flag the lines and block Pay until they are removed.
+  - Persists the pending order/payment IDs in Room for recovery (database version 2 with a real migration). Cancel uses E8.
+  - *Verify:* TC-068–TC-070, TC-186, TC-189, TC-193.
+- [x] **DEV-046** Mismatch handling (FR-016): `PRICE_CHANGED` → refresh catalog, re-price, back to SCR-10 with the message; `ITEM_UNAVAILABLE` → flag the lines and block Pay until they are removed.
   - The visuals are `S_Payment_priceChanged` and `S_Payment_itemUnavailable` (DEV-037a).
-  - *Verify:* TC-071, TC-072, TC-177.
-- [ ] **DEV-047** `PaymentStateMachine` + QRIS (FR-017, NFR-017).
+  - *Verify:* TC-071, TC-072, TC-177, TC-189.
+- [x] **DEV-047** `PaymentStateMachine` + QRIS (FR-017, NFR-017).
   - E9 (QRIS) and polling E10 every 2 s; the countdown from server `expiresAt` with the skew-corrected server clock offset from the `Date` header.
   - Expiry → E11 cancel → Failed(expired). Polling stops on a terminal state. The idle timer is suspended.
-  - *Verify:* TC-074–TC-078, TC-160.
-- [ ] **DEV-048** QR rendering from `qrString` (ZXing core, ECC ≥ M) in the design frame: a centered QR card with the logo mark and the expiry ring "Code expires in m:ss". **There is no scan line, no 1-2-3 instruction list and no "Step 3 of 3" indicator** (removed from the design).
+  - *Verify:* TC-074–TC-078, TC-160, TC-185, TC-188, TC-189.
+- [x] **DEV-048** QR rendering from `qrString` (ZXing core, level H, which is above the required M, technical-design §8.5) in the design frame: a centered QR card with the logo mark and the expiry ring "Code expires in m:ss". **There is no scan line, no 1-2-3 instruction list and no "Step 3 of 3" indicator** (removed from the design).
   - *Verify:* TC-079 (decode the rendered bitmap equals the input).
-- [ ] **DEV-049** `CardTerminal` interface (`startSale(amount, ref)`, `cancel()`, result flow), `FakeCardTerminal`, and the card UI per Checkout (terminal illustration, card-tap loop). Add the 90 s timeout [A-16]; success only on backend `PAID` [A-15].
-  - *Verify:* TC-080–TC-083, TC-181.
-- [ ] **DEV-050** Processing and Failed states (FR-019).
+- [x] **DEV-049** `CardTerminal` interface (`startSale(amount, ref)`, `cancel()`, result flow), `FakeCardTerminal`, and the card UI per Checkout (terminal illustration, card-tap loop). Add the 90 s timeout [A-16]; success only on backend `PAID` [A-15].
+  - *Verify:* TC-080–TC-083, TC-181, TC-187.
+- [x] **DEV-050** Processing and Failed states (FR-019).
   - Reason copy mapping; the "not charged" note only on terminal non-paid states; the Unknown state polling for 60 s; "Try again" with a fresh payment (shows "Creating your payment…" first); "Pay by X instead" only if enabled; "Cancel order" → Idle.
   - Visual specs: `S_Checkout_creating`, `S_Checkout_expired`, `S_Checkout_cancelled`, `S_Checkout_declined`, `S_Checkout_terminalTimeout` and `S_Checkout_offline` (Try again disabled and labelled "Reconnecting…"). "Checking your payment…" is the `checking` scenario (no board).
   - "Back to order" cancels. The "Pay at the counter" button is not rendered.
   - Add the debug-only simulate bar.
-  - *Verify:* TC-084–TC-087, TC-178.
-- [ ] **DEV-051** `ConnectivityMonitor` (validated network + E14 health) and an offline banner on customer screens; disable Pay and submission while offline; auto-recover (FR-028, NFR-010). The banner text is "Ordering is paused — reconnecting…" (`S_Menu_offline`, `S_Payment_offline`, `S_Checkout_offline`). *0.3.0 already has the validated-network monitor, the Menu banner and the reconnect sync (technical-design §7.3, TD-12); this task adds the E14 probe, the debounce and the Pay gate.*
-  - *Verify:* TC-122, TC-123, TC-154, TC-175.
-- [ ] **DEV-052** Process-death recovery (FR-016): on launch with a persisted pending payment, query E10 and route to Complete (paid) or cancel → Idle.
-  - *Verify:* TC-073 (using `adb shell am kill` during a pending payment).
-- [ ] **DEV-053** Update `openapi.yaml` with anything learned. If the gateway/EDC specs (DEP-2/3) have arrived, write `docs/adr/0003-payment-integration.md` mapping them to the interfaces. Otherwise raise risk R-1 to the PO.
+  - *Verify:* TC-084–TC-087, TC-178, TC-188.
+- [x] **DEV-051** `ConnectivityMonitor` (validated network + E14 health) and an offline banner on customer screens; disable Pay and submission while offline; auto-recover (FR-028, NFR-010). The banner text is "Ordering is paused — reconnecting…" (`S_Menu_offline`, `S_Payment_offline`, `S_Checkout_offline`). *0.3.0 already had the validated-network monitor, the Menu banner and the reconnect sync (technical-design §7.3, TD-12); this task added the E14 probe, the debounce, the unvalidated-network grace and the Pay gate (TD-18).*
+  - *Verify:* TC-122, TC-123, TC-154, TC-175, TC-190.
+- [x] **DEV-052** Process-death recovery (FR-016): on launch with a persisted pending payment, query E10 and route to Complete (paid) or cancel → Idle. The rules per stored state are in architecture §5.3 and [D-32](product-requirement.md#14-decision-log-interview-2026-10-22); a payment that is still `PENDING` is cancelled, not resumed.
+  - *Verify:* TC-073 (using `adb shell am kill` during a pending payment), TC-191, TC-192.
+- [x] **DEV-053** Update `openapi.yaml` with anything learned. If the gateway/EDC specs (DEP-2/3) have arrived, write `docs/adr/0003-payment-integration.md` mapping them to the interfaces. Otherwise raise risk R-1 to the PO. *Done with a caveat: `openapi.yaml` is regenerated (E8 cancel is idempotent). The specs have not arrived, so ADR-0003 is not written and R-1 is raised; the PO's acknowledgement is still pending (see the 0.5.0 status).*
+
+### 0.5.0 status (2026-10-24)
+- All nine 0.5.0 tasks are implemented against the fakes, and `./gradlew verify` is green, before and after the review fixes. Evidence, the instrumented result and the test-case table: [`docs/test-reports/0.5.0.md`](test-reports/0.5.0.md). The exit criteria are **not all met**; the open parts are listed at the end of this note and in [`todo.md`](../todo.md).
+- **Gateway and EDC specs have not arrived** (DEP-2, DEP-3, OQ-03), so DEV-053 did not write ADR-0003. `CardTerminal` has the scriptable fake and, in release, `UnavailableCardTerminal`, which fails every sale until the real adapter (DEV-091, 0.9.0); DEV-091 starts with ADR-0003. Risk R-1 is raised, and the PO's acknowledgement that 0.9.0 is at risk is **still pending**.
+- **Process-death recovery deviates from architecture §5.3 as first written** (D-32, TD-16). The QR string is deliberately not stored, so Checkout cannot be redrawn after a restart: a payment that is still `PENDING` is cancelled (E11, then E8) instead of resumed. `PROCESSING` is never cancelled at once, because money may be in flight; it is polled every 2 s for up to 60 s first. Recovery starts from `KioskApp.start()`, because after a real process death Android restores the saved back stack and Splash (`StartupRouter`) never runs. A call that fails leaves the pending order untouched and is retried on every next ONLINE and by a 30 s timer while online. A new order is refused (`PENDING_PAYMENT_UNRESOLVED`, no E7) while the pending order has an unsettled payment, so a paid or processing order is never overwritten.
+- **Order submission**: `OrderState` holds the review issues and the E7 body with its `Idempotency-Key`. The same body reuses the key, also after a network failure; a changed body or re-pricing gets a new one; "Back to order" forgets it. `SubmitOrder` sends one E7 for rapid taps. On `PRICE_CHANGED` it refreshes the catalog at once with the new `CatalogSyncRepository.syncNow` (the one exception to "a sync waits until the order ends", A-29) and re-prices the cart. If the backend order total differs from the total the kiosk sent, the order is cancelled with E8 and nothing is paid (TD-17). Room is at version 2 with a real migration and no destructive fallback (TD-21).
+- **Payment**: `PaymentStateMachine` is an application-scoped singleton that Checkout only observes. The card amount comes from the backend, success is only backend `PAID` (A-15), the terminal is cancelled whenever the backend ends the payment, "Confirming payment" is bounded by 60 s, and an E9 amount that differs from the order total is cancelled before any QR or terminal prompt. "Not charged" shows only after a backend terminal non-paid status or an accepted E11.
+- **Connectivity** (DEV-051): `ConnectivityEngine` probes E14 (`status` and `components.paymentGateway` both `OK`). A connected but unvalidated network is CHECKING for 4 s and then OFFLINE; it is not probed. Only OFFLINE blocks Pay and Add; CHECKING does not (TD-18).
+- **Checkout** (SCR-11) is built from `Checkout.dc.html` with the QR card, expiry ring and centre mark in `:core:designsystem` and the ZXing encoder in `:app` (level H, mark 96 dpx = 20 % of the width; the design's 104 dpx is 21.7 %). An E7 failure after the retries is a local Checkout failure ("Payment didn't go through", "Can't reach the restaurant system. Please try again."), with no "not charged" note (TD-20). The route carries the method as a `String` name (TD-19). The QR expiry uses the QRIS config default (only when it is in the allowed list, else 300 s) until the 0.7.0 Payment settings exist (FR-025).
+- **New copy and rules that need PO confirmation** (A-45): card `CANCELLED` shows "Payment cancelled" / "The payment was cancelled on the terminal. Try again or choose another method." (the design text is QR-only); the "Your order is saved" note shows only on the "Ordering is paused" variant.
+- **Debug only**: the "Prototype only · simulate the result" bar (`CheckoutSimulator`, optional `CheckoutDebugTools` binding), the Developer options "Card terminal" section (`SwitchableCardTerminal`), and 21 resized WebP demo images in `app/src/debug/assets/demo/` (the logo and 20 photos; the hero and the idle slides reuse photos) that `SwitchableBackendApi` puts on the fakes and the Prism mock when the sample has no image or the `cdn.example` placeholder. Release has none of them (`scripts/check-release-apk.sh`, whose quoting bug under bash 3.2 made it skip silently; fixed in this milestone). Two sample products, Ayam Geprek Bowl and Black Pepper Beef Bowl, have no photo.
+- **Built ahead or left for 0.6.0**: Complete is still the placeholder. Checkout calls `PaymentStateMachine.acknowledgePaid()` at the hand-over; the 0.6.0 Complete screen takes that over and prints from the paid payment. An order recovered as paid after a restart reaches Complete through `PendingOrderRecoveryCoordinator.recoveredPaid` (totals and payment details, but no order lines: they are not stored).
+- **Known limits**: the pending order is cleared before Complete is shown, so a kill in between leaves no receipt on the next start; a recovered receipt has no order lines; TC-073's real `adb shell am kill` check has not run.
+- Not run: TC-073 on a device, the airplane-mode checks (TC-085, TC-122, TC-123, TC-137), the J1–J3 recordings, the API 30 and API 34/35 emulators, and the PO review of Checkout against the design. FR-013 AC4 is covered only on the kiosk side (the E7 total guard in `SubmitOrderTest` and the MockWebServer fixtures); no run against the Prism mock is part of the suite, and Prism's canned total only matches the Rp 172.700 design cart. The contract check against the real backend is DEV-097 (0.9.0).
+- **Exit criteria**: the TCs that `verify` runs pass, and the instrumented result is in the test report (the manual ones above are open); the gateway/EDC spec status is recorded (not received); the PO acknowledgement that 0.9.0 is at risk is **open**; the one defect the first instrumented run found (recorded in the test report) is fixed, and no P1/P2 defect is known to be open.
 
 ### Acceptance criteria
-FR-013 AC4 (contract test against the mock), FR-016 AC1–AC4, FR-017 AC1–AC5, FR-018 AC1–AC3, FR-019 AC1–AC3 (AC3 checked on a release build), FR-028 AC1–AC2 and NFR-017 pass, all with fakes.
+FR-013 AC4 (contract test against the mock), FR-016 AC1–AC4, FR-017 AC1–AC5, FR-018 AC1–AC3, FR-019 AC1–AC3 (AC3 checked on a release build), FR-028 AC1–AC2 and NFR-017 pass, all with fakes. FR-019 AC3 is checked by `scripts/check-release-apk.sh` in `verify`; the check on the iMin device is open (`todo.md`).
 
 ### Testing requirements
 - Unit: payment state machine (every transition), retry/backoff, clock offset.
 - Integration: MockWebServer scripted payment sequences.
 - UI: Checkout states.
 - Manual: airplane-mode toggling during each state.
-- TCs: TC-068–TC-087 (except TC-083, the real-EDC test, which runs in 0.9.0), TC-122, TC-123, TC-132–TC-134, TC-137, TC-138, TC-154, TC-160, TC-178.
+- TCs: TC-068–TC-087 (except TC-083, the real-EDC test, which runs in 0.9.0), TC-122, TC-123, TC-132–TC-134, TC-137, TC-138, TC-154, TC-160, TC-178, TC-181 and TC-185–TC-193.
 - Regression: the 0.4.0 suite plus J1–J3 end-to-end with fakes.
 
 ### Deliverables
@@ -623,7 +638,7 @@ Replace the fakes with the real backend, company payment gateway and EDC termina
 - [ ] **DEV-097** Point `staging` at the real backend. Run the contract test suite (generated from `openapi.yaml`) against it, and fix or record any mismatches with the backend team (FR-013 AC4).
   - *Verify:* contract suite green against staging.
 - [ ] **DEV-090** QRIS against the gateway sandbox (FR-017): real `qrString`, status updates (polling or push as provided), cancel and expiry. Run the full TC-074–TC-079 set against the sandbox with real e-wallet test apps where the sandbox allows.
-- [ ] **DEV-091** EDC adapter implementing `CardTerminal` per ADR-0003 (USB/LAN/cloud per OQ-03): sale, cancel, timeout, result relay (E12 if required), TID display, and the Test terminal action.
+- [ ] **DEV-091** EDC adapter implementing `CardTerminal` per ADR-0003 (USB/LAN/cloud per OQ-03; ADR-0003 was not written in 0.5.0 because the specs had not arrived, so it is the first step here): sale, cancel, timeout, result relay (E12 if required), TID display, and the Test terminal action.
   - *Verify:* TC-080–TC-083 with test cards on the real terminal.
 - [ ] **DEV-092** Device compatibility matrix (NFR-016) per testing-plan §2.3: emulators API 30/33/34/35/36/37 and the iMin target, plus 2 USB and 2 Bluetooth printer models.
   - *Verify:* TC-159.

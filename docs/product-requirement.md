@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | Product | Hitachi Kiosk (Android self-ordering kiosk app) |
-| Document version | 1.7 (2026-10-24), see the [revision history](#revision-history) |
+| Document version | 1.8 (2026-10-24), see the [revision history](#revision-history) |
 | Target release | `1.0.0` |
 | Companion documents | [`technical-requirement.md`](technical-requirement.md), [`technical-design.md`](technical-design.md), [`technology-stack.md`](technology-stack.md), [`architecture.md`](architecture.md), [`dev-plan.md`](dev-plan.md), [`testing-plan.md`](testing-plan.md) |
 | Design source of truth | [`ui-design/`](ui-design/) — the final light design "Linen & Paprika": 20 screen artboards, 33 state boards (`S_<Screen>_<scenario>`), the `Photo` component, `canvas.json` and `README.md`. It is mirrored from https://claude.ai/artifact/Lv6W9bttmG8fH4ho4CkWMg |
@@ -17,8 +17,9 @@
 | 1.3 | 2026-10-23 | DEP-1 owner: the PO builds the mock and the backend from `api/api-spec.md`. |
 | 1.4 | 2026-10-23 | A-42: option choice for planned items. The api-spec sample menu is complete and adds required choices on c4, r1 and d2. |
 | 1.5 | 2026-10-23 | 0.2.0 decisions (PO): a closed merchant's opening time comes from the new optional E1/E2 field `opensAt` ("Closed" when unknown); SCR-03 lists **every** coming-soon merchant and scrolls; copy for a sign-in failure outside FR-003's three cases and for a merchant-list failure; while a bind runs the chosen card shows a spinner. Design colours used by the 0.2.0 screens added to §11.1. |
-| 1.7 | 2026-10-24 | 0.4.0 decisions: the PO decided that the first "View order" on the Menu in every order goes through SCR-09 when "Suggest add-ons" is on, with the "Nothing more to suggest" state when nothing is left (FR-014, TC-172); A-43 (a plan is added to the cart whole, next to what is already there; SCR-19 opens empty) and A-44 (children's drinks, combo `serves`, shared extras) record how the planner reads FR-032; SCR-09's strip and "Continue" both show the cart subtotal as drawn; design colours used by the 0.4.0 screens added to §11.1. |
 | 1.6 | 2026-10-23 | 0.3.0 decisions (PO): a product needs a choice ("Choose ›", no quick add) only when a required group has **no default** option, so s1 and d1 quick-add with their defaults (FR-009, A-08); OQ-08 closed, sold-out products stay hidden (A-09); A-29 is kept strictly, so Item detail shows "No longer available" from the catalog the order started with (FR-010); a combo side or drink can be sold out (new optional E6 field `available`, FR-011); the offline banner is driven by the validated network until the E14 probe of 0.5.0 (FR-028). Banner and toast colours added to §11.1. |
+| 1.7 | 2026-10-24 | 0.4.0 decisions: the PO decided that the first "View order" on the Menu in every order goes through SCR-09 when "Suggest add-ons" is on, with the "Nothing more to suggest" state when nothing is left (FR-014, TC-172); A-43 (a plan is added to the cart whole, next to what is already there; SCR-19 opens empty) and A-44 (children's drinks, combo `serves`, shared extras) record how the planner reads FR-032; SCR-09's strip and "Continue" both show the cart subtotal as drawn; design colours used by the 0.4.0 screens added to §11.1. |
+| 1.8 | 2026-10-24 | 0.5.0 decisions and clarifications: D-32 (a payment that is still `PENDING` after a process death is cancelled, not resumed, because the QR string is not stored; `PROCESSING` is polled for up to 60 s first; the PO delegated the choice); A-45 (Checkout copy and behaviour the design has no board for, to be confirmed by the PO); FR-016 says the order total returned by the backend must equal the total shown, and how the process-death recovery decides; FR-017 cancels a payment whose amount differs from the order total and names where the QR life comes from before the 0.7.0 settings; FR-019 bounds "Confirming payment" at 60 s; FR-028 defines the unvalidated-network grace and the E14 test; OQ-03 and R-1 status at the 0.5.0 exit (the gateway and EDC specs had not arrived). |
 
 ## 0. How to read this document
 
@@ -497,11 +498,18 @@ Priority: **MVP** = required for 1.0.0. **Post-1.0** = specified for later, not 
   - Retrying with the same key never creates a second order.
   - The order is created once per checkout. Switching method or retrying payment reuses it.
   - "Back to order" before payment completion cancels the payment and marks the order abandoned via `POST /v1/orders/{id}/cancel`. Editing the cart afterwards creates a new order with a new key.
+  - The order total in the backend's answer must equal the total the kiosk sent and showed. If it differs, the app cancels the order, shows the network-failure state below and charges nothing [D-19].
 - **Errors:**
   - **Price mismatch (`PRICE_CHANGED`):** the app refreshes config and menu, re-prices the cart, and shows "Prices have been updated. Please review your order." on SCR-10 (banner, "Review" button, Pay disabled until reviewed).
   - **Item unavailable (`ITEM_UNAVAILABLE`):** the affected lines are marked "No longer available" with a "Remove" action and must be removed before paying.
-  - **Network failure:** retry with the same key up to 3 times (1 s, 2 s, 4 s backoff), then show "Can't reach the restaurant system. Please try again." with a "Try again" button.
-- **Process death:** The pending `orderId` / `paymentId` is persisted. On restart, if a payment was pending, the app queries its status. If paid, it shows Complete and prints. If failed or expired, it cancels the order and shows Idle [A-11].
+  - **Network failure:** retry with the same key up to 3 times (1 s, 2 s, 4 s backoff), then show "Can't reach the restaurant system. Please try again." with a "Try again" button. It is shown on Checkout as the failure "Payment didn't go through", with Try again (same body, same key), the other method, Back to order and Cancel order. It has no "You have not been charged" note, because no payment exists [A-45].
+- **Process death:** The pending `orderId` / `paymentId` is persisted. The QR string is not. At process start (without waiting for Splash) a bound kiosk asks the backend about the pending order and decides [A-11, D-32]:
+  - no payment yet: cancel the order, then Idle;
+  - `PAID`: Complete, and print from 0.6.0;
+  - `FAILED`, `EXPIRED` or `CANCELLED`: cancel the order, then Idle;
+  - `PENDING`: cancel the payment, then the order, then Idle. Checkout is not resumed, because the QR cannot be drawn again;
+  - `PROCESSING`: poll every 2 s for up to 60 s, because money may be in flight, then treat it like `PENDING`.
+  If the backend cannot be reached or gives no final answer, the order stays pending and the check runs again at every next ONLINE and every 30 s while online. A new order is not created while the pending order still has an unsettled payment, so a paid order is never forgotten. Idle ignores "tap to order" only while a check is asking the backend.
 - **Acceptance criteria:**
   - AC1: 10 rapid Pay taps produce one order.
   - AC2: A forced 5xx followed by success produces one order.
@@ -517,13 +525,13 @@ Priority: **MVP** = required for 1.0.0. **Post-1.0** = specified for later, not 
   - There is no instruction list under the QR and no "Step 3 of 3" indicator in the header [D-30]. "Back to order" (outline) sits above the debug-only prototype bar.
   - While the payment is being created: "Creating your payment…" with "Setting up your QR code. This only takes a moment."
 - **Process:** The app calls `POST /v1/orders/{id}/payments {method: QRIS}` and receives `paymentId`, `qrString` and `expiresAt`. It renders the QR from `qrString` with error correction level M or higher. It polls `GET …/payments/{pid}` every 2 s, or uses push if the backend supports it.
-- **Expiry:** The expiry comes from Payment settings (3 / 5 / 10 min, default 5 min [V]). The countdown uses `expiresAt` from the server, not the local clock.
+- **Expiry:** The expiry comes from Payment settings (3 / 5 / 10 min, default 5 min [V]). Until those settings exist (0.7.0), the app asks for the merchant config's QRIS default when it is one of the allowed values, and for 5 min otherwise. The countdown uses `expiresAt` from the server, not the local clock.
 - **On status:**
   - `PAID` → Processing state ("Confirming payment", "Waiting for your bank to confirm. Please keep this screen open.") for at least 800 ms → Complete.
   - `FAILED` / `CANCELLED` → Failed state, title "Payment cancelled" ("The payment was cancelled in your app. Try again with a fresh code, or choose another method.").
   - Expiry → cancel the payment, then Failed, title "QR code expired", with the expired copy [V].
 - **Rules:**
-  - The QR is never shown for an amount different from the backend order total.
+  - The QR is never shown for an amount different from the backend order total. If the payment answer carries another amount, the payment and the order are cancelled, the failure state shows and no QR is drawn.
   - The idle timeout is suspended while a QR is shown (FR-023).
 - **Acceptance criteria:**
   - AC1: The QR decodes to exactly the `qrString` from the API.
@@ -537,7 +545,8 @@ Priority: **MVP** = required for 1.0.0. **Post-1.0** = specified for later, not 
 - **Behavior [V]:** Checkout card view: "Tap, insert or swipe on the terminal below", "Visa, Mastercard and GPN accepted · contactless works too", and a terminal illustration with the amount and an animated card tap and arrow. The kiosk calls `POST …/payments {method: CARD}` and then sends the amount and reference to the terminal through the `CardTerminal` interface. The transport (USB/LAN/cloud) is pending OQ-03. When a result arrives: approved → the backend confirms → Processing ("Keep your card on the terminal until it beeps.") → Complete. Declined → Failed, title "Card declined" ("Your bank declined the card. Try again or use another card."). While the payment is created: "Creating your payment…" with "Getting the card terminal ready."
 - **Rules:**
   - The kiosk app never sees card numbers, PIN or track data.
-  - A payment is "paid" only when the **backend** reports `PAID`. The terminal result alone is not enough [A-15].
+  - A payment is "paid" only when the **backend** reports `PAID`. The terminal result alone is not enough [A-15]. Whenever the backend ends the payment (`PAID`, `FAILED`, `EXPIRED`, `CANCELLED`) while a sale is running, the kiosk cancels the sale on the terminal, so it cannot charge twice.
+  - Cancelled on the terminal: title "Payment cancelled" with "The payment was cancelled on the terminal. Try again or choose another method." [A-45].
   - Terminal not responding for 90 s → cancel on the terminal, then Failed, title "Terminal not responding", with "The card terminal didn't respond. Try again or pay with QRIS." [A-16].
   - The terminal reference and TID are stored on the payment.
 - **Acceptance criteria:**
@@ -556,6 +565,7 @@ Priority: **MVP** = required for 1.0.0. **Post-1.0** = specified for later, not 
 - **Rules:**
   - "You have not been charged" shows only when the backend status is a terminal non-paid state (`FAILED` / `EXPIRED` / `CANCELLED`).
   - If the status is unknown, e.g. the network dropped, show "Checking your payment…" and keep polling up to 60 s before showing a failure [A-17].
+  - "Confirming payment" is bounded the same way: if the backend does not report `PAID` within 60 s (a terminal approval it never confirms, or a payment that stays `PROCESSING`), the failure shows without "not charged", and Try again cancels the payment first. A `PAID` that arrives meanwhile still wins [A-15, A-17].
   - Debug builds keep the design's "Prototype only · simulate the result" bar to force outcomes against the fake gateway. Release builds must not contain it.
 - **Acceptance criteria:**
   - AC1: Every failure reason in the design maps to a gateway/terminal status.
@@ -697,7 +707,10 @@ Priority: **MVP** = required for 1.0.0. **Post-1.0** = specified for later, not 
 - **Rules:**
   - A sync never mutates a cart in progress. Prices are re-validated at FR-016.
   - A sync that arrives while a customer is ordering is applied when the order ends [A-29].
-  - Connectivity = validated internet **and** backend health check OK.
+  - Connectivity = validated internet **and** backend health check OK. The health check is E14: `status` and `components.paymentGateway` must both be `OK`; `DEGRADED` or `DOWN` counts as unavailable.
+  - It is probed on every network change, then after a failed probe at 2 s, 4 s and every 30 s, and at once when a real call fails with a network error. A network that is connected but not validated (a captive portal) is "checking" for 4 s and then offline, so the banner still appears within 5 s (AC1).
+  - Only offline blocks Pay and adding to the cart. While the state is "checking" nothing is blocked.
+  - A sync runs on the first online state after any offline state.
 - **Acceptance criteria:**
   - AC1: Airplane mode on Menu shows the banner within 5 s and disables Pay.
   - AC2: Restoring the network re-enables Pay within 10 s.
@@ -1002,8 +1015,8 @@ Sized for one developer. Features live as packages inside `:app` rather than sep
 | ID | Dependency | Needed by | Owner |
 |---|---|---|---|
 | DEP-1 | Backend implementing §10 | Mock from 0.1.0. Real by 0.9.0 | PO: builds the mock and the backend from `api/api-spec.md` (2026-10-23). Contract changes are requested from the PO [D-06] |
-| DEP-2 | Company payment gateway API + sandbox (QRIS, card) | Spec by 0.5.0. Sandbox by 0.9.0 | Company gateway team [D-12] |
-| DEP-3 | EDC terminal model, transport and protocol | Spec by 0.5.0 | Company / bank [D-13, OQ-03] |
+| DEP-2 | Company payment gateway API + sandbox (QRIS, card) | Spec by 0.5.0. Sandbox by 0.9.0 | Company gateway team [D-12]. **Not received at the 0.5.0 exit** (R-1) |
+| DEP-3 | EDC terminal model, transport and protocol | Spec by 0.5.0 | Company / bank [D-13, OQ-03]. **Not received at the 0.5.0 exit** (R-1) |
 | DEP-4 | Target iMin device (≥ 1 unit) and SDK (printer, SN) | 0.2.0 (SN), 0.6.0 (printer) | Hitachi [OQ-01] |
 | DEP-5 | Upsell screen design | Delivered in design 1.1 (`Upsell.dc.html`) | Product owner [OQ-05, closed] |
 | DEP-6 | Real menu content + images for one pilot merchant | 0.9.0 | Merchant |
@@ -1018,7 +1031,7 @@ Sized for one developer. Features live as packages inside `:app` rather than sep
 ### 13.3 Risks
 | ID | Risk | Likelihood | Impact | Mitigation |
 |---|---|---|---|---|
-| R-1 | Gateway/EDC specs arrive late, blocking real payment | High | Blocks 1.0.0 | Fakes behind `PaymentGateway` / `CardTerminal` interfaces from 0.5.0. Escalate if no spec by 0.5.0 exit. Card can ship in 1.0.1 only by explicit PO decision. |
+| R-1 | Gateway/EDC specs arrive late, blocking real payment | High | Blocks 1.0.0 | Fakes behind `PaymentGateway` / `CardTerminal` interfaces from 0.5.0. Escalate if no spec by 0.5.0 exit. Card can ship in 1.0.1 only by explicit PO decision. **Status at the 0.5.0 exit (2026-10-24): no spec had arrived, ADR-0003 is not written and the risk is raised; the PO's acknowledgement that 0.9.0 is at risk is pending.** |
 | R-2 | Backend not live by 0.9.0 | Medium | Blocks 1.0.0 | Contract-first OpenAPI in 0.1.0, contract tests the backend can run, weekly sync. |
 | R-3 | SN not readable without the iMin SDK or privileged permission | Medium | Blocks activation | Spike in 0.2.0 on real hardware (DEV-012). Fallback: `Build.getSerial()` as device owner. |
 | R-4 | iMin device OS is older than expected | Low | minSdk issue | minSdk 30 chosen for margin [D-04]. |
@@ -1067,6 +1080,7 @@ Sized for one developer. Features live as packages inside `:app` rather than sep
 | D-29 | The UI is English-only in 1.0.0. Runtime language switching and Bahasa Indonesia are deferred post-1.0. Strings stay externalised so a language can be added later. Supersedes the localization part of D-09. (Product owner, design review, 2026-10-22.) |
 | D-30 | Design simplifications in the final "Linen & Paprika" design: the Menu promo carousel is removed, Order type has no photos, Checkout has no scan-line animation, no instruction steps and no "Step 3 of 3" indicator, and Budget Plan starts simple (budget and people) with advanced options behind "Customize". Budget Plan also gains an exact-match result. (Product owner, design review, 2026-10-22.) |
 | D-31 | No CI service in 1.0. Every check a CI job would run is in one local Gradle task, `./gradlew verify`, which must pass before merging to `main` and at each milestone exit. Instrumented tests run on local emulators at the same points. CI can be added later by running the same task. (Product owner, 2026-10-22.) |
+| D-32 | After a process death, a payment that is still `PENDING` is cancelled (payment, then order) and not resumed, because the QR string is deliberately not stored and Checkout cannot be redrawn. `PROCESSING` is polled for up to 60 s before it is treated the same way, because money may be in flight. A paid order always reaches Complete. (The PO left the choice to the lead: "you decide what is best", 2026-10-24. The PO is asked to confirm it, `todo.md`.) |
 
 ## 15. Assumptions (unconfirmed)
 
@@ -1082,13 +1096,13 @@ Sized for one developer. Features live as packages inside `:app` rather than sep
 | A-08 | Products with a required choice that has no default open Item detail instead of quick add (they show "Choose ›"). | UX. |
 | A-09 | Unavailable items are hidden. | UX (OQ-08). |
 | A-10 | Limits: 20 per line, 30 lines. | Config change. |
-| A-11 | Process death mid-order resets to Idle, except during payment, which recovers. | UX. |
+| A-11 | Process death mid-order resets to Idle, except during payment, which recovers as FR-016 and D-32 describe. | UX. |
 | A-12 | One promo per order, threshold-fixed type only. | Pricing scope. |
 | A-13 | Rounding is upward and shown as a line. | Pricing correctness; confirm with merchant/accounting. |
 | A-14 | No available payment method → "No payment methods right now / Please ask a team member for help." | Copy. |
 | A-15 | Paid only on backend `PAID`, not on the terminal result alone. | Payment integrity. |
 | A-16 | Card terminal timeout is 90 s. | Tunable. |
-| A-17 | Unknown payment status polls up to 60 s. | Tunable. |
+| A-17 | Unknown payment status polls up to 60 s, and so does "Confirming payment" without a backend `PAID`. | Tunable. |
 | A-18 | Takeaway completion copy: "Takeaway · Pick up at the counter when your number is called." (from the design). | Copy. |
 | A-19 | Print failure shows fallback text on Complete. | Copy. |
 | A-20 | Receipt and kitchen ticket contents as listed in FR-021. | Legal content (OQ-11). |
@@ -1116,14 +1130,15 @@ Sized for one developer. Features live as packages inside `:app` rather than sep
 | A-42 | A planned item that has a required option group gets that group's default option, or its first option when it has none. The sample menu's choices for c4, r1 and d2 (api-spec §4) cost Rp 0, so they never change a plan total. | Budget Plan (FR-032). |
 | A-43 | "Add plan to order" adds the plan's lines to any lines already in the cart (it never removes what the customer chose). The plan lands whole or not at all: if it would break the 20-per-line or 30-line limit (BR-05), nothing is added and the event is logged (the design has no copy for it). SCR-19 opens with no budget, 1 adult and 0 children. | Budget Plan (FR-032, AC5 is checked with an empty cart). |
 | A-44 | Children's drinks come from kid-friendly drinks (any drink when none is tagged). A combo with `serves` other than 1 or 2 is not used in a plan in 1.0, like products with `servesAdults` > 1. Shared sides and desserts are not tied to a person, so they need no kid-friendly tag. | Budget Plan (FR-032). |
+| A-45 | Checkout copy and behaviour the design has no board for, built in 0.5.0: a card payment cancelled on the terminal shows "Payment cancelled" / "The payment was cancelled on the terminal. Try again or choose another method." (the design text is QR-only); "Your order is saved" shows only on the "Ordering is paused" failure; a failure of order creation (E7) shows as "Payment didn't go through" with "Can't reach the restaurant system. Please try again." and no "not charged" note; the QR life follows the QRIS config default until the 0.7.0 Payment settings. | Copy only. |
 
 ## 16. Open questions
 
 | ID | Question | Blocks | Needed by |
 |---|---|---|---|
 | OQ-01 | Exact iMin model, Android version, SN API, printer SDK version? | FR-002, FR-021/022 | 0.2.0 |
-| OQ-02 | Gateway API specification and sandbox access? | FR-017/018 (real) | 0.5.0 spec / 0.9.0 sandbox |
-| OQ-03 | EDC terminal model, transport (USB/LAN/cloud) and protocol; does the result reach the backend directly or via the kiosk? | FR-018 | 0.5.0 |
+| OQ-02 | Gateway API specification and sandbox access? Open at the 0.5.0 exit (R-1). | FR-017/018 (real) | 0.5.0 spec / 0.9.0 sandbox |
+| OQ-03 | EDC terminal model, transport (USB/LAN/cloud) and protocol; does the result reach the backend directly or via the kiosk? Open at the 0.5.0 exit (R-1): the build has the fake terminal and, in release, a terminal that fails every sale. | FR-018 | 0.5.0 |
 | OQ-04 | Backend team, timeline and staging URL? | DEP-1 | 0.5.0 |
 | OQ-05 | **Closed (1.1):** Upsell screen design — delivered as `Upsell.dc.html`. | — | — |
 | OQ-06 | **Closed (1.1):** "Still there?" overlay — delivered as `StillThere.dc.html`. | — | — |
@@ -1157,10 +1172,10 @@ Development tasks: `dev-plan.md`. Test cases: `testing-plan.md`. The full matrix
 | FR-013 | 0.4.0 | DEV-035, DEV-038, DEV-046, DEV-097 | TC-055–TC-061 (+TC-071) |
 | FR-014 | 0.4.0 | DEV-039 | TC-062–TC-064 |
 | FR-015 | 0.4.0 | DEV-038 | TC-065–TC-067 |
-| FR-016 | 0.5.0 | DEV-045, DEV-046, DEV-052 | TC-068–TC-073 |
-| FR-017 | 0.5.0, 0.9.0 | DEV-047, DEV-048, DEV-090 | TC-074–TC-079 |
-| FR-018 | 0.5.0, 0.9.0 | DEV-049, DEV-091 | TC-080–TC-083, TC-181 |
-| FR-019 | 0.5.0 | DEV-050 | TC-084–TC-087 |
+| FR-016 | 0.5.0 | DEV-045, DEV-046, DEV-052 | TC-068–TC-073, TC-185, TC-186, TC-189, TC-191, TC-192 |
+| FR-017 | 0.5.0, 0.9.0 | DEV-047, DEV-048, DEV-090 | TC-074–TC-079, TC-189 |
+| FR-018 | 0.5.0, 0.9.0 | DEV-049, DEV-091 | TC-080–TC-083, TC-181, TC-187, TC-189 |
+| FR-019 | 0.5.0 | DEV-050 | TC-084–TC-087, TC-178, TC-185, TC-187, TC-188 |
 | FR-020 | 0.6.0 | DEV-059, DEV-060 | TC-088–TC-090 |
 | FR-021 | 0.6.0 | DEV-057, DEV-058, DEV-059 | TC-091–TC-095 |
 | FR-022 | 0.6.0 | DEV-055, DEV-056, DEV-061 | TC-096–TC-100 |
@@ -1169,7 +1184,7 @@ Development tasks: `dev-plan.md`. Test cases: `testing-plan.md`. The full matrix
 | FR-025 | 0.7.0 | DEV-068 | TC-110–TC-112 |
 | FR-026 | 0.7.0 | DEV-003, DEV-069, DEV-085 | TC-113–TC-116 |
 | FR-027 | 0.7.0 | DEV-070 | TC-117–TC-120 |
-| FR-028 | 0.3.0, 0.5.0 | DEV-021, DEV-022, DEV-023, DEV-051 | TC-121–TC-125 |
+| FR-028 | 0.3.0, 0.5.0 | DEV-021, DEV-022, DEV-023, DEV-051 | TC-121–TC-125, TC-190 |
 | FR-029 | 0.7.0 | DEV-071, DEV-101 | TC-126–TC-128 |
 | FR-030 | 0.7.0 | DEV-072 | TC-129 |
 | FR-031 | 0.7.0 | DEV-067, DEV-073 | TC-130–TC-131 |
@@ -1187,7 +1202,7 @@ Development tasks: `dev-plan.md`. Test cases: `testing-plan.md`. The full matrix
 | NFR-011 | 0.1.0 (ongoing) | DEV-001, DEV-002, DEV-008 | TC-155 |
 | NFR-012 | 0.1.0 (ongoing) | DEV-005, DEV-009 | TC-156 |
 | NFR-013 | 0.3.0 | DEV-023 | TC-157 |
-| NFR-014 | 0.9.0, 1.0.0 | DEV-001, DEV-095, DEV-100 | TC-158 |
+| NFR-014 | 0.9.0, 1.0.0 | DEV-001, DEV-095, DEV-100 | TC-158, TC-193 (the 0.5.0 database migration) |
 | NFR-015 | 0.9.0 | DEV-093 | TC-145 |
 | NFR-016 | 0.6.0, 0.9.0 | DEV-056, DEV-092 | TC-159 |
 | NFR-017 | 0.5.0 | DEV-047 | TC-160 |

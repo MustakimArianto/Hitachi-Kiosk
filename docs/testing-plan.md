@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Document version | 1.5 (2026-10-24) — 0.4.0: the pricing and Budget Plan case tables are checked by tests (TC-060, TC-161–TC-165); Upsell shows once per order with the no-suggestions fallback (TC-172, PO); TC-104's staff-settings timeout runs with the PIN gate in 0.7.0. 1.4: 0.3.0 changes; benchmark TCs move to 1.0.0 |
+| Document version | 1.6 (2026-10-24) — 0.5.0: TC-185–TC-193 cover the stale payment state, the pending-payment guard, the terminal cancel, the bounded Processing, the amount guards, the unvalidated-network grace, the recovery start and rules, and the Room migration; TC-073 stays partly manual; the 0.5.0 manual checks are listed as not run in `test-reports/0.5.0.md`. 1.5: 0.4.0: the pricing and Budget Plan case tables are checked by tests (TC-060, TC-161–TC-165); Upsell shows once per order with the no-suggestions fallback (TC-172, PO); TC-104's staff-settings timeout runs with the PIN gate in 0.7.0. 1.4: 0.3.0 changes; benchmark TCs move to 1.0.0 |
 | Requirements | [`product-requirement.md`](product-requirement.md) |
 | Development roadmap | [`dev-plan.md`](dev-plan.md) |
 | API contract | [`api/api-spec.md`](api/api-spec.md) |
@@ -48,7 +48,7 @@ No new test dependency may be added beyond those listed without noting the reaso
 - **Target:** ≥ 80 % of the TCs below run automatically (in `verify` or the local instrumented suite) by 0.8.0.
 
 ### 1.5 Fakes and debug tooling
-Every external dependency has a scriptable fake (dev-plan DEV-005). The debug-only Developer options (DEV-009) switch between fake and mock-server modes and select scenarios. Instrumented tests inject the backend, serial-number and connectivity fakes through `FakeBindingsTestModule` (technical-design §14). The mock server supports the scenarios in `api-spec.md` §4 (`X-Mock-Scenario`). The debug-only Checkout "simulate" bar (FR-019) forces payment outcomes. Release builds contain none of these (TC-148).
+Every external dependency has a scriptable fake (dev-plan DEV-005). The debug-only Developer options (DEV-009) switch between fake and mock-server modes and select scenarios. Instrumented tests inject the backend, serial-number and connectivity fakes through `FakeBindingsTestModule` (technical-design §14). The mock server supports the scenarios in `api-spec.md` §4 (`X-Mock-Scenario`). The debug-only Checkout "simulate" bar (FR-019) forces payment outcomes, and the debug `SwitchableCardTerminal` (Developer options → Card terminal) picks the fake terminal's answer. Release builds contain none of these (TC-148).
 
 ---
 
@@ -101,7 +101,7 @@ Every defect records: build, device, steps, expected/actual, evidence (screensho
 
 ## 4. Test case conventions
 
-- IDs `TC-001…TC-180` are stable. New cases append after TC-180 and are never renumbered. A retired case keeps its row, marked *Retired*, so references stay valid.
+- IDs `TC-001…TC-193` are stable. New cases append after TC-193 and are never renumbered. A retired case keeps its row, marked *Retired*, so references stay valid.
 - **Type:** U = unit, I = integration, C = contract, UI = Compose UI test, S = screenshot, E2E, M = manual, D = manual on the iMin device/hardware, B = benchmark.
 - **Pri:** H / M / L (test priority, distinct from defect severity).
 - **Auto:** Y = automated (`verify` or the local instrumented suite); P = partly automated; N = manual.
@@ -228,7 +228,7 @@ Test data: the tagged sample menu from `api-spec.md` §4 (kid-friendly mains b1,
 | TC-070 | FR-016 | Retry with same key | Mock `server_error_once` | Tap Pay | 503 then 201; both requests carry the same key; one order | I | H | Y |
 | TC-071 | FR-016 | PRICE_CHANGED | Mock `order_price_changed` | Tap Pay | Back to SCR-10 with "Prices have been updated…"; totals updated; no payment started | E2E | H | Y |
 | TC-072 | FR-016 | ITEM_UNAVAILABLE | Mock `order_item_unavailable` | Tap Pay | c1 line marked "No longer available"; Pay blocked until removed | E2E | H | Y |
-| TC-073 | FR-016 | Process death during payment | Mock `qris_paid_after_5s` | Pay; at 2 s `adb shell am kill`; relaunch | App queries E10 → Complete with correct number; receipt prints once | E2E/D | H | P |
+| TC-073 | FR-016 | Process death during payment | Mock `qris_paid_after_5s`. Run once with "Don't keep activities" on | Pay; at 2 s `adb shell am kill`; relaunch | App queries E10 → Complete with correct number; receipt prints once (0.5.0: Complete is the placeholder with the backend order number; printing arrives in 0.6.0). The logic is automated (TC-191, TC-192); the real kill on a device is manual | E2E/D | H | P |
 | TC-074 | FR-017 | QRIS display | Mock default | Reach Checkout | QR card with the logo mark, "Urban Grill · Kiosk 3", the order total as the amount (design sample with Rp 500 rounding: Rp 173.000), "Code expires in 5:00" with the expiry ring; **no scan line, no 1-2-3 step list and no "Step 3 of 3" indicator** | UI/S | H | Y |
 | TC-075 | FR-017 | QRIS paid | Mock `qris_paid_after_5s` | Wait | "Confirming payment" ≥ 800 ms → Complete within 3 s of PAID; polling stops | E2E | H | Y |
 | TC-076 | FR-017 | QRIS cancelled in app | Mock `qris_cancelled` | Wait | Failed: "The payment was cancelled in your app…"; "not charged" note | E2E | H | Y |
@@ -244,6 +244,13 @@ Test data: the tagged sample menu from `api-spec.md` §4 (kid-friendly mains b1,
 | TC-085 | FR-019 | Unknown status | Network drop right after PAID at gateway | Pay; kill network 10 s; restore | "Checking your payment…" (no "not charged"); resolves to Complete | E2E | H | P |
 | TC-086 | FR-019 | Back to order | Pending QR | Tap "Back to order" | E11 + E8 sent; SCR-10 with cart intact; next Pay creates a new order (new key) | E2E | H | Y |
 | TC-087 | FR-019 | No counter button / no simulate bar in release | Release APK | Inspect Failed state; `scripts/check-release-apk.sh` strings check | No "Pay at the counter" button; no "Prototype only" string or class | UI/U | H | Y |
+| TC-185 | FR-016, FR-019 | Stale payment state of an earlier order | Fakes; an order that ended outside the machine (401 wipe, staff reset) while the machine shows `Failed` or a card sale is running | End the order outside the machine; start a new order and tap Pay | The machine goes Idle when the session ends: a running card sale is cancelled, nothing is sent to the backend, the pending order is kept, and `Paid` waits for the Complete hand-off. Checkout clears a stale `Failed` or `Paid` before it submits, so the new order is not stuck behind it | U | H | Y |
+| TC-186 | FR-016 | A pending payment is never overwritten | Pending order that has a `paymentId` (a cancel that failed, a deferred recovery) | Tap Pay for a new order; then settle the pending payment and tap Pay again | The first Pay sends no E7: Checkout shows "Payment didn't go through" with "Can't reach the restaurant system…" and Try again, Back to order and Cancel order. After the pending payment is settled, a new order is created. A pending order with no payment is replaced | U/I | H | Y |
+| TC-187 | FR-018 | Terminal cancelled when the backend ends the payment | Fake terminal waiting for a card; scripted E10 | E10 answers `FAILED`, `EXPIRED`, `CANCELLED` or `PAID` during the sale; separately a QR payment ends the same way | `cancel()` is sent to the terminal once, so it cannot charge twice; an E12 answer that is a final status needs no second cancel; a QR payment never touches the terminal | U | H | Y |
+| TC-188 | FR-019 | "Confirming payment" is bounded | Test clock. (a) An approval whose E12 failed and E10 stays `PENDING`; (b) a QR whose E10 stays `PROCESSING`; (c) `PAID` at 59 s | Wait 60 s | (a) and (b): Failed without the "not charged" note, reason "network" when E10 stopped answering; Try again cancels the payment first. (c) Paid | U | H | Y |
+| TC-189 | FR-016, FR-017, FR-018 | Amount guards | Fakes: E7 answers another total; E9 answers another amount (QR and card) | Tap Pay; then start a payment | E7 total differs: E8 is sent, nothing is paid, the unreachable failure shows. E9 amount differs: no QR or terminal prompt, E11 and E8 are sent, generic failure, and if the cancel fails the pending order stays for recovery. The matching amount is accepted | U | H | Y |
+| TC-191 | FR-016 | Recovery starts without Splash | A bound kiosk with a pending paid order; Android restores the saved back stack to a screen after Splash | Start the process | `KioskApp.start()` loads the device state and recovers (the pending order is cleared, the app goes to Complete from Idle); Idle ignores "tap to order" while a run asks the backend and the gate always lifts; `StartupRouter` asking again changes nothing; a kiosk that is not bound is never recovered. The real kill on a device is TC-073 | U | H | Y |
+| TC-192 | FR-016 | Recovery of the other stored states and of failures | Pending orders: no payment; `FAILED`; `PENDING`; `PROCESSING` that becomes `PAID`, a non-paid status or stays `PROCESSING`; E8, E10 or E11 failing | Run the recovery | As the table in architecture §5.3: `PENDING` → E11 then E8; `PROCESSING` is polled every 2 s for 60 s, then treated like `PENDING`; a 409 on E11 re-reads E10 and `PAID` wins; a failure leaves the order pending and the next ONLINE (or the 30 s timer while online) retries it; a customer order in progress is never disturbed; a second run finds nothing | U/I | H | Y |
 
 ### 5.6 Completion and printing (FR-020 – FR-022)
 
@@ -303,6 +310,7 @@ Test data: the tagged sample menu from `api-spec.md` §4 (kid-friendly mains b1,
 | TC-129 | FR-030 | Sound effects | Sound on / off | Quick add, pay success, pay fail | Sounds ≤ 1 s when on; none when off | M | L | N |
 | TC-130 | FR-031 | Fault surfacing | Receipt printer connected | Unplug | Settings home "1 issue needs attention" within 5 s; red dot on Idle corner (matches `S_Idle_issues`) | D | M | N |
 | TC-131 | FR-031 | Log rotation & redaction | Generate 15 MB of logs | Inspect log dir | ≤ 10 MB; no PIN; payment refs show last 4 only | I | M | Y |
+| TC-190 | FR-028 | Unvalidated network and E14 states | Connectivity engine with virtual time; fakes | (a) Connect to a captive portal (connected, not validated); (b) E14 `components.paymentGateway` `DEGRADED` or `DOWN`; (c) a real call fails with a network error while online; (d) the first probe on a fresh network fails or hangs | (a) CHECKING for 4 s, then OFFLINE, so the banner is up within 5 s and the network is not probed; (b) OFFLINE; (c) E14 is probed at once; (d) Pay is back within 10 s. Retries wait 2 s, 4 s and then 30 s. CHECKING never disables Pay or Add | U | H | Y |
 
 ### 5.9 End-to-end journeys and Android lifecycle
 
@@ -342,6 +350,7 @@ Test data: the tagged sample menu from `api-spec.md` §4 (kid-friendly mains b1,
 | TC-158 | NFR-014 | Upgrade install | Previous milestone APK installed + activated | Install new signed APK over it | Activation, binding, printers, settings preserved; `versionCode` per scheme | D | H | N |
 | TC-159 | NFR-016 | Compatibility matrix | §2.3 matrix | Run regression subset per target | Pass on all targets; printer list certified | D/UI | H | P |
 | TC-160 | NFR-017 | Clock skew | Device clock +10 min | Start QRIS payment | Countdown still correct (server-based) | UI | H | Y |
+| TC-193 | NFR-014, FR-016 | Room migration 1 → 2 | Exported schemas `1.json` and `2.json` | Migrate a version-1 database that holds catalog rows; open the migrated file with the real database; store a pending order and reopen | `pending_order` exists and is empty, the catalog rows are kept (no new download), the migrated file passes Room's schema check, the pending order survives reopening, and `1 → 2` is the only registered migration (no destructive fallback) | I | H | Y |
 
 ### 5.11 Design states (the `S_*` state boards)
 
@@ -373,10 +382,10 @@ MockWebServer with fixtures equal to `api-spec.md`: activation, merchants, confi
 Every route in PRD §5.1 is covered by a navigation test (DEV-010a). Every state in the PRD §7 table has a Compose test and a screenshot, and every `S_*` state board in `docs/ui-design/` is the reference image for its screenshot test (TC-172–TC-180).
 
 ### 6.4 Lifecycle, configuration and process death
-TC-013, TC-073, TC-107, TC-138 and TC-139. Run with "Don't keep activities" enabled once per milestone from 0.4.0.
+TC-013, TC-073, TC-107, TC-138, TC-139, TC-191 and TC-192. Run with "Don't keep activities" enabled once per milestone from 0.4.0.
 
 ### 6.5 Connectivity transitions
-TC-003, TC-011, TC-085, TC-122–TC-125, TC-137 and TC-154. Test Wi-Fi off, airplane mode, captive portal (validated network false), and a backend that is up while the gateway is down.
+TC-003, TC-011, TC-085, TC-122–TC-125, TC-137, TC-154 and TC-190. Test Wi-Fi off, airplane mode, captive portal (validated network false), and a backend that is up while the gateway is down.
 
 ### 6.6 Permissions
 Bluetooth connect/scan deny and grant (TC-098), USB permission (TC-097), and location for SSID (FR-027, "Wi-Fi name hidden" when denied). No runtime permission is requested on customer screens (checked in TC-132).
@@ -417,7 +426,7 @@ Each milestone runs: (a) its new TCs, (b) the full automated regression of all e
 | **0.2.0** | Splash, routing, SN, activation, merchants | TC-001–TC-019, TC-146, TC-179, TC-182–TC-184 | 0.1.0 | Wrong routing; duplicate activation; token in plain text | `verify` report; SN spike notes (ADR-0002) with device photo; J5/J6 recordings | All pass; SN source decided |
 | **0.3.0** | Idle, order type, menu, item, combo, sync/cache, images | TC-020–TC-049 (TC-029–TC-031 and TC-036 retired), TC-174–TC-176, TC-121, TC-124, TC-125, TC-157 | 0.1–0.2 | Wrong item/combo price; crash in browse; menu not cached | Screenshot diffs vs design; `docs/test-reports/0.3.0.md` | All pass |
 | **0.4.0** | Cart, pricing, Budget Plan, review, methods, upsell, inactivity | TC-050–TC-067, TC-101–TC-104, TC-135, TC-139, TC-161–TC-167, TC-169–TC-173, TC-177 | 0.1–0.3 | Any pricing mismatch; overlay during payment; a Budget Plan plan above budget shown as "under" or as an exact match, or a person left without a meal | `docs/pricing-cases.md`; `docs/budget-plan-cases.md`; coverage report (domain ≥ 90 %) | All pass |
-| **0.5.0** | Order creation, QRIS, card (fake), failures, offline gate, recovery, clock skew | TC-068–TC-087 (TC-083 deferred to 0.9.0), TC-122, TC-123, TC-132–TC-134, TC-137, TC-138, TC-154, TC-160, TC-178, TC-181 | 0.1–0.4 | Duplicate order; "not charged" shown on unknown status; paid without PAID | Recordings of J1–J3 with fakes; mock-scenario run log | All pass; gateway/EDC spec status recorded |
+| **0.5.0** | Order creation, QRIS, card (fake), failures, offline gate, recovery, clock skew | TC-068–TC-087 (TC-083 deferred to 0.9.0), TC-122, TC-123, TC-132–TC-134, TC-137, TC-138, TC-154, TC-160, TC-178, TC-181, TC-185–TC-193 | 0.1–0.4 | Duplicate order; "not charged" shown on unknown status; paid without PAID | Recordings of J1–J3 with fakes; mock-scenario run log | All pass; gateway/EDC spec status recorded |
 | **0.6.0** | Complete, printing, printer management | TC-088–TC-100, TC-159 (printers subset) | 0.1–0.5 + J1 with print | No print on paid order; print failure blocks Complete | Photos of 58/80 mm receipts and kitchen tickets for each connection type | All pass on real printers |
 | **0.7.0** | PIN, settings, lock task, sound, logging | TC-105–TC-131, TC-136 | 0.1–0.6 + J1–J8 | Lock-task escape; PIN bypass; lockout not persisted | Device videos of escape attempts and reboot; provisioning run log | All pass on iMin device |
 | **0.8.0** | String lint, a11y, motion, on-device profiling, larger text, screenshots | TC-032, TC-116, TC-150–TC-153, TC-180 | Full suite | Hardcoded strings on customer screens; perf below NFR-003; a11y errors; a state board without a screenshot test | Perf report; a11y report; PO copy sign-off; motion checklist | Targets met or accepted |
@@ -445,10 +454,10 @@ Each milestone runs: (a) its new TCs, (b) the full automated regression of all e
 | FR-013 | DEV-035, DEV-038, DEV-046, DEV-097 | TC-055–TC-061, TC-173 (+TC-071) | 0.4.0 / 0.5.0 / 0.9.0 |
 | FR-014 | DEV-039 | TC-062–TC-064, TC-172 | 0.4.0 |
 | FR-015 | DEV-037a, DEV-038 | TC-065–TC-067, TC-173, TC-177 | 0.4.0 |
-| FR-016 | DEV-045, DEV-046, DEV-052 | TC-068–TC-073 | 0.5.0 |
-| FR-017 | DEV-047, DEV-048, DEV-090 | TC-074–TC-079 | 0.5.0 / 0.9.0 |
-| FR-018 | DEV-049, DEV-091 | TC-080–TC-083, TC-181 | 0.5.0 / 0.9.0 |
-| FR-019 | DEV-050 | TC-084–TC-087, TC-178 | 0.5.0 |
+| FR-016 | DEV-045, DEV-046, DEV-052 | TC-068–TC-073, TC-185, TC-186, TC-189, TC-191, TC-192 | 0.5.0 |
+| FR-017 | DEV-047, DEV-048, DEV-090 | TC-074–TC-079, TC-189 | 0.5.0 / 0.9.0 |
+| FR-018 | DEV-049, DEV-091 | TC-080–TC-083, TC-181, TC-187, TC-189 | 0.5.0 / 0.9.0 |
+| FR-019 | DEV-050 | TC-084–TC-087, TC-178, TC-185, TC-187, TC-188 | 0.5.0 |
 | FR-020 | DEV-059, DEV-060 | TC-088–TC-090 | 0.6.0 |
 | FR-021 | DEV-057, DEV-058, DEV-059 | TC-091–TC-095 | 0.6.0 |
 | FR-022 | DEV-055, DEV-056, DEV-061 | TC-096–TC-100 | 0.6.0 |
@@ -457,7 +466,7 @@ Each milestone runs: (a) its new TCs, (b) the full automated regression of all e
 | FR-025 | DEV-068 | TC-110–TC-112 | 0.7.0 |
 | FR-026 | DEV-003, DEV-069, DEV-085 | TC-113–TC-116 | 0.7.0 / 0.8.0 |
 | FR-027 | DEV-070 | TC-117–TC-120 | 0.7.0 |
-| FR-028 | DEV-021, DEV-022, DEV-023, DEV-051 | TC-121–TC-125, TC-175 | 0.3.0 / 0.5.0 |
+| FR-028 | DEV-021, DEV-022, DEV-023, DEV-051 | TC-121–TC-125, TC-175, TC-190 | 0.3.0 / 0.5.0 |
 | FR-029 | DEV-071, DEV-101 | TC-126–TC-128 | 0.7.0 |
 | FR-030 | DEV-072 | TC-129 | 0.7.0 |
 | FR-031 | DEV-067, DEV-073 | TC-130–TC-131 | 0.7.0 |
@@ -475,7 +484,7 @@ Each milestone runs: (a) its new TCs, (b) the full automated regression of all e
 | NFR-011 | DEV-001, DEV-002, DEV-008 | TC-155 | 0.1.0 |
 | NFR-012 | DEV-005, DEV-009 | TC-156 | 0.1.0 |
 | NFR-013 | DEV-023 | TC-157 | 0.3.0 |
-| NFR-014 | DEV-001, DEV-095, DEV-100 | TC-158 | 0.9.0 / 1.0.0 |
+| NFR-014 | DEV-001, DEV-095, DEV-100 | TC-158, TC-193 | 0.5.0 / 0.9.0 / 1.0.0 |
 | NFR-015 | DEV-093 | TC-145 | 0.9.0 |
 | NFR-016 | DEV-056, DEV-092 | TC-159 | 0.6.0 / 0.9.0 |
 | NFR-017 | DEV-047 | TC-160 | 0.5.0 |

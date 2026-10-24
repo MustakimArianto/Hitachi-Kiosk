@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Document version | 1.4 (2026-10-24) — 0.4.0: kotest-property in use in `:core:domain` (no new libraries); 1.3: 0.3.0 Room, WorkManager with Hilt workers, Coil loader with the 200 MB disk cache, work-testing and Robolectric in `:core:data` |
+| Document version | 1.5 (2026-10-24) — 0.5.0: ZXing core in `:app` at error-correction level H, Room at version 2 with a real migration, `room-testing` in use (no new libraries); 1.4: 0.4.0 kotest-property in use in `:core:domain`; 1.3: 0.3.0 Room, WorkManager with Hilt workers, Coil loader with the 200 MB disk cache, work-testing and Robolectric in `:core:data` |
 | Answers | *What technologies does the project use, at which version, and why?* |
 | Requirements | [`product-requirement.md`](product-requirement.md) (FR-/NFR-/D-) and [`technical-requirement.md`](technical-requirement.md) (TR-) |
 | Design | [`architecture.md`](architecture.md) (structure), [`technical-design.md`](technical-design.md) (implementation), [ADR-0001](adr/0001-architecture.md) (stack decision) |
@@ -113,7 +113,7 @@ The modules column follows [architecture §3](architecture.md#3-modules). "BOM" 
 
 | Library | Artifact | Version | Purpose | Modules |
 |---|---|---|---|---|
-| Room | `androidx.room:room-runtime`, `room-compiler` (KSP), plugin `androidx.room` | **2.8.5** | Config and menu tables from 0.3.0, `pending_order` from 0.5.0. Atomic catalog replacement. Exported schemas (`core/data/schemas/`) for migrations (architecture §6). `room-ktx` is not needed: since 2.7 the runtime has the coroutine APIs, so it stays in the catalog unused | `:core:data` |
+| Room | `androidx.room:room-runtime`, `room-compiler` (KSP), plugin `androidx.room` | **2.8.5** | Config and menu tables from 0.3.0 (version 1), `pending_order` from 0.5.0 (version 2, `Migration(1, 2)`, no destructive fallback). Atomic catalog replacement. Exported schemas (`core/data/schemas/`, `1.json` and `2.json`) for migrations (architecture §6). `room-ktx` is not needed: since 2.7 the runtime has the coroutine APIs, so it stays in the catalog unused | `:core:data` |
 | DataStore Preferences | `androidx.datastore:datastore-preferences` | **1.3.0** | `device.preferences_pb`, `settings.preferences_pb`, PIN lockout state; the serial-number cache `identity.preferences_pb`; the debug-only Developer options choices (`developer_options`) | `:core:data`, `:core:hardware`, `:app` (debug) |
 | DataStore + Tink | `androidx.datastore:datastore`, `androidx.datastore:datastore-tink` | **1.3.0** | Secure DataStore `secure.pb`: `AeadSerializer` encrypts each write with AES-256-GCM (ADR-0001, NFR-005) | `:core:data` |
 | Tink | `com.google.crypto.tink:tink-android` | **1.24.0** | `Aead` primitive, `AndroidKeysetManager` with an `android-keystore://` master key | `:core:data` |
@@ -125,7 +125,7 @@ The modules column follows [architecture §3](architecture.md#3-modules). "BOM" 
 |---|---|---|---|---|
 | Coil 3 | `io.coil-kt.coil3:coil-compose` | **3.6.3** | Async image loading (`AsyncImage`) placed in the `PhotoSlot` component's image slot, which shows the tone placeholder (NFR-013). `:core:designsystem` stays Compose-only (architecture §3). Used from 0.2.0 (merchant photo and logo); since 0.3.0 `KioskApp` provides the singleton loader (`image/kioskImageLoader`) and `ui/MenuPhoto` wraps `AsyncImage` in the slot. | `:app` |
 | Coil network | `io.coil-kt.coil3:coil-network-okhttp` | **3.6.3** | OkHttp fetcher on a plain client (public image URLs never get the device token). 200 MB disk cache (A-37) and prefetch after sync (through the domain `ImagePrefetcher` port) | `:app` |
-| ZXing core | `com.google.zxing:core` | **3.5.4** | Encodes `qrString` into a `BitMatrix` that Compose draws (FR-017, DEV-048). Also decodes the bitmap in TC-079. No `zxing-android-embedded`, because nothing is scanned with the camera. | `:app` (encode), tests (decode) |
+| ZXing core | `com.google.zxing:core` | **3.5.4** | Encodes `qrString` at error-correction level H (above the required M, because the merchant mark covers the centre; margin 4) into a `BitMatrix` that Compose draws with whole-pixel modules (FR-017, DEV-048, TD-07). Also decodes the bitmap in TC-079. No `zxing-android-embedded`, because nothing is scanned with the camera. | `:app` (encode), tests (decode) |
 
 ### 3.7 Hardware and platform integrations
 
@@ -136,7 +136,7 @@ The modules column follows [architecture §3](architecture.md#3-modules). "BOM" 
 | USB printers | Android USB host API (`android.hardware.usb.UsbManager`) | platform | ESC/POS over bulk transfer (NFR-016) | `:core:hardware` |
 | Bluetooth printers | Android Bluetooth Classic (`BluetoothSocket`, SPP UUID `00001101-0000-1000-8000-00805F9B34FB`) | platform | ESC/POS to paired printers (A-21) | `:core:hardware` |
 | ESC/POS encoding | In-house `EscPosEncoder` (pure Kotlin) | n/a | Text styles, alignment, raster logo, feed, cut. Tested against golden byte files (DEV-055). | `:core:hardware` |
-| Card terminal (EDC) | `CardTerminal` adapter; vendor SDK or protocol per OQ-03 | TBD (ADR-0003, 0.5.0) | Sends the amount and reference to the EDC terminal and receives the result (FR-018) | `:core:hardware` |
+| Card terminal (EDC) | `CardTerminal` adapter; vendor SDK or protocol per OQ-03 | TBD (ADR-0003 is not written: the specs had not arrived at the 0.5.0 exit; 0.9.0) | Sends the amount and reference to the EDC terminal and receives the result (FR-018). Until then `UnavailableCardTerminal` (release) and the fake | `:core:hardware` |
 | Kiosk lockdown | `DevicePolicyManager`, `DeviceAdminReceiver`, lock task | platform | Device owner, lock task, persistent home, keyguard and status bar disabled (FR-029) | `:app` |
 | Sound effects | `android.media.SoundPool` | platform | Three short sounds (FR-030) | `:app` |
 | Cryptography for the staff PIN | `javax.crypto` (`PBKDF2WithHmacSHA256`), `java.security.MessageDigest.isEqual` | JDK | Offline PIN check against the synced hash in constant time (FR-024, NFR-005) | `:core:domain` |
@@ -166,7 +166,7 @@ Rules for test dependencies are in [testing-plan §1.3](testing-plan.md#13-test-
 | Turbine | `app.cash.turbine:turbine` | **1.2.1** | `Flow` and `StateFlow` assertions | JVM tests |
 | kotest-property | `io.kotest:kotest-property` | **6.2.6** | Property tests with generators and shrinking (TC-061 pricing over 1,000 random carts; FR-032 AC8 exact-match coverage). Used standalone (`checkAll` inside `runTest`) in JUnit 4 tests; the Kotest runner is not used. Confirmed in 0.4.0 (`PricingEngineTest`, `BudgetPlannerPropertiesTest`). Fallback: the latest 5.x release. | `:core:domain` |
 | MockWebServer 3 | `com.squareup.okhttp3:mockwebserver3`, `mockwebserver3-junit4` | 5.5.1 | HTTP contract and fault-injection tests that serve the fixtures from `api-spec.md` (NFR-010, DEV-006). `mockwebserver3-junit4` provides the JUnit 4 rule. | `:core:data` |
-| Room testing | `androidx.room:room-testing` | 2.8.5 | `MigrationTestHelper` from 1.0.0. The 0.3.0 DAO tests use `Room.inMemoryDatabaseBuilder` from the runtime, so this artifact is not declared yet | `:core:data` |
+| Room testing | `androidx.room:room-testing` | 2.8.5 | `MigrationTestHelper` runs the database migration test from 0.5.0 (`KioskDatabaseMigrationTest`, with the exported `schemas/` added as unit-test assets). The DAO tests use `Room.inMemoryDatabaseBuilder` from the runtime | `:core:data` |
 | WorkManager testing | `androidx.work:work-testing` | 2.12.0 | `WorkManagerTestInitHelper`, `TestListenableWorkerBuilder` (DEV-023); the instrumented test runner installs a test WorkManager | `:core:data`, `:app` (androidTest) |
 | Robolectric | `org.robolectric:robolectric` | **4.17** | Android framework on the JVM for Room, WorkManager, network-callback and Roborazzi tests. DEV-001 result: 4.17 starts the API 37 image, but Compose draws nothing there in NATIVE graphics mode, so the screenshot modules pin `sdk=36` in `src/test/resources/robolectric.properties`. API 37 is covered by the instrumented tests. The unit-test JVM gets `--add-exports=java.base/jdk.internal.access=ALL-UNNAMED` (set in build-logic). | `:core:data`, `:app`, `:core:designsystem` |
 | Roborazzi | `io.github.takahirom.roborazzi:roborazzi`, `roborazzi-compose`, `roborazzi-junit-rule`, plugin `io.github.takahirom.roborazzi` | **1.77.0** | JVM screenshot tests at 1080 × 1920 and 160/240/320 dpi, one per `S_<Screen>_<scenario>` board (TC-180) | `:app`, `:core:designsystem` |

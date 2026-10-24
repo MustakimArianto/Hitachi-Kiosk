@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Document version | 1.1 (2026-10-23) — TR-INT-07 and the open items follow the DEV-012 findings (ADR-0002, Proposed) |
+| Document version | 1.2 (2026-10-24) — TR-NET-11, TR-INT-04 and TR-DAT-04 follow the 0.5.0 implementation (connectivity probe schedule, amount guards, Room migrations); the OQ-03 status; 1.1: TR-INT-07 and the open items follow the DEV-012 findings (ADR-0002, Proposed) |
 | Answers | *What must the system satisfy technically, and how is each requirement measured?* |
 | Derived from | [`product-requirement.md`](product-requirement.md) (NFR-, FR-, BR-, D-, A-) and [`api/api-spec.md`](api/api-spec.md) (E1–E14) |
 | Satisfied by | [`technical-design.md`](technical-design.md) (how), [`architecture.md`](architecture.md) (structure), [`technology-stack.md`](technology-stack.md) (with what) |
@@ -88,7 +88,7 @@ Rows verified by a benchmark TC (TC-142, TC-143, TC-144, TC-168) are measured on
 | ID | Requirement | Source | Verification |
 |---|---|---|---|
 | TR-REL-01 | 72 h soak (scripted order every 3 min, idle in between): 0 crashes, 0 ANRs, Java heap growth ≤ 20 MB from hour 1 to hour 72, no leaked Activities (LeakCanary in debug). | NFR-004, OBJ-4 | TC-145 |
-| TR-REL-02 | After process death during a payment, the app must recover with no manual action, following the `pending_order` table in architecture §5.3. A paid order must reach Complete and print. | FR-016, A-11 | TC-073 |
+| TR-REL-02 | After process death during a payment, the app must recover with no manual action, following the `pending_order` table in architecture §5.3. A paid order must reach Complete and print. A pending order that has an unsettled payment is never replaced by a new order. | FR-016, A-11, D-32 | TC-073, TC-186, TC-191, TC-192 |
 | TR-REL-03 | Any number of Pay taps, and a 5xx followed by a retry, must produce **exactly one** backend order per checkout (`Idempotency-Key` reused on retry). | FR-016 AC1–AC2, BR-08 | TC-069, TC-070 |
 | TR-REL-04 | Double taps on "Log in", "Add combo" and order-type cards must produce exactly one effect. | FR-003 AC3, FR-007 AC2, FR-011 AC3 | TC-012, TC-026, TC-049 |
 | TR-REL-05 | **(derived)** No disk or network I/O on the main thread. Debug builds enable `StrictMode` (thread and VM policies) with log penalties, and the debug instrumented journey suite (J1–J8) must show no violations from app code. The soak itself runs a release build (TC-149), where StrictMode is off. | NFR-010, NFR-004 | StrictMode log review in the soak |
@@ -138,7 +138,7 @@ Rows verified by a benchmark TC (TC-142, TC-143, TC-144, TC-168) are measured on
 | TR-NET-08 | Unknown JSON fields must be ignored, and absent optional fields must not fail parsing. | api-spec, architecture §7 | Contract tests with extra fields |
 | TR-NET-09 | E5 and E6 must send `If-None-Match`. A 304 must keep the cached copy. | FR-028 | TC-121 |
 | TR-NET-10 | Payment status must be polled every 2 s while a payment is pending. Polling must stop on any terminal state. | FR-017, NFR-010 | TC-075, TC-077 |
-| TR-NET-11 | Connectivity = validated internet **and** a successful E14 health probe whose `paymentGateway` component is `OK` (otherwise checkout is unavailable, as when offline). While offline, E14 is probed on every network change and every 30 s. | FR-028, api-spec §1.1 | TC-122, TC-123 |
+| TR-NET-11 | Connectivity = validated internet **and** a successful E14 health probe whose `paymentGateway` component is `OK` (otherwise checkout is unavailable, as when offline). E14 is probed on every network change; while the probe fails, after 2 s, 4 s and then every 30 s; and at once when a real call fails with a network error while online. A connected but unvalidated network counts as offline after 4 s. | FR-028, api-spec §1.1 | TC-122, TC-123, TC-190 |
 | TR-NET-12 | The base URL is a build setting per environment (`dev`, `staging`, `prod`). Only debug builds may override it at runtime (Developer options). | PRD §10.1, architecture §7 | Build config review, TC-148 |
 
 ## 8. Payment and hardware integration
@@ -148,9 +148,9 @@ Rows verified by a benchmark TC (TC-142, TC-143, TC-144, TC-168) are measured on
 | TR-INT-01 | The kiosk must never call the payment gateway directly. QRIS payloads and payment status come through the backend (E9–E11). | architecture §2, D-12 | Code review |
 | TR-INT-02 | The QR must be rendered from `qrString` with error correction level M or higher, and must decode back to exactly `qrString`, including with the center mark drawn. | FR-017 AC1 | TC-079 |
 | TR-INT-03 | The QR countdown must use server `expiresAt` adjusted by the server/device clock offset from the E9 `Date` header, accurate to ± 1 s even with the device clock skewed by +10 min. | FR-017 AC2, NFR-017 | TC-074, TC-160 |
-| TR-INT-04 | The amount on the QR and the amount sent to the terminal must equal the backend order total. | FR-017, FR-018 AC2 | TC-074, TC-080 |
-| TR-INT-05 | Card terminal: the app must cancel on the terminal after 90 s with no response, and on "Back to order". The transport and protocol are decided in ADR-0003 (OQ-03) behind the `CardTerminal` interface. | FR-018, A-16 | TC-082, TC-181 |
-| TR-INT-06 | Unknown payment status: show "Checking your payment…" and poll for up to 60 s. "You have not been charged" must only appear after a backend terminal non-paid status. | FR-019, A-17 | TC-085 |
+| TR-INT-04 | The amount on the QR and the amount sent to the terminal must equal the backend order total. **(derived)** The order the backend creates must carry the total the kiosk sent, and the payment (E9) the order total; otherwise the order and payment are cancelled and nothing is charged. | FR-016 AC3, FR-017, FR-018 AC2 | TC-074, TC-080, TC-189 |
+| TR-INT-05 | Card terminal: the app must cancel on the terminal after 90 s with no response, on "Back to order", and whenever the backend ends the payment during a sale. The transport and protocol are decided in ADR-0003 (OQ-03) behind the `CardTerminal` interface. | FR-018, A-16 | TC-082, TC-181, TC-187 |
+| TR-INT-06 | Unknown payment status: show "Checking your payment…" and poll for up to 60 s. "Confirming payment" without a backend `PAID` also ends after 60 s. "You have not been charged" must only appear after a backend terminal non-paid status. | FR-019, A-17 | TC-085, TC-188 |
 | TR-INT-07 | Serial number: from the iMin system API (the system properties the iMin SDK reads, `ro.serialno` then `persist.sys.imin.sn`), falling back to `Build.getSerial()` as device owner. Must be identical across reinstall, data clear and reboot. | FR-002, A-02 | TC-005–TC-007 |
 | TR-INT-08 | Printers: built-in through the iMin SDK, USB through USB host bulk transfer, Bluetooth through Classic SPP to paired devices, all speaking ESC/POS. 58 mm and 80 mm paper, density Light, Normal and Dark. | FR-021, FR-022, NFR-016, A-21 | TC-096–TC-099 |
 | TR-INT-09 | Exactly one printer per role (Receipt, Kitchen). The receipt and ticket print within TR-PRF-12. The 58 mm layout wraps without truncating amounts. | FR-021 AC3, FR-022, BR-12 | TC-093, TC-099 |
@@ -164,7 +164,7 @@ Rows verified by a benchmark TC (TC-142, TC-143, TC-144, TC-168) are measured on
 | TR-DAT-01 | All money is integer IDR (`Long`). No floating point anywhere in money math or money storage. | BR-01, FR-013 | Pricing tests (TC-055–TC-061), detekt rule / review |
 | TR-DAT-02 | Pricing must be deterministic and must match the backend re-validation in 100 % of contract tests. Property test: 1,000 random carts. | FR-013 AC4, OBJ-3 | TC-060, TC-061 |
 | TR-DAT-03 | The menu cache must be replaced atomically (one Room transaction) per `menuVersion`. | FR-028, DEV-021 | DAO tests |
-| TR-DAT-04 | From 1.0.0 onward, Room schema changes need an explicit `Migration`, an exported schema committed under `core/data/schemas/`, and a migration test. Before 1.0.0 a destructive migration is allowed for cache tables only, never for `pending_order` or DataStore. | NFR-014, architecture §6 | `MigrationTestHelper` tests |
+| TR-DAT-04 | Room schema changes need an explicit `Migration`, an exported schema committed under `core/data/schemas/`, and a migration test. A destructive migration was allowed for cache tables only (never for `pending_order` or DataStore) until 0.4.0; since 0.5.0 (database version 2) there is no destructive fallback at all. | NFR-014, architecture §6 | `MigrationTestHelper` tests, TC-193 |
 | TR-DAT-05 | The image disk cache is capped at 200 MB. A cold start with no network must show cached images. | NFR-013, A-37 | TC-125, TC-157 |
 | TR-DAT-06 | The cart is in memory only, survives navigation and configuration change, and is cleared on Idle. Only the pending order/payment is persisted. | FR-012, A-11 | TC-023, TC-139 |
 | TR-DAT-07 | Device settings, printer registry and PIN lockout state persist locally and apply immediately without restart. | FR-022 AC3, FR-026 AC1 | TC-100, TC-115 |
@@ -219,7 +219,7 @@ Rows verified by a benchmark TC (TC-142, TC-143, TC-144, TC-168) are measured on
 | Item | Affects | Resolution |
 |---|---|---|
 | OQ-01 iMin model, Android version, SN and printer SDK | TR-PLT-04, TR-INT-07, TR-INT-08, all TR-PRF targets | ADR-0002 (0.2.0), ADR-0004 (0.6.0) |
-| OQ-03 EDC transport and result path | TR-INT-05 | ADR-0003 (0.5.0) |
+| OQ-03 EDC transport and result path | TR-INT-05 | ADR-0003 is not written: the specs had not arrived at the 0.5.0 exit (R-1). It is the first step of DEV-091 (0.9.0) |
 | A-36 Pinning acceptable to infra | TR-SEC-03 | Confirm in DEV-094 |
 | The `Build.getSerial()` fallback (A-02) needs `READ_PHONE_STATE`, which is not in PRD §12.3 | TR-INT-07, TR-SEC-09 | ADR-0002 (DEV-012, Proposed; the on-device spike decides). Drop the fallback if a system property gives the label SN, or have the PO add the permission. Until then the permission is declared in the debug manifest only. |
 | FR-003 says the device token is "refreshed per §10", but PRD §10 and api-spec v1 define no refresh endpoint (E1 returns `tokenExpiresAt: null`) | TR-NET-06, TR-SEC-01 | Until the backend team defines one, the token is long-lived and a 401 sends the kiosk back to SCR-02. Agree before 0.9.0 (DEP-1). |
