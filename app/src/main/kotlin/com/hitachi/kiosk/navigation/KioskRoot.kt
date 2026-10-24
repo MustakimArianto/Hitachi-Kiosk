@@ -81,7 +81,6 @@ fun KioskRoot(
             ) {
                 KioskNavHost(
                     navController = navController,
-                    onInactivity = { inactivityViewModel.onEvent(InactivityEvent.ShowNow) },
                     onBrandMarkClick = onBrandMarkClick,
                 )
             }

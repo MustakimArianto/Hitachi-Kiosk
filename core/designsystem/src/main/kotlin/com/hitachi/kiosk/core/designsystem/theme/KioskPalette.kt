@@ -124,11 +124,26 @@ object KioskPalette {
     /** `dockRingOff`: the unselected ring of a payment method tile on the dark panel (`Payment.dc.html`). */
     val DockRingOff = Color(0xFF4A453F)
 
+    /** `shortText`: "Group too large" and the "Rp X more needed" badge text (`BudgetPas.dc.html`). */
+    val ShortText = Color(0xFFA3401C)
+
+    /** `shortBg`: the "Rp X more needed" badge (`BudgetPas.dc.html`, `S_BudgetPas_tooLow`). */
+    val ShortBg = Color(0xFFF8E6DE)
+
+    /** `rowDivider`: the 2 px lines between rows inside white cards (`BudgetPas.dc.html`). */
+    val RowDivider = Color(0xFFF4F0EA)
+
+    /** `switchOff`: the track of a switch that is off (Budget Plan "Include sides"). */
+    val SwitchOff = Color(0xFFD9D3CA)
+
     /** The floating elevation's shadow color, `rgba(23,21,19,.10)` (PRD §11.1). */
     val FloatingShadow = Ink.copy(alpha = 0.10f)
 
     /** The raised shadow of toasts and flying thumbnails, `rgba(23,21,19,.18)` (`Menu.dc.html`). */
     val RaisedShadow = Ink.copy(alpha = 0.18f)
+
+    /** The scrim behind bottom sheets, `rgba(23,21,19,.38)` (`BudgetPas.dc.html` Customize and keypad). */
+    val SheetScrim = Ink.copy(alpha = 0.38f)
 
     /** The accent the merchant config may choose from, default first (A-38). */
     val AccentOptions: List<Color> = listOf(AccentPaprika, AccentForest, AccentIndigo, AccentInk)

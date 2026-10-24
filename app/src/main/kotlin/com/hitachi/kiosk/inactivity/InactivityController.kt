@@ -150,13 +150,6 @@ class InactivityController(
         effects.trySend(InactivityEffect.GoToIdle)
     }
 
-    /** Shows the overlay now, as if the timeout had passed (the placeholder "Simulate inactivity" action). */
-    fun showNow() {
-        if (!armed) return
-        deadline = clock.elapsedRealtime()
-        restart(fromDeadline = false)
-    }
-
     /** Hides the overlay and stops the timer, for example on Sign-out; the next touch or destination re-arms it. */
     fun reset() {
         stopTimer()

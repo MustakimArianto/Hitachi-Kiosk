@@ -5,6 +5,7 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import com.google.common.truth.Truth.assertThat
+import com.hitachi.kiosk.core.data.prefs.SettingsStore
 import com.hitachi.kiosk.core.domain.model.KioskSettings
 import com.hitachi.kiosk.core.domain.model.PaymentMethod
 import kotlinx.coroutines.flow.first
@@ -20,7 +21,7 @@ class DefaultSettingsRepositoryTest {
     private val dataStore by lazy {
         PreferenceDataStoreFactory.create(produceFile = { folder.root.resolve("settings.preferences_pb") })
     }
-    private val repository by lazy { DefaultSettingsRepository(dataStore) }
+    private val repository by lazy { DefaultSettingsRepository(SettingsStore(dataStore)) }
 
     @Test
     fun `a fresh file reads as the FR-026 defaults`() =

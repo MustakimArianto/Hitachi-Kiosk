@@ -28,9 +28,6 @@ sealed interface InactivityEvent {
 
     /** The kiosk signed out: hide the overlay (FR-003). */
     data object SignedOut : InactivityEvent
-
-    /** The placeholder "Simulate inactivity" action (removed when every placeholder screen is gone). */
-    data object ShowNow : InactivityEvent
 }
 
 /**
@@ -60,7 +57,6 @@ class InactivityViewModel
                 InactivityEvent.Continue -> controller.onContinue()
                 InactivityEvent.StartOver -> controller.onStartOver()
                 InactivityEvent.SignedOut -> controller.reset()
-                InactivityEvent.ShowNow -> controller.showNow()
             }
         }
     }

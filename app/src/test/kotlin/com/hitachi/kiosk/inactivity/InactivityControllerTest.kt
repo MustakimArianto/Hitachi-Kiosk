@@ -310,13 +310,12 @@ class InactivityControllerTest {
         }
 
     @Test
-    fun `Show now opens the overlay at once and Reset hides it`() =
+    fun `Reset hides the overlay and stops the timer (Sign-out)`() =
         runTest {
             orderWithItem()
             val h = start()
 
-            h.controller.showNow()
-            runCurrent()
+            advance(60.seconds)
             assertThat(h.state).isEqualTo(StillThereState.Showing(15))
             h.controller.reset()
             advance(30.seconds)

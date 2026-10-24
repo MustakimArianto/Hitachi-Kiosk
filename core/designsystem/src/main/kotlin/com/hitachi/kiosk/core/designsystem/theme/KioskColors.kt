@@ -47,6 +47,11 @@ data class KioskColors(
     val dockSubtle: Color = KioskPalette.DockSubtle,
     val dockChipText: Color = KioskPalette.DockChipText,
     val dockRingOff: Color = KioskPalette.DockRingOff,
+    val shortText: Color = KioskPalette.ShortText,
+    val shortBg: Color = KioskPalette.ShortBg,
+    val rowDivider: Color = KioskPalette.RowDivider,
+    val switchOff: Color = KioskPalette.SwitchOff,
+    val sheetScrim: Color = KioskPalette.SheetScrim,
 )
 
 /** The [KioskColors] of the current [KioskTheme] (DEV-004). */
