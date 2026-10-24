@@ -13,8 +13,8 @@ internal const val TARGET_PACKAGE = "com.hitachi.kiosk"
 /**
  * Everything the benchmarks know about the screens: UI Automator selectors built from the design copy
  * (the `.dc.html` boards in `docs/ui-design`) and the accessibility descriptions, kept in this one file so they can be adjusted when
- * a screen changes. Each [Target] tries its selectors in order, so the design selector comes first and the 0.2.0
- * placeholder label (`navigation/PlaceholderScreen.kt`) last; drop the placeholder ones once the 0.3.0 screens are in.
+ * a screen changes. Each [Target] tries its selectors in order: the accessibility description first, the visible
+ * text second.
  */
 internal object KioskUi {
     /** One element to wait for and tap, found by the first selector that matches. */
@@ -29,22 +29,18 @@ internal object KioskUi {
         Target("'Urban Grill' merchant card", By.desc("Urban Grill, open"), By.textStartsWith("Urban Grill"))
 
     // J1 journey (0.3.0 screens).
-    val idle = Target("Idle 'Tap to order'", By.desc("Tap to order"), By.text("Tap to order"), By.text("Tap anywhere"))
-    val dineIn = Target("Order type 'Dine in'", By.text("Dine in"), By.desc("Dine in"), By.text("Pick an order type"))
+    val idle = Target("Idle 'Tap to order'", By.desc("Tap to order"), By.text("Tap to order"))
+    val dineIn = Target("Order type 'Dine in'", By.text("Dine in"), By.desc("Dine in"))
     val burgers = Target("Menu category pill 'Burgers'", By.text("Burgers"), By.desc("Burgers"))
     val smokyDoubleBurger =
         Target(
             "Menu product 'Smoky Double Burger'",
             By.desc("Choose options for Smoky Double Burger"),
             By.text("Smoky Double Burger"),
-            By.text("Product card"),
         )
-    val itemDetail = Target("Item detail screen", By.desc("Increase quantity"), By.text("SCR-08"))
-    val menu = Target("Menu screen", By.desc("Categories"), By.text("SCR-06"))
-    val backToMenu = Target("Item detail 'Menu' back pill", By.text("Menu"), By.desc("Menu"), By.text("Keep ordering"))
-
-    /** The 0.2.0 Menu placeholder (screen ID label), which has no category pills; the journey skips that step there. */
-    private val menuPlaceholder = Target("Menu placeholder", By.text("SCR-06"))
+    val itemDetail = Target("Item detail screen", By.desc("Increase quantity"))
+    val menu = Target("Menu screen", By.desc("Categories"))
+    val backToMenu = Target("Item detail 'Menu' back pill", By.text("Menu"), By.desc("Menu"))
 
     private const val SETUP_TIMEOUT_MS = 60_000L
     private const val SCREEN_TIMEOUT_MS = 15_000L
@@ -74,11 +70,7 @@ internal object KioskUi {
     fun MacrobenchmarkScope.idleToItemAndBack() {
         device.tap(idle)
         device.tap(dineIn)
-        when (device.firstOf(listOf(burgers, menuPlaceholder), STEP_TIMEOUT_MS)) {
-            burgers -> device.tap(burgers)
-            menuPlaceholder -> Unit
-            else -> error("DEV-031: ${burgers.name} not found. ${hint(burgers)}")
-        }
+        device.tap(burgers)
         device.tap(smokyDoubleBurger)
         // Wait for the item screen and for the Menu to leave: during the transition both are on screen.
         device.require(itemDetail)
