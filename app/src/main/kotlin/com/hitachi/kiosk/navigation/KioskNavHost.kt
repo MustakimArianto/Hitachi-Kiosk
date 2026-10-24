@@ -129,8 +129,8 @@ private fun NavGraphBuilder.checkoutDestinations(navController: NavHostControlle
     composable<YourOrderRoute> {
         YourOrderFeatureRoute(
             onBackToMenu = { navController.popBackStack(MenuRoute, false) },
-            // The chosen method reaches Checkout with order submission in 0.5.0 (DEV-046).
-            onPay = { navController.navigate(CheckoutRoute) },
+            // launchSingleTop: a second Pay tap never stacks a second Checkout (TC-069).
+            onPay = { navController.navigate(CheckoutRoute) { launchSingleTop = true } },
         )
     }
     composable<CheckoutRoute> {

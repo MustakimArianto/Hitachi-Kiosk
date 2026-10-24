@@ -19,7 +19,9 @@ class StartupRouterTest {
     private val activation = FakeActivationRepository()
     private val catalog = FakeCatalogSyncRepository()
 
-    private fun TestScope.router() = StartupRouter(activation, catalog, backgroundScope)
+    private var recoveries = 0
+
+    private fun TestScope.router() = StartupRouter(activation, catalog, backgroundScope, { recoveries++ })
 
     @Test
     fun `not activated goes to Sign in after the minimum display time`() =
@@ -59,6 +61,38 @@ class StartupRouterTest {
 
             assertThat(router().route()).isEqualTo(StartDestination.IDLE)
             assertThat(currentTime).isEqualTo(StartupRouter.MINIMUM_DISPLAY.inWholeMilliseconds)
+        }
+
+    @Test
+    fun `a bound kiosk hands its pending order to recovery once, without holding the splash (DEV-052)`() =
+        runTest {
+            activation.stored = SampleData.boundState
+
+            assertThat(router().route()).isEqualTo(StartDestination.IDLE)
+
+            assertThat(recoveries).isEqualTo(1)
+            assertThat(currentTime).isEqualTo(StartupRouter.MINIMUM_DISPLAY.inWholeMilliseconds)
+        }
+
+    @Test
+    fun `a kiosk that is not bound never starts a recovery`() =
+        runTest {
+            router().route()
+            activation.stored = SampleData.activatedState
+            router().route()
+
+            assertThat(recoveries).isEqualTo(0)
+        }
+
+    @Test
+    fun `a load cut off at 10 s that never found a binding does not start a recovery`() =
+        runTest {
+            activation.stored = SampleData.boundState
+            activation.loadDelay = 30.seconds
+
+            router().route()
+
+            assertThat(recoveries).isEqualTo(0)
         }
 
     @Test

@@ -19,12 +19,15 @@ import com.hitachi.kiosk.inactivity.InactivityEvent
 import com.hitachi.kiosk.inactivity.InactivityViewModel
 import com.hitachi.kiosk.inactivity.StillThereHost
 import com.hitachi.kiosk.inactivity.inactivityZone
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.filter
 
 /**
  * The root of the UI (technical-design §10.2): the design frame, the [KioskNavHost] and the SCR-13 inactivity overlay
  * above it (FR-023, technical-design §10.3). A root pointer observer reports every touch to the inactivity timer
  * without consuming it, and the back stack tells the timer where the kiosk is. It also returns to Sign in whenever
- * the session ends ([SessionViewModel]).
+ * the session ends ([SessionViewModel]), and goes to Complete for an order that a process-death recovery found paid
+ * ([RecoveryViewModel]).
  */
 @Composable
 fun KioskRoot(
@@ -33,6 +36,7 @@ fun KioskRoot(
     navController: NavHostController = rememberNavController(),
     sessionViewModel: SessionViewModel = hiltViewModel(),
     inactivityViewModel: InactivityViewModel = hiltViewModel(),
+    recoveryViewModel: RecoveryViewModel = hiltViewModel(),
 ) {
     val stillThere by inactivityViewModel.state.collectAsStateWithLifecycle()
     LaunchedEffect(sessionViewModel, navController) {
@@ -44,6 +48,16 @@ fun KioskRoot(
             if (current?.hasRoute<SplashRoute>() != true && current?.hasRoute<SignInRoute>() != true) {
                 navController.replaceStack(SignInRoute)
             }
+        }
+    }
+    LaunchedEffect(recoveryViewModel, navController) {
+        // FR-016 AC4: an order found paid after a process death goes to Complete, once, and only from Idle. If the
+        // kiosk is elsewhere (splash, staff settings) the request waits until Idle is on screen.
+        combine(recoveryViewModel.completeRequested, navController.currentBackStackEntryFlow) { requested, entry ->
+            requested && entry.destination.hasRoute<IdleRoute>()
+        }.filter { it }.collect {
+            recoveryViewModel.onCompleteShown()
+            navController.navigate(CompleteRoute) { popUpTo(IdleRoute) }
         }
     }
     LaunchedEffect(inactivityViewModel, navController) {

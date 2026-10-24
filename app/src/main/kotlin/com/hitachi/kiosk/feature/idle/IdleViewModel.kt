@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.hitachi.kiosk.core.domain.model.Catalog
 import com.hitachi.kiosk.core.domain.order.OrderSessionHolder
 import com.hitachi.kiosk.core.domain.repository.CatalogRepository
+import com.hitachi.kiosk.recovery.RecoveryGate
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
@@ -19,7 +20,9 @@ import javax.inject.Inject
 /**
  * SCR-04 Idle (FR-006, DEV-024). Shows the cached merchant's name and promo images, ends the order whenever Idle comes
  * on screen (FR-006 AC5, BR-09; which also lets a held-back catalog sync apply, A-29), and leaves for Order type or
- * the staff PIN once per visit, so a double tap never opens two screens.
+ * the staff PIN once per visit, so a double tap never opens two screens. A tap to order does nothing while the pending
+ * order of a process death is being recovered, so a new order never shares the pending row with the old one (FR-016,
+ * DEV-052).
  */
 @HiltViewModel
 class IdleViewModel
@@ -27,6 +30,7 @@ class IdleViewModel
     constructor(
         catalogRepository: CatalogRepository,
         private val orderSessionHolder: OrderSessionHolder,
+        private val recovery: RecoveryGate,
     ) : ViewModel() {
         private val mutableState = MutableStateFlow(IdleUiState())
         val state: StateFlow<IdleUiState> = mutableState.asStateFlow()
@@ -45,7 +49,7 @@ class IdleViewModel
         fun onEvent(event: IdleEvent) {
             when (event) {
                 IdleEvent.Shown -> shown()
-                IdleEvent.TapToOrder -> leave(IdleEffect.StartOrder)
+                IdleEvent.TapToOrder -> if (!recovery.blocksNewOrder.value) leave(IdleEffect.StartOrder)
                 IdleEvent.StaffHold -> leave(IdleEffect.OpenStaffSettings)
             }
         }

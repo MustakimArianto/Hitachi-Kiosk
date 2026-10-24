@@ -5,6 +5,8 @@ import com.hitachi.kiosk.core.domain.model.DeviceState
 import com.hitachi.kiosk.core.domain.repository.ActivationRepository
 import com.hitachi.kiosk.core.domain.repository.CatalogSyncRepository
 import com.hitachi.kiosk.di.ApplicationScope
+import com.hitachi.kiosk.recovery.PendingOrderRecoveryCoordinator
+import com.hitachi.kiosk.recovery.StartupRecovery
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
@@ -22,13 +24,16 @@ enum class StartDestination { SIGN_IN, MERCHANTS, IDLE }
 /**
  * Picks the screen after Splash (FR-001, DEV-011, technical-design §4.2). The minimum display time and the local
  * load run in parallel; routing waits for both, but never more than [initCap] for the load. A bound kiosk also
- * starts a catalog download in the background that the splash does not wait for. The pending-order recovery of
- * architecture §5.3 joins here in 0.5.0 (DEV-052).
+ * starts a catalog download in the background that the splash does not wait for, and hands the pending-order check
+ * of architecture §5.3 to [recovery] (DEV-052): the recovery itself runs in the application scope after the splash
+ * has landed on Idle, so it can never hold the splash past its cap. A kiosk that is not bound has no pending order to
+ * recover.
  */
 class StartupRouter(
     private val activation: ActivationRepository,
     private val catalog: CatalogSyncRepository,
     private val backgroundScope: CoroutineScope,
+    private val recovery: StartupRecovery,
     private val minimumDisplay: Duration = MINIMUM_DISPLAY,
     private val initCap: Duration = INIT_CAP,
 ) {
@@ -37,7 +42,8 @@ class StartupRouter(
         activation: ActivationRepository,
         catalog: CatalogSyncRepository,
         @ApplicationScope backgroundScope: CoroutineScope,
-    ) : this(activation, catalog, backgroundScope, MINIMUM_DISPLAY, INIT_CAP)
+        recovery: PendingOrderRecoveryCoordinator,
+    ) : this(activation, catalog, backgroundScope, recovery::recoverAtStartup, MINIMUM_DISPLAY, INIT_CAP)
 
     suspend fun route(): StartDestination =
         coroutineScope {
@@ -53,6 +59,8 @@ class StartupRouter(
             if (state is DeviceState.Bound) {
                 // FR-001: start a sync when bound, but never let the splash wait on the network.
                 backgroundScope.launch { catalog.sync(state.merchant.id) }
+                // DEV-052: a payment that was pending when the app died is settled in the background.
+                recovery.begin()
             }
             minimum.await()
             state.destination().also { KioskLog.i("startup_routed", "destination" to it) }

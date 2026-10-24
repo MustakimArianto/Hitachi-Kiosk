@@ -6,6 +6,9 @@ import com.hitachi.kiosk.core.domain.order.DefaultOrderSessionHolder
 import com.hitachi.kiosk.core.testing.fake.FakeCatalogRepository
 import com.hitachi.kiosk.core.testing.fixture.SampleData
 import com.hitachi.kiosk.core.testing.rule.MainDispatcherRule
+import com.hitachi.kiosk.recovery.RecoveryGate
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
@@ -22,13 +25,52 @@ class IdleViewModelTest {
     private val catalog = FakeCatalogRepository()
     private val sessions = DefaultOrderSessionHolder()
 
-    private fun viewModel() = IdleViewModel(catalog, sessions)
+    private val recoveryBlocking = MutableStateFlow(false)
+    private val recovery =
+        object : RecoveryGate {
+            override val blocksNewOrder: StateFlow<Boolean> = recoveryBlocking
+        }
+
+    private fun viewModel() = IdleViewModel(catalog, sessions, recovery)
 
     private fun TestScope.effectsOf(vm: IdleViewModel): List<IdleEffect> {
         val effects = mutableListOf<IdleEffect>()
         backgroundScope.launch { vm.effect.toList(effects) }
         return effects
     }
+
+    @Test
+    fun `a tap to order does nothing while the pending order is being recovered (DEV-052)`() =
+        runTest(main.dispatcher) {
+            val vm = viewModel()
+            val effects = effectsOf(vm)
+            runCurrent()
+
+            recoveryBlocking.value = true
+            vm.onEvent(IdleEvent.TapToOrder)
+            runCurrent()
+            assertThat(effects).isEmpty()
+
+            recoveryBlocking.value = false
+            vm.onEvent(IdleEvent.TapToOrder)
+            vm.onEvent(IdleEvent.TapToOrder)
+            runCurrent()
+            assertThat(effects).containsExactly(IdleEffect.StartOrder)
+        }
+
+    @Test
+    fun `holding the staff corner still works during a recovery`() =
+        runTest(main.dispatcher) {
+            val vm = viewModel()
+            val effects = effectsOf(vm)
+            runCurrent()
+
+            recoveryBlocking.value = true
+            vm.onEvent(IdleEvent.StaffHold)
+            runCurrent()
+
+            assertThat(effects).containsExactly(IdleEffect.OpenStaffSettings)
+        }
 
     @Test
     fun `entering Idle ends the order and its cart`() =
