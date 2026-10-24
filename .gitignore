@@ -59,3 +59,6 @@ npm-debug.log*
 
 # --- Logs and local reports ---
 *.log
+
+# Full-size source photos of the demo images; the app bundles the resized WebP files in app/src/debug/assets/demo.
+/Assets/
