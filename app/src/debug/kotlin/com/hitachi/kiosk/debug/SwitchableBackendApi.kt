@@ -35,6 +35,10 @@ class SwitchableBackendApi(
         return FakeBackendApi(clock).apply { apply(current.scenario) }.also { fake = current.scenario to it }
     }
 
+    /** The in-app fake that answers now, or `null` for the real client and the mock server (the simulate bar needs it). */
+    fun fakeOrNull(): FakeBackendApi? =
+        if (settings().backendMode == BackendMode.FAKES) target() as? FakeBackendApi else null
+
     override suspend fun activate(request: ActivationRequest) = target().activate(request)
 
     override suspend fun merchants(deviceId: String) = target().merchants(deviceId)

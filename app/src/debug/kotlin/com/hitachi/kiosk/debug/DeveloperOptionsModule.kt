@@ -8,8 +8,8 @@ import com.hitachi.kiosk.core.domain.device.CardTerminal
 import com.hitachi.kiosk.core.domain.device.ConnectivityMonitor
 import com.hitachi.kiosk.core.domain.device.DeviceIdentityProvider
 import com.hitachi.kiosk.core.domain.time.Clock
-import com.hitachi.kiosk.core.testing.fake.FakeCardTerminal
 import com.hitachi.kiosk.devtools.BindingOverrides
+import com.hitachi.kiosk.devtools.CheckoutDebugTools
 import com.hitachi.kiosk.devtools.DeveloperMenu
 import dagger.Module
 import dagger.Provides
@@ -34,10 +34,12 @@ object DeveloperOptionsModule {
     fun bindingOverrides(
         store: DeveloperSettingsStore,
         clock: Clock,
+        bindings: DebugBindings,
     ): BindingOverrides =
         object : BindingOverrides {
             override fun backendApi(real: BackendApi): BackendApi =
                 SwitchableBackendApi(real = real, settings = { store.settings.value }, clock = clock)
+                    .also { bindings.backend = it }
 
             override fun deviceIdentityProvider(real: DeviceIdentityProvider): DeviceIdentityProvider =
                 SwitchableDeviceIdentityProvider(real = real, settings = { store.settings.value })
@@ -45,10 +47,16 @@ object DeveloperOptionsModule {
             // Testers go offline with airplane mode, so debug builds keep the real monitor.
             override fun connectivityMonitor(real: ConnectivityMonitor): ConnectivityMonitor = real
 
-            // No EDC adapter exists before 0.9.0 (ADR-0003), so debug builds drive the fake terminal. The UI wave
-            // replaces it with a SwitchableCardTerminal and a Developer options switch.
-            override fun cardTerminal(real: CardTerminal): CardTerminal = FakeCardTerminal()
+            // No EDC adapter exists before 0.9.0 (ADR-0003): the Developer options pick between the release adapter
+            // (every sale fails), a terminal that waits for the Checkout simulate bar, and the fake's fixed answers.
+            override fun cardTerminal(real: CardTerminal): CardTerminal =
+                SwitchableCardTerminal(real = real, settings = { store.settings.value })
+                    .also { bindings.terminal = it }
         }
+
+    /** The "Prototype only · simulate the result" bar of Checkout (FR-019). Release builds have no binding. */
+    @Provides
+    fun checkoutDebugTools(simulator: CheckoutSimulator): CheckoutDebugTools = simulator
 
     @Provides
     @IntoSet
