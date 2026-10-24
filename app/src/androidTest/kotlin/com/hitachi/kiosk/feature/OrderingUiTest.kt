@@ -1,6 +1,7 @@
 package com.hitachi.kiosk.feature
 
 import androidx.compose.ui.test.ExperimentalTestApi
+import androidx.compose.ui.test.assertContentDescriptionContains
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertTextContains
@@ -148,7 +149,7 @@ class OrderingUiTest {
         // TC-050, TC-066: 2 × Rp 38.000 = Rp 76.000, PB1 10 % → Rp 83.600, and Pay says so.
         tapTag(yourOrderIncrementTag("l1"))
         compose.onNodeWithTag(YOUR_ORDER_TOTAL_TAG).assertTextContains("Rp 83.600", substring = true)
-        compose.onNodeWithTag(YOUR_ORDER_PAY_TAG).assertTextContains("Rp 83.600", substring = true)
+        compose.onNodeWithTag(YOUR_ORDER_PAY_TAG).assertContentDescriptionContains("Pay Rp 83.600")
 
         // TC-051, TC-053: minus at 1 removes the line; the empty tray disables Pay.
         tapTag(yourOrderDecrementTag("l1"))

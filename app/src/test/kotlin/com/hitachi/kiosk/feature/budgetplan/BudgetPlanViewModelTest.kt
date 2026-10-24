@@ -38,7 +38,7 @@ class BudgetPlanViewModelTest {
 
     private fun TestScope.viewModel(catalog: Catalog = SampleData.catalog): BudgetPlanViewModel {
         catalogs.set(catalog)
-        val vm = BudgetPlanViewModel(catalogs, settings, orders)
+        val vm = BudgetPlanViewModel(catalogs, settings, orders, main.dispatcher)
         runCurrent()
         return vm
     }
@@ -526,6 +526,29 @@ class BudgetPlanViewModelTest {
         }
 
     @Test
+    fun `once added, switching or swapping cannot add the plan twice, and My order navigates once`() =
+        runTest(main.dispatcher) {
+            val vm = viewModel()
+            val effects = effectsOf(vm)
+            plan(vm, 150_000, adults = 2, children = 1)
+            val count = vm.plan.itemCount
+
+            send(
+                vm,
+                BudgetPlanEvent.AddPlan,
+                BudgetPlanEvent.SelectPlan(PlanSide.OVER),
+                BudgetPlanEvent.Back,
+                BudgetPlanEvent.AddPlan,
+                BudgetPlanEvent.ViewOrder,
+            )
+            advanceTimeBy(ADDED_NAVIGATE_MILLIS * 2)
+            runCurrent()
+
+            assertThat(session.state.value.cart.itemCount).isEqualTo(count)
+            assertThat(effects).containsExactly(BudgetPlanEffect.NavigateToYourOrder)
+        }
+
+    @Test
     fun `a locked order refuses the plan and stays on step 2`() =
         runTest(main.dispatcher) {
             val vm = viewModel()
@@ -560,7 +583,7 @@ class BudgetPlanViewModelTest {
     fun `without a catalog nothing can be planned`() =
         runTest(main.dispatcher) {
             catalogs.set(null)
-            val vm = BudgetPlanViewModel(catalogs, settings, orders)
+            val vm = BudgetPlanViewModel(catalogs, settings, orders, main.dispatcher)
             runCurrent()
 
             send(vm, BudgetPlanEvent.PickBudget(150_000), BudgetPlanEvent.SeePlans)

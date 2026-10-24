@@ -89,13 +89,13 @@ private fun NavGraphBuilder.orderingDestinations(navController: NavHostControlle
         MenuFeatureRoute(
             onOpenProduct = { productId -> navController.navigate(ItemDetailRoute(productId = productId)) },
             onOpenCombos = { navController.navigate(ComboRoute()) },
-            onOpenBudgetPlan = { navController.navigate(BudgetPlanRoute) },
+            onOpenBudgetPlan = { navController.navigate(BudgetPlanRoute) { launchSingleTop = true } },
             // The cart is kept when the order type changes (PRD §5.1).
             onChangeOrderType = { navController.popBackStack(OrderTypeRoute, false) },
             // Entering Idle ends the order and clears the cart (FR-009 AC4).
             onCancel = { navController.popBackStack(IdleRoute, false) },
-            onViewOrder = { navController.navigate(YourOrderRoute) },
-            onOfferUpsell = { navController.navigate(UpsellRoute) },
+            onViewOrder = { navController.navigate(YourOrderRoute) { launchSingleTop = true } },
+            onOfferUpsell = { navController.navigate(UpsellRoute) { launchSingleTop = true } },
         )
     }
     composable<ItemDetailRoute> {
@@ -247,5 +247,8 @@ private fun StartDestination.route(): Any =
 
 /** Opens Your order with Menu below it, so "Add more" and Back return to Menu (PRD §5.1). */
 private fun NavHostController.navigateToYourOrder() {
-    navigate(YourOrderRoute) { popUpTo(MenuRoute) }
+    navigate(YourOrderRoute) {
+        popUpTo(MenuRoute)
+        launchSingleTop = true
+    }
 }

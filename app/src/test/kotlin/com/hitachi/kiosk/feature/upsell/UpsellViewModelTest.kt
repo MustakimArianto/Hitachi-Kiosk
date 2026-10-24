@@ -78,8 +78,6 @@ class UpsellViewModelTest {
             assertThat(ui.orderType).isEqualTo(OrderType.DINE_IN)
             assertThat(ui.itemCount).isEqualTo(5)
             assertThat(ui.subtotal).isEqualTo("Rp 167.000")
-            // Subtotal 167.000 − promo 10.000 + PB1 15.700 (FR-013).
-            assertThat(ui.subtotal).isEqualTo("Rp 167.000")
             assertThat(ui.thumbnails.map { it.tone }).containsExactly("#DFE3DC", "#E6DCD3", "#E3D4C2").inOrder()
             val cheeseFries = ui.suggestions.first()
             assertThat(cheeseFries)
@@ -249,6 +247,13 @@ class UpsellViewModelTest {
             assertThat(effects)
                 .containsExactly(UpsellEffect.OpenYourOrder, UpsellEffect.OpenYourOrder, UpsellEffect.BackToMenu)
                 .inOrder()
+            // Back on the Menu the order is being built again (architecture §5.1).
+            assertThat(
+                sessions.current.value
+                    ?.state
+                    ?.value
+                    ?.phase,
+            ).isEqualTo(OrderPhase.BUILDING)
         }
 
     @Test

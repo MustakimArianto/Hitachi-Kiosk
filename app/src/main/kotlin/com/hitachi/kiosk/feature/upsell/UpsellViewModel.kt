@@ -104,9 +104,19 @@ class UpsellViewModel
 
         fun onEvent(event: UpsellEvent) {
             when (event) {
-                is UpsellEvent.QuickAdd -> quickAdd(event.productId)
-                UpsellEvent.NoThanks, UpsellEvent.Continue -> effects.trySend(UpsellEffect.OpenYourOrder)
-                UpsellEvent.BackToMenu -> effects.trySend(UpsellEffect.BackToMenu)
+                is UpsellEvent.QuickAdd -> {
+                    quickAdd(event.productId)
+                }
+
+                UpsellEvent.NoThanks, UpsellEvent.Continue -> {
+                    effects.trySend(UpsellEffect.OpenYourOrder)
+                }
+
+                UpsellEvent.BackToMenu -> {
+                    // Back on the Menu the order is being built again (architecture §5.1: Reviewing → Building).
+                    sessions.current.value?.startBuilding()
+                    effects.trySend(UpsellEffect.BackToMenu)
+                }
             }
         }
 

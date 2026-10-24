@@ -119,6 +119,59 @@ class BudgetPlannerPropertiesTest {
         assertThat(p95.inWholeMilliseconds).isLessThan(JVM_LIMIT_MILLIS)
     }
 
+    @Test
+    fun `swaps never take a plan past its limit, in Strict or within the cap (AC9, AC10)`() {
+        val requests =
+            PlanTolerance.entries.flatMap { tolerance ->
+                (40_000L..300_000L step 20_000L).flatMap { budget ->
+                    (GROUPS + (3 to 2)).map { (adults, children) ->
+                        PlanRequest(Rupiah(budget), adults, children, PlanOptions(tolerance = tolerance))
+                    }
+                }
+            }
+        requests.forEach { request ->
+            (planner.plan(request) as PlanResult.Plans).plans.forEach { start ->
+                assertSwapsStayWithinLimit(request, start)
+            }
+        }
+    }
+
+    private fun assertSwapsStayWithinLimit(
+        request: PlanRequest,
+        start: BudgetPlan,
+    ) {
+        val budget = request.budget.value
+        val cap = if (request.options.tolerance == PlanTolerance.STRICT) budget else budget + budget / 10
+        var plan = start
+        repeat(SWAP_ROUNDS) {
+            for (index in plan.picks.indices) {
+                for (part in SwapPart.entries) {
+                    plan = planner.swap(request, plan, index, part)
+                    if (start.kind != PlanKind.TOO_LOW) {
+                        assertWithMessage("$request $part").that(plan.total.value).isAtMost(cap)
+                    }
+                    BudgetPlannerTest.assertCovers(plan, request.adults, request.children)
+                }
+            }
+        }
+    }
+
+    @Test
+    fun `prices that share only Rp 1 still plan ten people quickly (TR-PRF-08)`() {
+        val odd = menu.copy(products = menu.products.map { if (it.id == "d1") it.copy(price = Rupiah(16_001)) else it })
+        val oddPlanner = BudgetPlannerTest.planner(odd)
+        val request = PlanRequest(Rupiah(600_000), 10, 0)
+        repeat(WARM_UP) { oddPlanner.plan(request) }
+
+        val time = measureTime { oddPlanner.plan(request) }
+        val result = oddPlanner.plan(request) as PlanResult.Plans
+
+        println("BudgetPlanner 10 adults, Rp 1 unit: $time")
+        assertThat(time.inWholeMilliseconds).isLessThan(JVM_LIMIT_MILLIS)
+        assertThat(result.hero.total.value).isAtMost(600_000L)
+        BudgetPlannerTest.assertCovers(result.hero, 10, 0)
+    }
+
     /** Every subtotal the plan rules allow for the group, by plain set convolution (no planner code). */
     private fun reachableSubtotals(
         adults: Int,
@@ -175,6 +228,7 @@ class BudgetPlannerPropertiesTest {
         const val PROPERTY_RUNS = 1_000
         const val WARM_UP = 5
         const val RUNS = 50
+        const val SWAP_ROUNDS = 3
         const val JVM_LIMIT_MILLIS = 100L
     }
 }

@@ -21,12 +21,13 @@ internal object BudgetPlanTestStates {
     private const val BOARD_CART_COUNT = 4
 
     fun build(vararg events: BudgetPlanEvent): BudgetPlanUiState {
-        Dispatchers.setMain(UnconfinedTestDispatcher())
+        val dispatcher = UnconfinedTestDispatcher()
+        Dispatchers.setMain(dispatcher)
         try {
             val orders = DefaultOrderSessionHolder()
             val session = orders.chooseOrderType(OrderType.DINE_IN, "menu-118", "cfg-42")
             session.add(CartItem.ProductItem("c1", emptyList()), BOARD_CART_COUNT, Rupiah(38_000), emptyList())
-            val vm = BudgetPlanViewModel(FakeCatalogRepository(), FakeSettingsRepository(), orders)
+            val vm = BudgetPlanViewModel(FakeCatalogRepository(), FakeSettingsRepository(), orders, dispatcher)
             events.forEach(vm::onEvent)
             return vm.state.value
         } finally {

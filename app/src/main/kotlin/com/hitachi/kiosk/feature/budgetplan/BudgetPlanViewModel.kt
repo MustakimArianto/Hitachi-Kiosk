@@ -27,15 +27,20 @@ import com.hitachi.kiosk.core.domain.planner.SwapPart
 import com.hitachi.kiosk.core.domain.pricing.PricingRules
 import com.hitachi.kiosk.core.domain.repository.CatalogRepository
 import com.hitachi.kiosk.core.domain.repository.SettingsRepository
+import com.hitachi.kiosk.di.DefaultDispatcher
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
@@ -44,6 +49,7 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 /** "Added to order" shows for 1 s before Your order opens (`BudgetPas.dc.html` `cta()`). */
@@ -61,8 +67,10 @@ private const val MIN_KEYPAD_BUDGET = 1_000L
 /**
  * SCR-19 Budget Plan (FR-032, DEV-043, DEV-043a; architecture §5.1 "Budget Plan hand-off"). Builds one
  * [BudgetPlanner] from the catalog the order started with (A-29) and the device rounding step, and recomputes the plan
- * on every input change (pure, ≤ 100 ms). It keeps the step, the inputs, the Just under / Just over choice, the swaps,
- * the Customize toggles and the tolerance; only "Add plan to order" touches the order session, which tags the lines.
+ * on every input change. Planning and swaps run on [planning] (`@DefaultDispatcher`, technical-design §13), latest
+ * input wins, and a result for inputs that changed meanwhile is dropped. It keeps the step, the inputs, the Just
+ * under / Just over choice, the swaps, the Customize toggles and the tolerance; only "Add plan to order" touches the
+ * order session, which tags the lines. Once the plan is added, nothing on the screen can change or add it again.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
@@ -72,8 +80,12 @@ class BudgetPlanViewModel
         private val catalogs: CatalogRepository,
         private val settings: SettingsRepository,
         private val orders: OrderSessionHolder,
+        @param:DefaultDispatcher private val planning: CoroutineDispatcher,
     ) : ViewModel() {
         private val model = MutableStateFlow(PlanModel())
+
+        private var swapJob: Job? = null
+        private var navigateJob: Job? = null
 
         private val cartCount: Flow<Int> =
             orders.current.flatMapLatest { session ->
@@ -98,10 +110,39 @@ class BudgetPlanViewModel
                     }
                 model.update { it.copy(loaded = true, catalog = catalog, planner = planner).recomputed() }
             }
+            viewModelScope.launch {
+                model.map { it.planSerial }.distinctUntilChanged().collectLatest { serial -> plan(serial) }
+            }
         }
 
         fun onEvent(event: BudgetPlanEvent) {
+            if (model.value.added) {
+                // The plan is in the cart and Your order opens in a moment: only "My order" still acts.
+                if (event == BudgetPlanEvent.ViewOrder) viewOrder()
+                return
+            }
             if (!onTableEvent(event)) onPlanEvent(event)
+        }
+
+        /** Plans the inputs of [serial] off the main thread; a result for older inputs is dropped. */
+        private suspend fun plan(serial: Int) {
+            val current = model.value
+            val planner = current.planner
+            val request = current.request()
+            val result =
+                if (planner == null ||
+                    request == null
+                ) {
+                    null
+                } else {
+                    withContext(planning) { planner.plan(request) }
+                }
+            model.update { if (it.planSerial == serial) it.planned(result) else it }
+        }
+
+        private fun viewOrder() {
+            navigateJob?.cancel()
+            effects.trySend(BudgetPlanEffect.NavigateToYourOrder)
         }
 
         /** Step 1 and Back; false when [event] belongs to step 2. */
@@ -132,7 +173,7 @@ class BudgetPlanViewModel
                 BudgetPlanEvent.TogglePriceDetails -> model.update { it.copy(priceOpen = !it.priceOpen) }
                 BudgetPlanEvent.OpenCustomize -> model.update { it.copy(sheetOpen = it.plans.isNotEmpty()) }
                 BudgetPlanEvent.AddPlan -> addPlan()
-                BudgetPlanEvent.ViewOrder -> effects.trySend(BudgetPlanEffect.NavigateToYourOrder)
+                BudgetPlanEvent.ViewOrder -> viewOrder()
                 else -> onSheetEvent(event)
             }
         }
@@ -219,7 +260,7 @@ class BudgetPlanViewModel
                 if (index == it.selected || index !in it.plans.indices) {
                     it
                 } else {
-                    it.copy(selected = index, lastSwap = null, added = false)
+                    it.copy(selected = index, lastSwap = null)
                 }
             }
         }
@@ -233,24 +274,35 @@ class BudgetPlanViewModel
         }
 
         private fun swap(target: SwapTarget) {
-            model.update { current ->
-                val planner = current.planner ?: return@update current
-                val request = current.request() ?: return@update current
-                val plan = current.plans.getOrNull(current.selected) ?: return@update current
-                val swapped = planner.swap(request, plan, target.pickIndex, target.part)
-                current.copy(
-                    plans = current.plans.toMutableList().also { it[current.selected] = swapped },
-                    edited = true,
-                    added = false,
-                    lastSwap = target,
-                    swapSerial = current.swapSerial + 1,
-                )
-            }
+            // One swap at a time: the next tap starts from the plan the last one produced.
+            if (swapJob?.isActive == true) return
+            val current = model.value
+            val planner = current.planner
+            val request = current.request()
+            val plan = current.plans.getOrNull(current.selected)
+            if (planner == null || request == null || plan == null) return
+            swapJob =
+                viewModelScope.launch {
+                    val swapped = withContext(planning) { planner.swap(request, plan, target.pickIndex, target.part) }
+                    model.update { latest ->
+                        // Applied only to the plan it was computed from.
+                        if (latest.plans.getOrNull(latest.selected) !== plan) {
+                            latest
+                        } else {
+                            latest.copy(
+                                plans = latest.plans.toMutableList().also { it[latest.selected] = swapped },
+                                edited = true,
+                                lastSwap = target,
+                                swapSerial = latest.swapSerial + 1,
+                            )
+                        }
+                    }
+                }
         }
 
         private fun addPlan() {
             val current = model.value
-            if (current.added || current.step != BudgetPlanStep.PLAN) return
+            if (current.added || current.step != BudgetPlanStep.PLAN || !current.isPlanned) return
             val plan = current.plans.getOrNull(current.selected) ?: return
             val session = orders.current.value
             if (session == null) {
@@ -262,10 +314,11 @@ class BudgetPlanViewModel
             when (result) {
                 is CartAddAllResult.Added -> {
                     model.update { it.copy(added = true) }
-                    viewModelScope.launch {
-                        delay(ADDED_NAVIGATE_MILLIS)
-                        effects.send(BudgetPlanEffect.NavigateToYourOrder)
-                    }
+                    navigateJob =
+                        viewModelScope.launch {
+                            delay(ADDED_NAVIGATE_MILLIS)
+                            effects.send(BudgetPlanEffect.NavigateToYourOrder)
+                        }
                 }
 
                 // The design has no copy for a full cart; the plan stays on step 2 (FR-032).
@@ -319,29 +372,35 @@ private data class PlanModel(
     val added: Boolean = false,
     val lastSwap: SwapTarget? = null,
     val swapSerial: Int = 0,
+    val planSerial: Int = 0,
+    val plannedSerial: Int = -1,
 ) {
+    /** Whether [plans] answer the current inputs (planning runs off the main thread). */
+    val isPlanned: Boolean get() = plannedSerial == planSerial
+
     val config: BudgetPlannerConfig get() = catalog?.config?.budgetPlanner ?: BudgetPlannerConfig(enabled = false)
 
     val groupTooLarge: Boolean get() = adults + children > config.maxGroupSize
 
-    val canSeePlans: Boolean get() = !groupTooLarge && plans.isNotEmpty()
+    val canSeePlans: Boolean get() = !groupTooLarge && isPlanned && plans.isNotEmpty()
 
     fun request(): PlanRequest? =
         if (budget <= 0L || planner == null) null else PlanRequest(Rupiah(budget), adults, children, options)
 
-    /** The plan for the current inputs and options, without swaps (also "Reset to suggested"). */
-    fun recomputed(): PlanModel {
-        val request = request()
-        val result = if (request == null) null else planner?.plan(request)
-        return copy(
+    /**
+     * Asks for the plan of the current inputs and options, without swaps (also "Reset to suggested"). The plans on
+     * screen stay until [planned] replaces them, so an open sheet does not flicker.
+     */
+    fun recomputed(): PlanModel = copy(planSerial = planSerial + 1, edited = false, lastSwap = null)
+
+    /** The planner's answer for the inputs of [planSerial]. */
+    fun planned(result: PlanResult?): PlanModel =
+        copy(
             suggested = result,
             plans = (result as? PlanResult.Plans)?.plans.orEmpty(),
             selected = 0,
-            edited = false,
-            added = false,
-            lastSwap = null,
+            plannedSerial = planSerial,
         )
-    }
 
     fun toUiState(cartCount: Int): BudgetPlanUiState {
         val quick = config.quickBudgets.map { it.value }

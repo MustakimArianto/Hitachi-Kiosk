@@ -7,12 +7,10 @@ import com.hitachi.kiosk.core.domain.model.Menu
 import com.hitachi.kiosk.core.domain.model.Product
 import com.hitachi.kiosk.core.domain.model.ProductRole
 import com.hitachi.kiosk.core.domain.model.Rupiah
-import com.hitachi.kiosk.core.domain.model.Totals
 import com.hitachi.kiosk.core.domain.model.availableCombos
 import com.hitachi.kiosk.core.domain.model.toneOf
 import com.hitachi.kiosk.core.domain.pricing.PricingEngine
 import com.hitachi.kiosk.core.domain.pricing.PricingRules
-import java.util.BitSet
 
 /**
  * The Budget Plan group meal planner (FR-032, BR-13–BR-15, technical-design §8.3, TD-06). Pure and deterministic:
@@ -69,7 +67,6 @@ class BudgetPlanner(
     private val sharedMeals = combos.filter { it.first == 2 }.map { it.second }
 
     private val unit: Long = priceUnit()
-    private val totalsCache = HashMap<Long, Totals>()
 
     /** Whether any plan can be built from this menu (see [canPlan]). */
     val isAvailable: Boolean get() = adultMains.isNotEmpty() && drinks.isNotEmpty()
@@ -82,51 +79,48 @@ class BudgetPlanner(
         if (request.people > config.maxGroupSize) return PlanResult.GroupTooLarge(config.maxGroupSize)
         if (!isAvailable) return PlanResult.NoPlan
 
-        val found = select(request)
+        val tables = (0..maxShared(request)).map { shared -> slots(request, shared).let { Table(it, reach(it)) } }
+        val found = Selection(request.budget.value, cap(request))
+        tables.forEachIndexed { index, table ->
+            table.reach[0].forEachSetBit { units ->
+                val subtotal = units * unit
+                found.offer(Found(index, subtotal, total(subtotal)))
+            }
+        }
         val under = found.under
         val plans =
             when {
                 under == null -> {
-                    listOf(build(checkNotNull(found.cheapest), PlanKind.TOO_LOW))
+                    listOf(build(tables, checkNotNull(found.cheapest), PlanKind.TOO_LOW))
                 }
 
                 under.total == request.budget.value -> {
-                    listOf(build(under, PlanKind.EXACT))
+                    listOf(build(tables, under, PlanKind.EXACT))
                 }
 
                 found.over == null && under.sameAs(checkNotNull(found.top)) -> {
-                    listOf(build(under, PlanKind.MORE_THAN_ENOUGH))
+                    listOf(build(tables, under, PlanKind.MORE_THAN_ENOUGH))
                 }
 
                 else -> {
-                    listOfNotNull(build(under, PlanKind.UNDER), found.over?.let { build(it, PlanKind.OVER) })
+                    listOfNotNull(
+                        build(tables, under, PlanKind.UNDER),
+                        found.over?.let { build(tables, it, PlanKind.OVER) },
+                    )
                 }
             }
         return PlanResult.Plans(plans, kidsMenuUnavailable && request.children > 0)
     }
 
-    /** Steps 2–4 of the class comment over every number of shared two-person meals. */
-    private fun select(request: PlanRequest): Selection {
-        val budget = request.budget.value
-        val cap = cap(request)
-        val found = Selection()
-        val maxShared = if (sharedMeals.isEmpty()) 0 else request.adults / 2
-        for (shared in 0..maxShared) {
-            val slots = slots(request, shared)
-            val reach = reach(slots)
-            reach[0].forEachSetBit { units ->
-                val subtotal = units * unit
-                found.offer(Candidate(slots, reach, subtotal, totals(subtotal).total.value), budget, cap)
-            }
-        }
-        return found
-    }
+    private fun maxShared(request: PlanRequest): Int = if (sharedMeals.isEmpty()) 0 else request.adults / 2
 
     /**
      * "Swap" in the Customize sheet (FR-032): the item in [part] of `plan.picks[pickIndex]` becomes the next one of the
      * same role in preference order (wrapping). A main, drink or meal swap then re-picks the shared sides and desserts
      * so the plan lands on the budget, or the nearest total on its side of it within the cap (AC9). A swapped extra
-     * is kept as chosen. A pick or part that cannot be swapped returns [plan] unchanged.
+     * is kept as chosen. An alternative that cannot stay within the plan's limit (the budget in Strict, otherwise the
+     * over cap; a "Need Rp X more" plan has none) is skipped for the next one; when none fits, or the pick or part
+     * cannot be swapped, [plan] comes back unchanged.
      */
     fun swap(
         request: PlanRequest,
@@ -134,10 +128,17 @@ class BudgetPlanner(
         pickIndex: Int,
         part: SwapPart,
     ): BudgetPlan {
-        val pick = plan.picks.getOrNull(pickIndex) ?: return plan
-        val swapped = swapPick(pick, part, request.options) ?: return plan
-        val picks = plan.picks.toMutableList().also { it[pickIndex] = swapped }
-        return if (part == SwapPart.EXTRA) reprice(plan.kind, picks, request) else rebalance(plan.kind, picks, request)
+        val original = plan.picks.getOrNull(pickIndex) ?: return plan
+        val limit = if (plan.kind == PlanKind.TOO_LOW) Long.MAX_VALUE else cap(request)
+        var candidate = original
+        while (true) {
+            candidate = swapPick(candidate, part, request.options) ?: return plan
+            if (candidate == original) return plan
+            val picks = plan.picks.toMutableList().also { it[pickIndex] = candidate }
+            val swapped =
+                if (part == SwapPart.EXTRA) reprice(plan.kind, picks, request) else rebalance(plan.kind, picks, request)
+            if (swapped.total.value <= limit) return swapped
+        }
     }
 
     private fun swapPick(
@@ -175,22 +176,15 @@ class BudgetPlanner(
     ): BudgetPlan {
         val base = picks.filterNot { it is PlanPick.Extra }
         val baseSubtotal = base.sumOf { pick -> pick.items.sumOf { it.unitPrice.value } }
-        val slots = extraSlots(request)
-        val reach = reach(slots)
-        val budget = request.budget.value
-        val cap = cap(request)
-        var under: Candidate? = null
-        var over: Candidate? = null
-        var lowest: Candidate? = null
-        reach[0].forEachSetBit { units ->
+        val table = extraSlots(request).let { Table(it, reach(it)) }
+        val found = Selection(request.budget.value, cap(request))
+        table.reach[0].forEachSetBit { units ->
             val extras = units * unit
-            val candidate = Candidate(slots, reach, extras, totals(baseSubtotal + extras).total.value)
-            if (candidate.total <= budget && candidate.beats(under)) under = candidate
-            if (candidate.total in (budget + 1)..cap && candidate.closerOverThan(over)) over = candidate
-            if (lowest == null || candidate.total < lowest!!.total) lowest = candidate
+            found.offer(Found(0, extras, total(baseSubtotal + extras)))
         }
-        val target = (if (kind == PlanKind.OVER) over ?: under else under) ?: checkNotNull(lowest)
-        return reprice(kind, base + pick(target), request)
+        val target =
+            (if (kind == PlanKind.OVER) found.over ?: found.under else found.under) ?: checkNotNull(found.cheapest)
+        return reprice(kind, base + pick(table, target.subtotal), request)
     }
 
     private fun reprice(
@@ -198,10 +192,14 @@ class BudgetPlanner(
         picks: List<PlanPick>,
         request: PlanRequest,
     ): BudgetPlan {
-        val totals = totals(picks.sumOf { pick -> pick.items.sumOf { it.unitPrice.value } })
+        val totals = PricingEngine.price(Rupiah(picks.sumOf { pick -> pick.items.sumOf { it.unitPrice.value } }), rules)
         val budget = request.budget
         val newKind =
             when (kind) {
+                PlanKind.MORE_THAN_ENOUGH -> {
+                    if (totals.total <= budget) kind else PlanKind.OVER
+                }
+
                 PlanKind.EXACT, PlanKind.UNDER, PlanKind.OVER -> {
                     when {
                         totals.total == budget -> PlanKind.EXACT
@@ -210,7 +208,7 @@ class BudgetPlanner(
                     }
                 }
 
-                PlanKind.TOO_LOW, PlanKind.MORE_THAN_ENOUGH -> {
+                PlanKind.TOO_LOW -> {
                     kind
                 }
             }
@@ -218,20 +216,24 @@ class BudgetPlanner(
     }
 
     private fun build(
-        candidate: Candidate,
+        tables: List<Table>,
+        found: Found,
         kind: PlanKind,
     ): BudgetPlan {
-        val picks = pick(candidate)
-        return BudgetPlan(kind, picks, totals(candidate.subtotal))
+        val picks = pick(tables[found.table], found.subtotal)
+        return BudgetPlan(kind, picks, PricingEngine.price(Rupiah(found.subtotal), rules))
     }
 
-    /** Rebuilds [candidate]'s subtotal slot by slot, preferring mains and extras not used yet (FR-032 variety). */
-    private fun pick(candidate: Candidate): List<PlanPick> {
+    /** Rebuilds [subtotal] slot by slot, preferring mains and extras not used yet (FR-032 variety). */
+    private fun pick(
+        table: Table,
+        subtotal: Long,
+    ): List<PlanPick> {
         val usedMains = mutableSetOf<String>()
         val usedExtras = mutableSetOf<String>()
-        var left = candidate.subtotal
-        return candidate.slots.mapIndexedNotNull { index, slot ->
-            val next = candidate.reach[index + 1]
+        var left = subtotal
+        return table.slots.mapIndexedNotNull { index, slot ->
+            val next = table.reach[index + 1]
             val option =
                 slot.options
                     .filter {
@@ -283,25 +285,28 @@ class BudgetPlanner(
             PlanTolerance.UP_TO_CAP -> request.budget.value + request.budget.value * config.overCapPercent / PERCENT
         }
 
-    /** `reach[i]` holds every subtotal (in [unit]s) that slots `i` to the end can make. */
-    private fun reach(slots: List<Slot>): List<BitSet> {
-        val reach = arrayOfNulls<BitSet>(slots.size + 1)
-        reach[slots.size] = BitSet().apply { set(0) }
+    /**
+     * `reach[i]` holds every subtotal (in [unit]s) that slots `i` to the end can make. Each option shifts the whole set
+     * a word at a time, so the cost depends on the price range, not on how many subtotals are reachable: a menu whose
+     * prices share only Rp 1 stays within the time budget (TR-PRF-08).
+     */
+    private fun reach(slots: List<Slot>): List<SubtotalSet> {
+        val size = slots.sumOf { slot -> slot.options.maxOf { it.price } / unit }.toInt() + 1
+        val reach = arrayOfNulls<SubtotalSet>(slots.size + 1)
+        reach[slots.size] = SubtotalSet(size).apply { set(0) }
         for (index in slots.indices.reversed()) {
             val next = checkNotNull(reach[index + 1])
-            val current = BitSet()
-            slots[index].options.map { it.price / unit }.distinct().forEach { step ->
-                next.forEachSetBit { current.set((it + step).toInt()) }
+            val current = SubtotalSet(size)
+            slots[index].options.map { (it.price / unit).toInt() }.distinct().forEach { step ->
+                current.orShifted(next, step)
             }
             reach[index] = current
         }
         return reach.map { checkNotNull(it) }
     }
 
-    private fun totals(subtotal: Long): Totals =
-        totalsCache.getOrPut(subtotal) {
-            PricingEngine.price(Rupiah(subtotal), rules)
-        }
+    /** The final total of [subtotal] (FR-013), the only number plans are compared on (BR-15). */
+    private fun total(subtotal: Long): Long = PricingEngine.price(Rupiah(subtotal), rules).total.value
 
     private fun priceUnit(): Long {
         val prices =
@@ -311,40 +316,87 @@ class BudgetPlanner(
 
     private fun product(item: PlannedItem): Product = products.first { it.id == item.id }
 
-    /** A plan candidate: which slots, their reach table, and the subtotal and final total it lands on. */
-    private class Candidate(
+    /** The slots of one plan shape (a number of shared meals) with their reachable subtotals. */
+    private class Table(
         val slots: List<Slot>,
-        val reach: List<BitSet>,
+        val reach: List<SubtotalSet>,
+    )
+
+    /** A reachable subtotal of [Table] number [table] and the final total it lands on. */
+    private class Found(
+        val table: Int,
         val subtotal: Long,
         val total: Long,
     ) {
         /** A higher total wins; on the same total the higher subtotal does (FR-032 ranking 1). */
-        fun beats(other: Candidate?): Boolean =
+        fun beats(other: Found?): Boolean =
             other == null || total > other.total || (total == other.total && subtotal > other.subtotal)
 
         /** For the over plan: a lower total wins; on the same total the higher subtotal does. */
-        fun closerOverThan(other: Candidate?): Boolean =
+        fun closerOverThan(other: Found?): Boolean =
             other == null || total < other.total || (total == other.total && subtotal > other.subtotal)
 
-        fun sameAs(other: Candidate): Boolean = total == other.total && subtotal == other.subtotal
+        fun sameAs(other: Found): Boolean = total == other.total && subtotal == other.subtotal
     }
 
-    /** The best candidates seen so far: under, over (within the cap), cheapest and most generous (FR-032). */
-    private class Selection {
-        var under: Candidate? = null
-        var over: Candidate? = null
-        var cheapest: Candidate? = null
-        var top: Candidate? = null
+    /** The best subtotals seen so far: under, over (within [cap]), cheapest and most generous (FR-032). */
+    private class Selection(
+        private val budget: Long,
+        private val cap: Long,
+    ) {
+        var under: Found? = null
+        var over: Found? = null
+        var cheapest: Found? = null
+        var top: Found? = null
 
-        fun offer(
-            candidate: Candidate,
-            budget: Long,
-            cap: Long,
+        fun offer(found: Found) {
+            if (found.total <= budget && found.beats(under)) under = found
+            if (found.total in (budget + 1)..cap && found.closerOverThan(over)) over = found
+            if (found.total < (cheapest?.total ?: Long.MAX_VALUE)) cheapest = found
+            if (found.beats(top)) top = found
+        }
+    }
+
+    /** A fixed-size set of subtotals in price units, one bit per unit. */
+    private class SubtotalSet(
+        size: Int,
+    ) {
+        private val words = LongArray((size + WORD_BITS - 1) / WORD_BITS)
+
+        operator fun get(index: Int): Boolean =
+            index >= 0 && index / WORD_BITS < words.size && words[index / WORD_BITS] and (1L shl index) != 0L
+
+        fun set(index: Int) {
+            words[index / WORD_BITS] = words[index / WORD_BITS] or (1L shl index)
+        }
+
+        /** Adds every member of [source] plus [shift]; members that would fall past the end are dropped. */
+        fun orShifted(
+            source: SubtotalSet,
+            shift: Int,
         ) {
-            if (candidate.total <= budget && candidate.beats(under)) under = candidate
-            if (candidate.total in (budget + 1)..cap && candidate.closerOverThan(over)) over = candidate
-            if (candidate.total < (cheapest?.total ?: Long.MAX_VALUE)) cheapest = candidate
-            if (candidate.beats(top)) top = candidate
+            val wordShift = shift / WORD_BITS
+            val bitShift = shift % WORD_BITS
+            for (i in words.size - 1 downTo wordShift) {
+                val from = i - wordShift
+                var word = source.words[from] shl bitShift
+                if (bitShift != 0 && from > 0) word = word or (source.words[from - 1] ushr (WORD_BITS - bitShift))
+                words[i] = words[i] or word
+            }
+        }
+
+        inline fun forEachSetBit(action: (Long) -> Unit) {
+            for (i in words.indices) {
+                var word = words[i]
+                while (word != 0L) {
+                    action(i.toLong() * WORD_BITS + word.countTrailingZeroBits())
+                    word = word and (word - 1)
+                }
+            }
+        }
+
+        private companion object {
+            const val WORD_BITS = 64
         }
     }
 
@@ -501,14 +553,6 @@ class BudgetPlanner(
                 cartItem = cartItem,
                 choices = custom.choices(),
             )
-        }
-
-        private inline fun BitSet.forEachSetBit(action: (Long) -> Unit) {
-            var bit = nextSetBit(0)
-            while (bit >= 0) {
-                action(bit.toLong())
-                bit = nextSetBit(bit + 1)
-            }
         }
     }
 }
