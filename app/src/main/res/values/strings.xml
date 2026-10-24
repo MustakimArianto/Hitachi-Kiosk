@@ -5,7 +5,6 @@
     <!-- Navigation skeleton (DEV-010a). Each screen is a placeholder until its milestone builds it. -->
     <string name="placeholder_caption">Placeholder screen</string>
     <string name="placeholder_developer_mark">Brand mark</string>
-    <string name="screen_upsell">Anything on the side?</string>
     <string name="screen_your_order">Your order</string>
     <string name="screen_checkout">Checkout</string>
     <string name="screen_complete">Transaction complete</string>
@@ -26,7 +25,6 @@
     <string name="nav_see_plans">See plans</string>
     <string name="nav_back">Back</string>
     <string name="nav_add_plan">Add plan to order</string>
-    <string name="nav_continue_to_order">Continue to your order</string>
     <string name="nav_add_more">Add more</string>
     <string name="nav_pay">Pay</string>
     <string name="nav_back_to_order">Back to order</string>
@@ -225,4 +223,41 @@
     <string name="combo_choose_side">Choose a side</string>
     <string name="combo_choose_drink">Choose a drink</string>
     <!-- end SCR-07 / SCR-08 -->
+
+    <!-- SCR-09 Upsell (Upsell.dc.html, FR-014) -->
+    <string name="upsell_eyebrow">Before you pay</string>
+    <string name="upsell_title">Anything on the side?</string>
+    <string name="upsell_subtitle">A side or something sweet goes well with your order.</string>
+    <string name="upsell_title_none">You’re all set</string>
+    <string name="upsell_subtitle_none">Nothing else to suggest with this order.</string>
+    <string name="upsell_order_type_dine_in">Dine in</string>
+    <string name="upsell_order_type_takeaway">Takeaway</string>
+    <string name="upsell_back_to_menu">Menu</string>
+    <string name="upsell_strip_description">Your order so far</string>
+    <string name="upsell_your_order">Your order</string>
+    <plurals name="upsell_item_count">
+        <item quantity="one">%1$d item</item>
+        <item quantity="other">%1$d items</item>
+    </plurals>
+    <string name="upsell_kind_main">Main</string>
+    <string name="upsell_kind_side">Side</string>
+    <string name="upsell_kind_drink">Drink</string>
+    <string name="upsell_kind_dessert">Dessert</string>
+    <plurals name="upsell_kcal">
+        <item quantity="one">%1$d kcal</item>
+        <item quantity="other">%1$d kcal</item>
+    </plurals>
+    <string name="upsell_note">%1$s · %2$s</string>
+    <plurals name="upsell_added_count">
+        <item quantity="one">%1$d added</item>
+        <item quantity="other">%1$d added</item>
+    </plurals>
+    <string name="upsell_add_description">Add %1$s</string>
+    <string name="upsell_empty_title">Nothing more to suggest</string>
+    <string name="upsell_empty_body">Your order already has everything it needs. Review it and pay when you’re ready.</string>
+    <string name="upsell_no_thanks">No thanks</string>
+    <string name="upsell_continue">Continue</string>
+    <string name="upsell_review_order">Review order</string>
+    <string name="upsell_cta_description">%1$s, %2$s</string>
+    <!-- end SCR-09 -->
 </resources>
