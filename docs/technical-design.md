@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Document version | 1.2 (2026-10-23) — updated with the 0.2.0 implementation (startup routing, device state, secure token store, identity chain, setup screens) |
+| Document version | 1.3 (2026-10-24) — updated with the 0.3.0 implementation (catalog cache and sync, cart and order session, image cache, customer screens Idle → Combo) |
 | Answers | *How will the system satisfy the requirements?* |
 | Requirements | [`product-requirement.md`](product-requirement.md) (what the product does), [`technical-requirement.md`](technical-requirement.md) (TR-, what it must satisfy) |
 | Structure | [`architecture.md`](architecture.md) and [`adr/`](adr/): modules, layering, state machines, persistence map |
@@ -383,12 +383,20 @@ A root `Modifier.pointerInput(Unit) { awaitPointerEventScope { while (true) { aw
 ### 10.4 Lifecycle and recomposition
 - ViewModels collect with `collectAsStateWithLifecycle()`.
 - `UiState` classes are `@Immutable` data classes holding read-only `List`s. Compose compiler reports confirm they are stable, so `kotlinx.collections.immutable` is not needed.
-- Lazy grids use stable `key`s (product ID).
+- Lists and grids use stable `key`s (product ID). The Menu grid is a plain column of rows rather than a lazy grid: a category holds a handful of products, and the rows of a 2-column grid share one height as in the design.
 - Images are requested at their display size (`size(Size(widthPx, heightPx))`) so full-resolution bitmaps are never decoded (TR-PRF-05, TR-REL-01).
 
 ### 10.5 Sound and brightness
 - `SoundPlayer` loads the three short OGG files into a `SoundPool(maxStreams = 2)` with `AudioAttributes(USAGE_MEDIA, CONTENT_TYPE_SONIFICATION)` at startup, so they play on the media stream at the system volume (FR-030), and only when the setting is on (TR-ACC-07).
 - `BrightnessController` sets `window.attributes.screenBrightness` to 0.3 / 0.6 / 1.0 (A-26).
+
+### 10.6 Customer screens (0.3.0)
+- **Idle (DEV-024):** the slideshow advances in a coroutine `delay` loop while the screen is at least STARTED, so it pauses off screen and Compose tests drive it with the main clock (TC-020). The staff corner is a `pointerInput` hold: 2.0 s of continuous press opens the PIN; release, leaving the 160 dpx area or a short tap do nothing (A-04). The Route sends a `Shown` event on every visit, and the ViewModel ends the order (`OrderSessionHolder.endOrder()`), which also lets the coordinator apply a held-back sync (§7.2). Under reduce motion the slides still advance; the crossfade, Ken Burns and loops snap.
+- **Order type (DEV-025):** the cards are config `orderTypes` (the FR-026 toggles become one more filter in 0.7.0). The pick goes to `OrderSessionHolder.chooseOrderType` at once; the 950 ms advance is a ViewModel `delay`, kept under reduce motion because FR-007 AC1 is about timing; later taps are ignored.
+- **Menu (DEV-027, DEV-028):** the ViewModel combines the catalog, the current order session and connectivity. A category switch filters the in-memory menu (TR-PRF-04). Quick add uses `ProductCustomization.defaults` and `OrderSession.add`; the 1.4 s check and the 2.4 s "Maximum 20 per item" toast are ViewModel timers, so tests use virtual time. Offline (`Connectivity.OFFLINE` only) disables the add buttons, "Choose ›" and "View order", while browsing works. "View order" opens Your order until the upsell decision of DEV-039.
+- **Item detail (DEV-029):** modifier groups are rendered generically by TD-15. The disabled CTA reads the missing group's name when it starts with "Choose " ("Choose a size to continue"), otherwise "Choose {group name} to continue". The screen stays in the Added state until the customer leaves.
+- **Combo (DEV-030):** `ComboCustomization` drives the state; "Added" lasts 1.8 s and ignores a second tap (TC-049).
+- **Shared:** the header pills (`BackPill`, `CartPill`) and the selection dot are design-system components; photos are `ui/MenuPhoto` with the category or combo tone. Entrance and feedback timings that PRD §11.4 lists are `KioskMotion` constants; the per-element delays and durations it doesn't list are file-private constants copied from the design CSS, and every curve is a named `KioskEasing` (including `Pop`, `.3, 1.4, .5, 1`). The 30-line cart limit is only logged on these screens, because the design has no copy for it.
 
 ---
 
@@ -496,7 +504,7 @@ When the app is not device owner, it calls `startLockTask()` (screen pinning) an
 | TD-12 | Until DEV-051, connectivity is the default network's validation state only (no E14 probe, no debounce) | The 0.3.0 offline banner needs a real signal on the device; the health probe belongs with the checkout gate in 0.5.0 (PO, 2026-10-23) | An always-online stub (banner reachable only with fakes) | This document (§7.3) |
 | TD-13 | The config row stores the E5 wire JSON, written by `MerchantConfig.toDto()` and read by the E5 mapper | One parser for network and cache; no domain serialization annotations in `:core:domain` | `@Serializable` domain types; a column per config field | This document (§6.1) |
 | TD-14 | A catalog held back during an order is applied by `:app`'s `CatalogSyncCoordinator` when `OrderSessionHolder.current` returns to `null` | `:core:data` has no application scope; the trigger list lives in one app-level place (§7.2) | The data layer observing the session in its own scope | This document (§7.1, §7.2) |
-| TD-15 | Item detail renders modifier groups generically: required `SINGLE` groups with no default first (option cards, "Required"); a `SINGLE` group of exactly two options whose default costs Rp 0 as one switch row ("Make it a meal"); other `SINGLE` groups as option rows; `LEVEL` groups as a collapsed "Customize" row; `MULTI` groups as a collapsed "Add extras" row | FR-010 asks for generic rendering from the groups; the API has no display hint, and this rule reproduces the design for b2 and gives a sensible layout for every sample product | A display-type field in E6 (contract change) | This document (§10.1), DEV-029 |
+| TD-15 | Item detail renders modifier groups generically: required `SINGLE` groups with no default first (option cards, "Required"); a `SINGLE` group of exactly two options whose default costs Rp 0 as one switch row ("Make it a meal"); other `SINGLE` groups as option rows; `LEVEL` groups as a collapsed "Customize" row; `MULTI` groups as a collapsed "Add extras" row | FR-010 asks for generic rendering from the groups; the API has no display hint, and this rule reproduces the design for b2 and gives a sensible layout for every sample product | A display-type field in E6 (contract change) | This document (§10.6), DEV-029 |
 
 ---
 

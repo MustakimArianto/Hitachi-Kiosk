@@ -317,9 +317,9 @@ Complete the ordering half of the journey:
 - [ ] **DEV-035** `PricingEngine` in `:core:domain` (FR-013, BR-01–BR-04).
   - Integer IDR, threshold promo, exclusive tax with half-up rounding, upward total rounding with a "Rounding" line, the unlock hint, and an `IdrFormatter`.
   - *Verify:* table-driven unit tests TC-055–TC-061, including the Rp 172.700 sample, plus property-based tests (total ≥ 0, monotonic in qty).
-- [ ] **DEV-036** `Cart` domain (FR-012): add/merge, increment, decrement-to-remove, the limits of 20 per line and 30 lines with error results, and the line description builder (e.g. "Fries · Cola · Extra cheddar · No onion").
+- [ ] **DEV-036** `Cart` domain (FR-012): add/merge, increment, decrement-to-remove, the limits of 20 per line and 30 lines with error results, and the line description builder (e.g. "Fries · Cola · Extra cheddar · No onion"). *0.3.0 already has `Cart.add` with the merge, both limits and the structured `LineChoice` parts; this task adds increment, decrement, removal and the worded description.*
   - *Verify:* unit tests TC-050–TC-052.
-- [ ] **DEV-041** `OrderSession` state machine (PRD §12.2) owning the cart, order type and the upsell-shown flag. Every transition to Idle resets it.
+- [ ] **DEV-041** `OrderSession` state machine (PRD §12.2) owning the cart, order type and the upsell-shown flag. Every transition to Idle resets it. *0.3.0 already has `OrderSessionHolder` and an `OrderSession` with the TypeChosen and Building states; this task adds the remaining states and transitions.*
   - *Verify:* state-transition unit tests for every edge.
 - [ ] **DEV-037** SCR-10 Your order per `Payment.dc.html` (FR-012). The order lines are the primary scroll area (at least 3½ rows visible above the summary panel), with roll animations and slide-out removal, the fade mask, the empty state, step label, item count plural, "Add more" and the order-type chip.
   - Lines that came from a Budget Plan carry a "Budget Plan plan" tag row above the list (`plan`), and the promo nudge "Add Rp X more to get Rp 10.000 off" appears as a banner with a progress bar while the subtotal is under the threshold.
@@ -418,7 +418,7 @@ Implement the full order and payment lifecycle, including every failure, retry, 
   - "Back to order" cancels. The "Pay at the counter" button is not rendered.
   - Add the debug-only simulate bar.
   - *Verify:* TC-084–TC-087, TC-178.
-- [ ] **DEV-051** `ConnectivityMonitor` (validated network + E14 health) and an offline banner on customer screens; disable Pay and submission while offline; auto-recover (FR-028, NFR-010). The banner text is "Ordering is paused — reconnecting…" (`S_Menu_offline`, `S_Payment_offline`, `S_Checkout_offline`).
+- [ ] **DEV-051** `ConnectivityMonitor` (validated network + E14 health) and an offline banner on customer screens; disable Pay and submission while offline; auto-recover (FR-028, NFR-010). The banner text is "Ordering is paused — reconnecting…" (`S_Menu_offline`, `S_Payment_offline`, `S_Checkout_offline`). *0.3.0 already has the validated-network monitor, the Menu banner and the reconnect sync (technical-design §7.3, TD-12); this task adds the E14 probe, the debounce and the Pay gate.*
   - *Verify:* TC-122, TC-123, TC-154, TC-175.
 - [ ] **DEV-052** Process-death recovery (FR-016): on launch with a persisted pending payment, query E10 and route to Complete (paid) or cancel → Idle.
   - *Verify:* TC-073 (using `adb shell am kill` during a pending payment).

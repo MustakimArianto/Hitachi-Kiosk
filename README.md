@@ -2,7 +2,7 @@
 
 Android self-order kiosk app for iMin kiosks (Kotlin, Jetpack Compose, `minSdk 30`, portrait 1080 × 1920). Customers order and pay by QRIS or card (EDC); staff configure printers, payment and kiosk behaviour. It runs in lock-task mode as device owner.
 
-**Status: `0.2.0` Device activation & setup.** On top of the 0.1.0 foundation, the kiosk now goes from first launch to "bound to a merchant": the animated Splash with startup routing, Sign in (activation by serial number, token in encrypted storage) and Choose a restaurant (bind, Log out). Idle and the screens after it are still labelled placeholders until their milestones ([`docs/dev-plan.md`](docs/dev-plan.md)). The serial-number source still needs its on-device spike ([ADR-0002](docs/adr/0002-device-serial.md)).
+**Status: `0.3.0` Catalog.** On top of device activation (0.2.0), a customer can start an order and browse and customize the whole menu: Idle, Order type, Menu with quick add and the cart dock, Item detail and Combo, backed by a menu cached in Room that syncs with ETags (at binding, at startup, every 15 minutes, on reconnect) and works offline. Your order, payment and the screens after it are still labelled placeholders until their milestones ([`docs/dev-plan.md`](docs/dev-plan.md)). The serial-number source still needs its on-device spike ([ADR-0002](docs/adr/0002-device-serial.md)).
 
 | Start here | |
 |---|---|
@@ -41,10 +41,10 @@ The debug APK is `app/build/outputs/apk/debug/app-debug.apk`. A release build (`
 
 | Module | Holds |
 |---|---|
-| `:app` | `MainActivity`, navigation graph, `StartupRouter`, the feature screens (`splash`, `activation`, `merchant`) and the remaining placeholders, Hilt wiring; `src/debug`: Developer options |
+| `:app` | `MainActivity`, navigation graph, `StartupRouter`, the feature screens (`splash`, `activation`, `merchant`, `idle`, `ordertype`, `menu`, `item`, `combo`) and the remaining placeholders, the sync triggers, Coil and WorkManager setup, Hilt wiring; `src/debug`: Developer options |
 | `:core:designsystem` | "Linen & Paprika" tokens, `DesignUnit` (`Int.dpx` / `Int.spx`), `DesignFrame`, Schibsted Grotesk, motion specs, `LocalReduceMotion` |
-| `:core:domain` | Pure Kotlin/JVM: models for E1–E14, `Outcome` / `DomainError`, `retryWithBackoff`, ports (`BackendApi`, `PaymentGateway`, `CardTerminal`, `PrinterDriver`, `DeviceIdentityProvider`, `ConnectivityMonitor`, `Clock`, `IdGenerator`), `KioskLog` |
-| `:core:data` | Retrofit `KioskApi`, DTOs and mappers, interceptors, error mapping, `DefaultBackendApi`; the device state (`DeviceSession`, encrypted `secure.pb`, `device.preferences_pb`) and the activation, merchant and catalog repositories |
+| `:core:domain` | Pure Kotlin/JVM: models for E1–E14, `Outcome` / `DomainError`, `retryWithBackoff`, the cart, item and combo pricing, the order session, `IdrFormatter`, ports (`BackendApi`, `PaymentGateway`, `CardTerminal`, `PrinterDriver`, `DeviceIdentityProvider`, `ConnectivityMonitor`, `CatalogRepository`, `ImagePrefetcher`, `Clock`, `IdGenerator`), `KioskLog` |
+| `:core:data` | Retrofit `KioskApi`, DTOs and mappers, interceptors, error mapping, `DefaultBackendApi`; the device state (`DeviceSession`, encrypted `secure.pb`, `device.preferences_pb`); the Room catalog cache and its sync and worker; the connectivity monitor; the activation and merchant repositories |
 | `:core:hardware` | Device identity (`IminDeviceIdentityProvider` + serial cache); printers and card terminal from 0.5.0/0.6.0 |
 | `:core:testing` | Scriptable fakes for every port, `SampleData`, API fixtures, test rules. Test and debug builds only. |
 | `build-logic` | Convention plugins `kiosk.*` and the `verify` gate |
@@ -69,8 +69,12 @@ With the debug build on the in-app fakes (the default):
 
 1. Launch the app. The Splash animation runs for 3.9 s, then routes by the stored state: Sign in on a fresh install.
 2. **Sign in** reads the serial number, then *Log in* activates the kiosk (E1). The device token is stored encrypted (Tink + Android Keystore); nothing else is entered.
-3. **Choose a restaurant** lists the merchants (E2). Tap *Urban Grill*: the kiosk binds it (E3), downloads its config and menu (E5, E6) and opens Idle (still a placeholder in 0.2.0).
+3. **Choose a restaurant** lists the merchants (E2). Tap *Urban Grill*: the kiosk binds it (E3), downloads and caches its config and menu (E5, E6) and opens Idle.
 4. Restart the app: a bound kiosk goes straight to Idle. *Log out* on Choose a restaurant forgets the activation and returns to Sign in.
+
+## Ordering (the start of journey J1)
+
+From Idle: tap anywhere → **Order type** (Dine in or Takeaway) → **Menu**. Tap "+" to quick-add (identical lines merge, up to 20 per item), or open a product for **Item detail** (sizes, meal, Customize, extras), or the *Meals ↗* pill for **Combo**. *View order* opens the Your order placeholder until 0.4.0; *Cancel* returns to Idle and clears the order. Hold the bottom-right corner of Idle for 2 s to reach the staff placeholder. Turn on airplane mode to see the offline banner; the menu keeps working from the cache. Images come from the 200 MB Coil disk cache once synced.
 
 Other first-run states come from the Developer options scenario: `activate_unregistered` (journey J6: "This kiosk isn't registered yet" with the serial number and *Try again*), `activate_disabled`, `slow_network`, `merchants_empty`, `merchant_closed` and `menu_download_failed`. The serial-number source setting covers "Can't read this device's serial number".
 

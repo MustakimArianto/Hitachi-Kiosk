@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Document version | 1.3 (2026-10-23) — 0.2.0: every coming-soon row on SCR-03, closed badge from `opensAt`, TC-182–TC-184, instrumented setup journeys |
+| Document version | 1.4 (2026-10-24) — 0.3.0: quick add needs a choice only without a default (TC-039), sold-out combo options (TC-176), connectivity fake in instrumented tests |
 | Requirements | [`product-requirement.md`](product-requirement.md) |
 | Development roadmap | [`dev-plan.md`](dev-plan.md) |
 | API contract | [`api/api-spec.md`](api/api-spec.md) |
@@ -48,7 +48,7 @@ No new test dependency may be added beyond those listed without noting the reaso
 - **Target:** ≥ 80 % of the TCs below run automatically (in `verify` or the local instrumented suite) by 0.8.0.
 
 ### 1.5 Fakes and debug tooling
-Every external dependency has a scriptable fake (dev-plan DEV-005). The debug-only Developer options (DEV-009) switch between fake and mock-server modes and select scenarios. The mock server supports the scenarios in `api-spec.md` §4 (`X-Mock-Scenario`). The debug-only Checkout "simulate" bar (FR-019) forces payment outcomes. Release builds contain none of these (TC-148).
+Every external dependency has a scriptable fake (dev-plan DEV-005). The debug-only Developer options (DEV-009) switch between fake and mock-server modes and select scenarios. Instrumented tests inject the backend, serial-number and connectivity fakes through `FakeBindingsTestModule` (technical-design §14). The mock server supports the scenarios in `api-spec.md` §4 (`X-Mock-Scenario`). The debug-only Checkout "simulate" bar (FR-019) forces payment outcomes. Release builds contain none of these (TC-148).
 
 ---
 
@@ -165,7 +165,7 @@ Every defect records: build, device, steps, expected/actual, evidence (screensho
 | TC-036 | FR-009 | *Retired* — the Menu promo carousel was removed from the design | — | — | — | — | — | — | — |
 | TC-037 | FR-009 | Badges, kcal, price format | Sample menu | View Burgers | "New" in accent on b2, "Spicy" in ink on b3; "Rp 52.000"; no kcal line on grid cards (Item detail shows the "780 kcal" tag) | S | M | Y |
 | TC-038 | FR-009 | Quick add + merge | Empty cart | Tap + on c1 twice; + on d1 | Check state 1.4 s; fly animation; dock "3 items · Rp 92.000"; c1 one line qty 2 | UI | H | Y |
-| TC-039 | FR-009 | Required choice blocks quick add; Cancel | Product with required group | Tap the "Choose ›" pill on it; then Cancel | Opens Item detail instead of adding (no "+" button on that card); Cancel → Idle with empty cart | UI | M | Y |
+| TC-039 | FR-009 | Required choice blocks quick add; Cancel | Product with a required group that has no default (b2, c4, r1, d2) | Tap the "Choose ›" pill on it; then Cancel | Opens Item detail instead of adding (no "+" button on that card); Cancel → Idle with empty cart | UI | M | Y |
 | TC-040 | FR-010 | Item price calculation | b2 (size Regular) | Turn on "Make it a meal"; expand Customize and set cheddar Extra; expand Add extras and tick Fried egg; qty 1 | CTA "Add to order · Rp 81.000"; closed rows show a summary again when collapsed | UI/U | H | Y |
 | TC-041 | FR-010 | Stepper limits | — | Tap − at 1; tap + 25 times | Stays 1 (− disabled style); stops at 20 | UI | H | Y |
 | TC-042 | FR-010 | Level indicator colors | — | Expand Customize; set Onion None, Pickles Regular, Cheddar Extra | Indicator white / ink / accent; collapsed summary reads the changes | S | M | Y |
