@@ -12,6 +12,25 @@ dependencies {
     testImplementation(libs.junit4)
     testImplementation(libs.truth)
     testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.kotest.property)
 }
 
 kioskCoverage(minLinePercent = 90)
+
+// The golden case tables in docs/ are read by PricingCasesTest and BudgetPlanCasesTest (TC-060, FR-032).
+val caseTables =
+    rootProject.layout.projectDirectory
+        .dir("docs")
+        .let { docs -> listOf(docs.file("pricing-cases.md"), docs.file("budget-plan-cases.md")) }
+
+tasks.withType<Test>().configureEach {
+    caseTables.forEach { table ->
+        inputs.file(table).withPropertyName(table.asFile.name).withPathSensitivity(PathSensitivity.RELATIVE)
+    }
+    systemProperty(
+        "kiosk.docsDir",
+        rootProject.layout.projectDirectory
+            .dir("docs")
+            .asFile.absolutePath,
+    )
+}
