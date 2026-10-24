@@ -15,6 +15,8 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.navigation
 import com.hitachi.kiosk.R
 import com.hitachi.kiosk.feature.activation.SignInRoute as SignInFeatureRoute
+import com.hitachi.kiosk.feature.combo.ComboRoute as ComboFeatureRoute
+import com.hitachi.kiosk.feature.item.ItemDetailRoute as ItemDetailFeatureRoute
 import com.hitachi.kiosk.feature.merchant.MerchantsRoute as MerchantsFeatureRoute
 import com.hitachi.kiosk.feature.splash.SplashRoute as SplashFeatureRoute
 
@@ -108,27 +110,15 @@ private fun NavGraphBuilder.orderingDestinations(
         )
     }
     composable<ItemDetailRoute> {
-        PlaceholderScreen(
-            screenId = "SCR-08",
-            title = R.string.screen_item,
-            actions =
-                listOf(
-                    PlaceholderAction(R.string.nav_keep_ordering) { navController.popBackStack(MenuRoute, false) },
-                    PlaceholderAction(R.string.nav_view_order) { navController.navigateToYourOrder() },
-                    inactivity,
-                ),
+        ItemDetailFeatureRoute(
+            onNavigateToMenu = { navController.popBackStack(MenuRoute, false) },
+            onNavigateToYourOrder = { navController.navigateToYourOrder() },
         )
     }
     composable<ComboRoute> {
-        PlaceholderScreen(
-            screenId = "SCR-07",
-            title = R.string.screen_combo,
-            actions =
-                listOf(
-                    PlaceholderAction(R.string.nav_back_to_menu) { navController.popBackStack(MenuRoute, false) },
-                    PlaceholderAction(R.string.nav_my_order) { navController.navigateToYourOrder() },
-                    inactivity,
-                ),
+        ComboFeatureRoute(
+            onNavigateToMenu = { navController.popBackStack(MenuRoute, false) },
+            onNavigateToYourOrder = { navController.navigateToYourOrder() },
         )
     }
     composable<BudgetPlanRoute> {
