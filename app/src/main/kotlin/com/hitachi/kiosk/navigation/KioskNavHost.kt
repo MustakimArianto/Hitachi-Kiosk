@@ -22,6 +22,7 @@ import com.hitachi.kiosk.feature.menu.MenuRoute as MenuFeatureRoute
 import com.hitachi.kiosk.feature.merchant.MerchantsRoute as MerchantsFeatureRoute
 import com.hitachi.kiosk.feature.ordertype.OrderTypeRoute as OrderTypeFeatureRoute
 import com.hitachi.kiosk.feature.splash.SplashRoute as SplashFeatureRoute
+import com.hitachi.kiosk.feature.upsell.UpsellRoute as UpsellFeatureRoute
 
 /**
  * The navigation graph of architecture §11 with every edge of PRD §5.1 (DEV-010a). Splash, Sign in and Choose a
@@ -129,14 +130,9 @@ private fun NavGraphBuilder.checkoutDestinations(
 ) {
     val inactivity = PlaceholderAction(R.string.nav_simulate_inactivity, onInactivity)
     composable<UpsellRoute> {
-        PlaceholderScreen(
-            screenId = "SCR-09",
-            title = R.string.screen_upsell,
-            actions =
-                listOf(
-                    PlaceholderAction(R.string.nav_continue_to_order) { navController.navigateToYourOrder() },
-                    inactivity,
-                ),
+        UpsellFeatureRoute(
+            onNavigateToYourOrder = { navController.navigateToYourOrder() },
+            onNavigateToMenu = { navController.popBackStack(MenuRoute, false) },
         )
     }
     composable<YourOrderRoute> {
