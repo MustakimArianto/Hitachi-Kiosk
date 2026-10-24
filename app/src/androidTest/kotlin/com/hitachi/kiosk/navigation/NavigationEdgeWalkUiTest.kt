@@ -19,9 +19,12 @@ import com.hitachi.kiosk.R
 import com.hitachi.kiosk.core.domain.model.OrderType
 import com.hitachi.kiosk.core.domain.repository.ActivationRepository
 import com.hitachi.kiosk.core.domain.repository.MerchantRepository
+import com.hitachi.kiosk.core.testing.fake.FakeBackendApi
+import com.hitachi.kiosk.core.testing.fixture.SampleData
 import com.hitachi.kiosk.feature.budgetplan.BUDGET_PLAN_BACK_TAG
 import com.hitachi.kiosk.feature.budgetplan.BUDGET_PLAN_CTA_TAG
 import com.hitachi.kiosk.feature.budgetplan.budgetPlanChipTag
+import com.hitachi.kiosk.feature.checkout.CHECKOUT_BACK_TAG
 import com.hitachi.kiosk.feature.combo.COMBO_BACK_TAG
 import com.hitachi.kiosk.feature.combo.COMBO_CART_TAG
 import com.hitachi.kiosk.feature.idle.IDLE_STAFF_CORNER_TAG
@@ -74,6 +77,9 @@ class NavigationEdgeWalkUiTest {
     @Inject
     lateinit var merchants: MerchantRepository
 
+    @Inject
+    lateinit var backend: FakeBackendApi
+
     private lateinit var scenario: ActivityScenario<MainActivity>
 
     @Before
@@ -106,9 +112,11 @@ class NavigationEdgeWalkUiTest {
         goTag(YOUR_ORDER_ADD_MORE_TAG, "SCR-06")
         goTag(MENU_VIEW_ORDER_TAG, "SCR-10")
         goTag(YOUR_ORDER_PAY_TAG, "SCR-11")
-        go(R.string.nav_back_to_order, "SCR-10")
+        goTag(CHECKOUT_BACK_TAG, "SCR-10")
         goTag(YOUR_ORDER_PAY_TAG, "SCR-11")
-        go(R.string.nav_paid, "SCR-12")
+        // PAID from the backend, not a button, leads to Complete (A-15).
+        backend.paymentStatus.succeed(SampleData.paymentPaid)
+        awaitOn("SCR-12")
         go(R.string.nav_done, "SCR-04")
     }
 
