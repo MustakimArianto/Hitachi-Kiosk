@@ -104,12 +104,12 @@ The package layout follows conventions §1. The table names the main types per m
 
 | Module | Main types |
 |---|---|
-| `:core:domain` | `backend/BackendApi` (E1–E14 in domain types), `payment/PaymentGateway` (E9–E12, delegates to `BackendApi`), `model/` (`Rupiah`, `Product`, `ModifierGroup`, `Combo`, `Category`, `MerchantConfig`, `KioskSettings`, `CartLine`, `Totals`, `PendingOrder`, `PaymentStatus`), `pricing/PricingEngine`, `cart/Cart`, `planner/BudgetPlanner`, `order/OrderSession`, `order/OrderSessionHolder` (interface), `payment/PaymentStateMachine`, `auth/StaffPinVerifier`, `format/IdrFormatter`, `repository/*Repository` (interfaces: `ActivationRepository`, `MerchantRepository` + `BindResult`, `CatalogSyncRepository` in 0.2.0), `setup/ActivateKiosk`, `model/DeviceState`, `device/` (`CardTerminal`, `PrinterManager`, `PrinterDriver`, `DeviceIdentityProvider`, `ConnectivityMonitor`), `time/Clock`, `id/IdGenerator`, `image/ImagePrefetcher`, `error/DomainError`, `Outcome`, `retryWithBackoff`, `log/KioskLog` (facade + `Redactor`, pure Kotlin) |
-| `:core:data` | `api/KioskApi` (internal), `api/interceptor/*`, `api/ApiErrorMapper`, `api/ApiConfig`, `api/DeviceCredentialsProvider` (+ `InMemoryDeviceCredentialsStore`), `api/UnauthorizedHandler`, `backend/DefaultBackendApi`, `backend/BackendPaymentGateway`, `di/NetworkModule`, `di/DataStoreModule`, `di/RepositoryModule`, `dto/*Dto`, `mapper/*`, `db/KioskDatabase`, `db/dao/*`, `db/entity/*Entity`, `prefs/DeviceStore`, `prefs/SettingsStore`, `prefs/SecureTokenStore` (implements `prefs/TokenStore`, internal to the module), `prefs/KeystoreAead`, `repository/DeviceSession`, `repository/SessionInvalidator`, `repository/Default*Repository`, `sync/DefaultCatalogSyncRepository` (0.2.0: E5 + E6 kept in memory; DEV-022 adds Room, ETags and triggers), `sync/CatalogSyncWorker`, `net/DefaultConnectivityMonitor`, `time/ServerClockOffset` |
+| `:core:domain` | `backend/BackendApi` (E1–E14 in domain types), `payment/PaymentGateway` (E9–E12, delegates to `BackendApi`), `model/` (`Rupiah`, `Product`, `ModifierGroup`, `Combo`, `Category`, `MerchantConfig`, `KioskSettings`, `CartLine`, `Totals`, `PendingOrder`, `PaymentStatus`), `model/Catalog` (config + menu), `model/MenuLookup` (menu queries, `needsChoice`), `pricing/MenuPricing` (item and combo unit prices, 0.3.0), `pricing/PricingEngine` (0.4.0), `cart/Cart` (+ `CartLine`, `CartItem`, `LineChoice`, `CartAddResult`), `cart/ProductCustomization`, `cart/ComboCustomization`, `planner/BudgetPlanner`, `order/OrderSession`, `order/OrderSessionHolder` (interface) + `DefaultOrderSessionHolder`, `payment/PaymentStateMachine`, `auth/StaffPinVerifier`, `format/IdrFormatter`, `repository/*Repository` (interfaces: `ActivationRepository`, `MerchantRepository` + `BindResult`, `CatalogSyncRepository`, `CatalogRepository`), `setup/ActivateKiosk`, `model/DeviceState`, `device/` (`CardTerminal`, `PrinterManager`, `PrinterDriver`, `DeviceIdentityProvider`, `ConnectivityMonitor`), `time/Clock`, `time/DayPart` (A-07), `id/IdGenerator`, `image/ImagePrefetcher`, `error/DomainError`, `Outcome`, `retryWithBackoff`, `log/KioskLog` (facade + `Redactor`, pure Kotlin) |
+| `:core:data` | `api/KioskApi` (internal), `api/interceptor/*`, `api/ApiErrorMapper`, `api/ApiConfig`, `api/DeviceCredentialsProvider` (+ `InMemoryDeviceCredentialsStore`), `api/UnauthorizedHandler`, `backend/DefaultBackendApi`, `backend/BackendPaymentGateway`, `di/NetworkModule`, `di/DataStoreModule`, `di/RepositoryModule`, `di/DatabaseModule`, `dto/*Dto`, `mapper/*` (including `CatalogEntityMappers` and the config `toDto` of TD-13), `db/KioskDatabase`, `db/dao/CatalogDao`, `db/entity/*Entity`, `prefs/DeviceStore`, `prefs/SettingsStore`, `prefs/SecureTokenStore` (implements `prefs/TokenStore`, internal to the module), `prefs/KeystoreAead`, `repository/DeviceSession`, `repository/SessionInvalidator`, `repository/Default*Repository` (including `DefaultCatalogRepository`, the Room cache with `CatalogStore` / `CatalogCache`), `sync/DefaultCatalogSyncRepository`, `sync/CatalogSyncWorker`, `sync/CatalogSyncScheduler` (+ `WorkManagerCatalogSyncScheduler`), `net/DefaultConnectivityMonitor`, `time/ServerClockOffset` |
 | `:core:hardware` | `identity/IminDeviceIdentityProvider`, `identity/SerialSource` (`SystemPropertySerialSource`, `BuildSerialSource`), `identity/SerialCache` (own DataStore file), `di/HardwareModule`, `printer/DefaultPrinterManager`, `printer/escpos/EscPosEncoder`, `printer/render/ReceiptRenderer`, `printer/render/KitchenTicketRenderer`, `printer/driver/{Imin,UsbEscPos,BtEscPos}Driver`, `terminal/*CardTerminal` (per ADR-0003) |
-| `:core:designsystem` | `theme/KioskTheme` (+ `KioskColors`, `KioskType`, `KioskShapes`, `KioskSpacing`), `unit/DesignUnit`, `motion/KioskMotion`, `LocalReduceMotion`, `LocalLargeText`, `LocalAccent`, `component/*` (PRD §11.3). `PhotoSlot` draws the tone placeholder and takes the image as a composable slot, so this module depends on Compose only (architecture §3); `:app` fills the slot with Coil's `AsyncImage`. |
-| `:core:testing` | `fake/Fake*` (one per domain interface) built on `fake/Script`, `fake/FakeScenario` (api-spec §4), `fake/TestClock`, `fixture/Fixtures` (loads `fixtures/*.json`), `fixture/SampleData` (the same examples as domain objects), `rule/MainDispatcherRule` |
-| `:app` | `KioskApp`, `MainActivity`, `navigation/` (`Routes.kt`, `KioskNavHost`, `KioskRoot`, `StartupRouter`, `SessionViewModel`), `kiosk/` (`KioskModeController`, `KioskDeviceAdminReceiver`, `BootReceiver`, `BrightnessController`), `inactivity/InactivityController`, `sound/SoundPlayer`, `log/TimberLogSink`, `log/RotatingFileTree`, `image/CoilImagePrefetcher`, `devtools/` (`DeveloperMenu`, `BindingOverrides`), `di/*Module` (including `BackendModule`, `HardwareBindingsModule`, `SetupModule`), `feature/*`; `src/debug` (package `com.hitachi.kiosk.debug`): `DeveloperOptions*`, `DeveloperSettingsStore`, `SwitchableBackendApi`, `SwitchableDeviceIdentityProvider`, `SerialDiagnostics`, `MockServerInterceptor` |
+| `:core:designsystem` | `theme/KioskTheme` (+ `KioskColors`, `KioskType`, `KioskShapes`, `KioskSpacing`), `unit/DesignUnit`, `motion/KioskMotion`, `LocalReduceMotion`, `LocalLargeText`, `LocalAccent`, `component/*` (PRD §11.3; from 0.3.0 also `OfflineBanner`, `KioskToast`, `RollingText`). `PhotoSlot` draws the tone placeholder and takes the image as a composable slot, so this module depends on Compose only (architecture §3); `:app` fills the slot with Coil's `AsyncImage` (`ui/MenuPhoto`). |
+| `:core:testing` | `fake/Fake*` (one per domain interface, including `FakeCatalogRepository`, `FakeCatalogSyncRepository`, `FakeConnectivityMonitor`, `FakeImagePrefetcher`) built on `fake/Script`, `fake/FakeScenario` (api-spec §4), `fake/TestClock`, `fixture/Fixtures` (loads `fixtures/*.json`), `fixture/SampleData` (the same examples as domain objects), `rule/MainDispatcherRule` |
+| `:app` | `KioskApp`, `MainActivity`, `navigation/` (`Routes.kt`, `KioskNavHost`, `KioskRoot`, `StartupRouter`, `SessionViewModel`, `BrandingViewModel`), `sync/CatalogSyncCoordinator`, `ui/` (`MenuPhoto`, `parseHexColor`, `rememberSystemReduceMotion`), `kiosk/` (`KioskModeController`, `KioskDeviceAdminReceiver`, `BootReceiver`, `BrightnessController`), `inactivity/InactivityController`, `sound/SoundPlayer`, `log/TimberLogSink`, `log/RotatingFileTree`, `image/CoilImagePrefetcher`, `image/kioskImageLoader`, `devtools/` (`DeveloperMenu`, `BindingOverrides`), `di/*Module` (including `BackendModule`, `HardwareBindingsModule`, `SetupModule`, `SessionModule`), `feature/*`; `src/debug` (package `com.hitachi.kiosk.debug`): `DeveloperOptions*`, `DeveloperSettingsStore`, `SwitchableBackendApi`, `SwitchableDeviceIdentityProvider`, `SerialDiagnostics`, `MockServerInterceptor` |
 
 `Clock` and `IdGenerator` are domain interfaces (TR-INT-10, TR-INT-11). `SystemClock` returns `kotlin.time.Instant` and a monotonic `elapsedRealtime` for UI timers. `UuidIdGenerator` produces the `Idempotency-Key` values (UUID v4), so tests can script keys.
 
@@ -122,8 +122,8 @@ In `onCreate`, in this order, all off the main thread except the first two:
 1. `KioskLog.install(TimberLogSink)`: plants the `RotatingFileTree`, plus a `DebugTree` in debug builds (§12).
 2. Debug only: `StrictMode` thread and VM policies with `detectAll()` and `penaltyLog()` (TR-REL-05).
 3. WorkManager is initialised on demand through `Configuration.Provider` with `HiltWorkerFactory`. The default initializer is removed in the manifest.
-4. Coil: `SingletonImageLoader.Factory` builds the `ImageLoader` with the shared `OkHttpClient` (without the auth interceptor), a 200 MB disk cache in `cacheDir/images`, and a memory cache of 20 % of app memory (TR-DAT-05).
-5. Periodic sync is enqueued (§7.2).
+4. Coil: `SingletonImageLoader.Factory` builds the `ImageLoader` (`image/kioskImageLoader`) with a plain `OkHttpClient` (image URLs are public CDN links, so the backend client and its device token are never used), a 200 MB disk cache in `cacheDir/images`, and a memory cache of 20 % of app memory (TR-DAT-05, TC-157).
+5. `CatalogSyncCoordinator.start()` schedules the periodic sync and starts the reconnect and order-end triggers in `@ApplicationScope` (§7.2).
 
 ### 4.2 Startup routing (FR-001)
 `MainActivity` installs the AndroidX `SplashScreen`, with an exit animation set to *none* and a linen background, so the system splash hands straight to the Compose `SplashRoute` (SCR-01). `SplashViewModel` calls `StartupRouter.route()` once, which runs in parallel:
@@ -203,19 +203,27 @@ Retries are written in the repositories with `retryWithBackoff(delays = [1 s, 2 
 
 | Table | Key columns | Written by |
 |---|---|---|
-| `config` | `merchantId` (PK), `etag`, `json` (the E5 body, as serialized domain JSON), `fetchedAt` | Sync |
-| `menu_meta` | `merchantId` (PK), `menuVersion`, `etag`, `fetchedAt` | Sync |
-| `category` | `id`, `sort`, `name_en`, `name_id`, `tone` | Sync |
-| `product` | `id`, `categoryId`, `name_en`, `name_id`, `description_en`, `description_id`, `price`, `kcal`, `badgeType`, `imageUrl`, `available`, `role`, `kidFriendly`, `servesAdults`, `shareable`, `plannerWeight` | Sync |
-| `modifier_group`, `modifier_option`, `product_modifier_group` (cross ref) | per api-spec E6 | Sync |
-| `combo`, `combo_slot`, `combo_slot_option` | per api-spec E6 | Sync |
-| `featured`, `idle_promo` | ordering and image URLs | Sync |
-| `pending_order` | `orderId` (PK), `orderNumber`, `paymentId?`, `method?`, `idempotencyKey`, `totalsJson`, `createdAt` | `OrderRepository` (architecture §5.3) |
+| `config` | `merchantId` (PK), `etag`, `json` (the E5 body as wire JSON, `MerchantConfigDto`), `fetchedAtMillis` | Sync |
+| `menu_meta` | `merchantId` (PK), `menuVersion`, `etag`, `fetchedAtMillis`, the combos category name and sort, `sizeLargeUpcharge` | Sync |
+| `category` | `id` (PK), `position`, `sort`, `nameEn`, `nameId`, `tone` | Sync |
+| `product` | `id` (PK), `position`, `categoryId`, `nameEn`, `nameId`, `descriptionEn`, `descriptionId`, `price`, `kcal`, `badgeType`, `badgeLabelEn`, `badgeLabelId`, `tagsEn`, `tagsId`, `imageUrl`, `available`, `role`, `kidFriendly`, `servesAdults`, `shareable`, `plannerWeight` | Sync |
+| `product_modifier_group` | (`productId`, `groupId`) PK, `position` | Sync |
+| `modifier_group` | `id` (PK), `position`, names, `type`, `required`, `min`, `max` | Sync |
+| `modifier_option` | (`groupId`, `id`) PK (option IDs are unique per group only), `position`, names, descriptions, notes, `priceDelta`, `isDefault`, `imageUrl`, `defaultLevel` | Sync |
+| `modifier_level` | (`groupId`, `optionId`, `level`) PK, `position`, `priceDelta` | Sync |
+| `combo` | `id` (PK), `position`, names, short names, includes, `price`, `separatePrice`, `serves`, `imageUrl`, `tone`, `available` | Sync |
+| `combo_slot_option` | (`slot` SIDE/DRINK, `id`) PK, `position`, names, `upcharge`, `imageUrl`, `available` | Sync |
+| `featured` | `position` (PK), `productId` | Sync |
+| `pending_order` (0.5.0) | `orderId` (PK), `orderNumber`, `paymentId?`, `method?`, `idempotencyKey`, `totalsJson`, `createdAt` | `OrderRepository` (architecture §5.3) |
 
-- **Atomic replace (TR-DAT-03):** `CatalogDao.replaceAll(...)` is one `@Transaction`. It writes the `config` row and deletes and inserts all menu tables and `menu_meta`, so E5 and E6 land together (architecture §8). A parse or insert failure rolls back and keeps the old menu (TR-REL-07).
-- Config is stored as one JSON column because it is read whole and never queried by field. This avoids a schema migration every time a config field is added.
+Every list keeps the E6 order in a `position` column. `{en, id}` texts are two nullable columns. The idle promo images are part of the config row, so they need no table of their own. The menu tables hold one merchant's catalog at a time.
+
+- **Atomic replace (TR-DAT-03):** `CatalogDao.replaceAll(rows)` is one `@Transaction`. It deletes every catalog table and inserts the `config` row, `menu_meta` and all menu tables, so E5 and E6 land together (architecture §8). An insert failure rolls back and keeps the old catalog (TR-REL-07); `CatalogDao.readAll()` reads all tables in one transaction and returns nothing for an empty or half-written cache. `CatalogDaoTest` checks both on an in-memory database.
+- Config is stored as one JSON column because it is read whole and never queried by field. This avoids a schema migration every time a config field is added. The column holds the E5 wire form: `MerchantConfig.toDto()` writes it and the same `MerchantConfigDto.toDomain()` mapper as E5 reads it, so the cache and the network parse config identically (TD-13).
+- **Read side:** `DefaultCatalogRepository` (implements the domain `CatalogRepository`, plus the data-internal `CatalogStore` the sync writes through and `CatalogCache` the session wipe clears) loads Room once and keeps the catalog in memory, so a category switch never touches the disk (TR-PRF-04). A cache that cannot be read (SQLite error, JSON or enum that no longer parses) is served as empty and logged (`catalog_cache_unreadable`), never a crash.
+- **Wipe:** `DeviceSession.wipe()` (Log out, HTTP 401) also empties the catalog cache, so a logged-out kiosk keeps no merchant data (FR-004 AC3).
 - Money columns are `INTEGER` (`Long`). There is no `REAL` column anywhere (TR-DAT-01).
-- `exportSchema = true` with the `androidx.room` Gradle plugin `schemaDirectory("$projectDir/schemas")`. Before 1.0.0, `fallbackToDestructiveMigrationFrom(...)` is allowed only for versions whose change touched cache tables. `pending_order` changes always get a real `Migration` (TR-DAT-04).
+- `exportSchema = true` with the `androidx.room` Gradle plugin `schemaDirectory("$projectDir/schemas")`; `core/data/schemas/…/1.json` is committed. In 0.3.0 the database holds cache tables only, so `DatabaseModule` uses `fallbackToDestructiveMigration(dropAllTables = true)`: a schema change drops the cache and the next sync downloads it again. From 0.5.0 (`pending_order`) this becomes `fallbackToDestructiveMigrationFrom(...)` for cache-only versions, and `pending_order` changes always get a real `Migration` (TR-DAT-04).
 
 ### 6.2 DataStore files
 
@@ -239,22 +247,30 @@ Each store is exposed as a `Flow` of a domain model (`KioskSettings`, etc.) or r
 ## 7. Catalog sync and connectivity
 
 ### 7.1 `CatalogSyncRepository.sync()` (FR-028)
-1. Single flight: a `Mutex` makes concurrent triggers share one run.
-2. E5 with `If-None-Match`, then E6 with `If-None-Match`. Each is retried per §5.3.
-3. Map DTOs → domain, which validates them. A product with no `role` defaults to MAIN and is logged as a data warning (DEV-044).
-4. If `OrderSessionHolder.isOrderActive`, keep the parsed result in memory as `pendingCatalog` and apply it when the session returns to `Idle` (A-29). Otherwise write it to Room at once (§6.1).
-5. After a successful write, call the domain port `ImagePrefetcher.prefetch(urls)` for every product and idle-promo image. `:app` implements it with Coil (`ImageRequest` with `memoryCachePolicy(DISABLED)`, disk only), so `:core:data` does not depend on Coil.
-6. Update `lastSyncAt`. Emit `SyncState` for Settings → Device & network.
+`DefaultCatalogSyncRepository` (DEV-022):
+1. Single flight: a `Mutex` makes concurrent triggers run one after the other.
+2. The base copy is the held-back catalog (step 5) or the cached one, but only for the same merchant, so another merchant's cache never lends its ETags.
+3. E5 with `If-None-Match`, then E6 with `If-None-Match`, each retried per §5.3. A failure (including a body that does not parse, `DomainError.Unknown`) returns the error and keeps the cache. A 304 with no base copy is treated as a bad answer.
+4. Both 304: nothing is written (`catalog_unchanged`). Otherwise the changed part is combined with the base copy, with the ETags of each answer. The DTO → domain mapping already validated it; a product with no `role` defaults to MAIN and is logged as a data warning (DEV-044).
+5. If `OrderSessionHolder.isOrderActive`, the new catalog is kept in memory as `pending` and not written (A-29). `applyPending()` writes it once the order has ended; `CatalogSyncCoordinator` calls it whenever the session returns to Idle (§7.2, TD-14). A newer sync during the same order replaces `pending` and sends its ETags.
+6. Otherwise it is written to Room at once in one transaction (§6.1). A write that fails rolls back and returns `DomainError.Unknown`.
+7. After a successful write, the domain port `ImagePrefetcher.prefetch(urls)` gets every product, option, combo, slot option, idle-promo, logo and hero image. `:app` implements it with Coil (`CoilImagePrefetcher`: `ImageRequest` with `memoryCachePolicy(DISABLED)`, disk only), so `:core:data` does not depend on Coil.
+8. `lastSyncAt` and a `SyncState` for Settings → Device & network arrive with the settings store (0.7.0, DEV-070).
+
+The result is the config's operating mode (FR-005), which the bind stores with the binding.
 
 ### 7.2 Triggers
-- On binding (blocking, with the FR-004 states).
-- On startup (non-blocking).
-- On "Sync now".
-- On a connectivity transition offline → online.
-- `PeriodicWorkRequest<CatalogSyncWorker>(15, MINUTES)` with `Constraints(requiredNetworkType = CONNECTED)`, unique name `catalog-sync`, policy `UPDATE`. It is cancelled when Auto-sync is off and re-enqueued when it is turned back on.
+- On binding (blocking, with the FR-004 states): `MerchantRepository.bind`.
+- On startup (non-blocking): `StartupRouter` (§4.2).
+- On "Sync now" (Settings, 0.7.0).
+- On a connectivity transition OFFLINE → ONLINE: `CatalogSyncCoordinator` (`:app`, `@Singleton`, started by `KioskApp`) syncs the bound merchant.
+- Every 15 minutes: `CatalogSyncScheduler.schedulePeriodic()` (`WorkManagerCatalogSyncScheduler`) enqueues `PeriodicWorkRequest<CatalogSyncWorker>(15, MINUTES)` with `Constraints(requiredNetworkType = CONNECTED)`, unique name `catalog-sync`, policy `UPDATE`. The worker is a `@HiltWorker`; WorkManager starts on demand with `HiltWorkerFactory` (§4.1). It loads the device state first when the process was started by WorkManager alone, syncs only a bound kiosk, and asks for a retry only after a network error. From 0.7.0 it is cancelled when Auto-sync is off and re-enqueued when it is turned back on.
+- When an order ends: `CatalogSyncCoordinator` calls `applyPending()` (A-29).
 
 ### 7.3 `DefaultConnectivityMonitor` (TR-NET-11)
-`combine(validatedNetworkFlow, healthFlow)` → `StateFlow<Connectivity>` (`Online`, `Offline`, `Checking`).
+**0.3.0 (interim, TD-12):** `DefaultConnectivityMonitor` (`:core:data` `net/`) follows the default network only, through `ConnectivityManager.registerDefaultNetworkCallback`: `NET_CAPABILITY_VALIDATED` → `ONLINE`, connected but not validated yet → `CHECKING`, no network → `OFFLINE`. The Menu's offline banner and disabled add buttons show only for `OFFLINE`. `:app` binds it in `HardwareBindingsModule` through the optional `BindingOverrides` (TD-11), so instrumented tests replace it with `FakeConnectivityMonitor`; debug builds keep the real monitor (testers use airplane mode).
+
+**DEV-051 (0.5.0)** completes it: `combine(validatedNetworkFlow, healthFlow)` → `StateFlow<Connectivity>` (`Online`, `Offline`, `Checking`).
 - `validatedNetworkFlow` comes from `ConnectivityManager.registerDefaultNetworkCallback`, using `NET_CAPABILITY_VALIDATED`.
 - `healthFlow` probes E14 on every network change and every 30 s while not `Online`. While `Online`, a `Network` error on any real call triggers an immediate E14 re-probe.
 - E14 counts as healthy only when `status` and `components.paymentGateway` are `OK`. A gateway that is `DEGRADED` or `DOWN` makes checkout unavailable, the same as offline (api-spec E14); the Connection test reports it separately (FR-027).
@@ -277,7 +293,11 @@ Each store is exposed as a `Flow` of a domain model (`KioskSettings`, etc.) or r
 - `docs/pricing-cases.md` (0.4.0) is the golden table. `kotest-property` checks the invariants over 1,000 random carts (TC-061): `total ≥ 0`; `total ≥ subtotal − discount`; when the step is > 0, `total % step == 0` and `0 ≤ rounding < step`; tax equals the half-up rule. The total is **not** monotonic in quantity, because crossing the promo threshold can lower it (FR-032 AC2 depends on that).
 
 ### 8.2 Cart and `OrderSession`
-`Cart` is an immutable list of `CartLine(productId | comboId, optionSelections, qty, unitPrice)`. Two lines are equal when their product and selections are equal (merge rule, FR-010). Limits of 20 per line and 30 lines are enforced in `Cart` (BR-05). `OrderSession` follows the state machine in architecture §5.1. It exposes `StateFlow<OrderState>` and owns:
+`Cart` is an immutable list of `CartLine(lineId, item, quantity, unitPrice, choices)`, where `item` is `CartItem.ProductItem(productId, selections)` or `CartItem.ComboItem(comboId, ComboSelection)`. Two lines are identical when their items are equal (merge rule, FR-010); a `LEVEL` selection is recorded only when it differs from the default, so equal choices always give equal items. Limits of 20 per line and 30 lines are enforced in `Cart.add` (BR-05): a merge past 20 is capped and flagged so the UI shows "Maximum 20 per item"; a full line or a 31st line returns `LimitReached`. `choices` are the structured parts of the line description (`Option`, `LevelChange`, `Size`); the UI words them from string resources (NFR-008).
+
+Unit prices come from `ProductCustomization` (Item detail and quick add: defaults, `select`, `setLevel`, required-group check, `unitPrice` = base + Σ option deltas, with every `LEVEL` option counted at its chosen or default level) and `ComboCustomization` (Combo: first available side and drink, sold-out options not selectable, `unitPrice` = price + (side + drink + large) × `serves`), both on `MenuPricing` (FR-010, FR-011). A product needs Item detail ("Choose ›") only when a required group has no default (`Menu.needsChoice`, FR-009).
+
+**0.3.0 subset:** `OrderSessionHolder` (`DefaultOrderSessionHolder`, provided as a singleton by `SessionModule`) holds the current `OrderSession` or `null` at Idle. `chooseOrderType` starts an order on the current catalog versions, or changes the type of the running order and keeps its cart ("Change" from the Menu); `endOrder()` returns to Idle. `OrderSession` has the phases `TYPE_CHOSEN` and `BUILDING` and an atomic `add` (compare-and-set on its `StateFlow`, so a double tap cannot add from a stale cart). DEV-036 adds increment, decrement and removal, and DEV-041 the full state machine of architecture §5.1, which exposes `StateFlow<OrderState>` and owns:
 - the `idempotencyKey` for E7;
 - the `PlanTag`;
 - the `upsellShown` flag;
@@ -446,11 +466,13 @@ When the app is not device owner, it calls `startLockTask()` (screen pinning) an
 | Fakes (TR-INT-10) | `:core:testing` `Fake*`. Each one takes a script (`Queue<Outcome>`) or a mode enum, plus optional delays driven by the test dispatcher. |
 | Fixtures (TR-NET-02) | `core/testing/src/main/resources/fixtures/*.json` (31 files, byte-identical to the `api-spec.md` examples), written by `./gradlew extractApiFixtures` (`docs/api/tools/extract_fixtures.py`), which shares its parser `spec_examples.py` with `gen_openapi.py`. The `checkApiFixtures` step of `verify` fails on a diff (§2.6). `SampleData` holds the same examples as domain objects, and the `:core:data` contract tests check that each parsed fixture equals it. |
 | Contract and network tests | `mockwebserver3` + `mockwebserver3-junit4` serve the fixtures and inject faults (delays, 5xx, disconnects) (TR-NET-03, TR-NET-04). |
-| Room and DataStore | Robolectric with an in-memory Room database. `MigrationTestHelper` from 1.0.0. A DataStore on a temporary folder. |
+| Room and DataStore | Robolectric with an in-memory Room database (`CatalogDaoTest`, `DefaultCatalogRepositoryTest`). The sync is tested on the JVM against an in-memory `CatalogStore`. `MigrationTestHelper` from 1.0.0. A DataStore on a temporary folder. |
+| WorkManager | `work-testing` (`WorkManagerTestInitHelper`, `TestListenableWorkerBuilder`) on Robolectric for the scheduler and `CatalogSyncWorker`. |
 | Flows and time | `runTest` + `StandardTestDispatcher`, `TestClock` implementing the domain `Clock`, Turbine. |
 | Property tests | `kotest-property` `checkAll(iterations = 1_000, …)` inside JUnit 4 `@Test` functions (TC-061, FR-032 AC8). |
 | Screenshot tests | Roborazzi on Robolectric (SDK 36, §16), goldens committed under each module's `src/test/screenshots`. A 1080 × 1920 px screen at 160, 240 and 320 dpi is `@Config(qualifiers = "w1080dp-h1920dp-mdpi")`, `"w720dp-h1280dp-hdpi"` and `"w540dp-h960dp-xhdpi"`. One test per `S_*` board and screen artboard, plus larger-text variants (TR-MNT-08). |
-| Instrumented UI | `HiltTestRunner`, `@TestInstallIn` replacing the data and hardware modules with fakes. `createAndroidComposeRule<MainActivity>()` with `enableAccessibilityChecks()` (TR-ACC-01). |
+| JVM UI tests in `:app` | Robolectric runs them on a plain `android.app.Application` (`robolectric.properties`), not `KioskApp`: unit tests build their classes by hand, and `KioskApp` would build the Hilt graph and start WorkManager and the sync triggers. |
+| Instrumented UI | `HiltTestRunner`, `@TestInstallIn` replacing `DeveloperOptionsModule` with `FakeBindingsTestModule`, whose `BindingOverrides` return the scriptable `FakeBackendApi`, `FakeDeviceIdentityProvider` and `FakeConnectivityMonitor`. `createAndroidComposeRule<MainActivity>()` with `enableAccessibilityChecks()` (TR-ACC-01). |
 | System-level | UI Automator for lock task, process kill and reboot checks, plus the 72 h soak script (TR-REL-01). |
 | Release checks | `scripts/check-release-apk.sh` (§2.5). |
 
@@ -471,6 +493,10 @@ When the app is not device owner, it calls `startLockTask()` (screen pinning) an
 | TD-09 | Keep Navigation Compose 2.x and Room 2.x in 1.0, although Navigation 3 and Room 3 are stable | Architecture §11 and §6 are written for them. Migration has no 1.0 benefit. | Navigation 3; Room 3 | technology-stack §7 |
 | TD-10 | `kotlin.time.Instant` for every business timestamp | kotlinx-datetime 0.7+ removed `kotlinx.datetime.Instant` in favour of the standard library type | Pin an older kotlinx-datetime | conventions §4 |
 | TD-11 | Debug builds change bindings only through optional `BindingOverrides` / `DeveloperMenu` bindings declared in `src/main` and provided in `src/debug` | Hilt cannot override production bindings outside tests; `src/main` stays the release graph | A `src/debug` + `src/release` module pair per binding | This document (§4.3) |
+| TD-12 | Until DEV-051, connectivity is the default network's validation state only (no E14 probe, no debounce) | The 0.3.0 offline banner needs a real signal on the device; the health probe belongs with the checkout gate in 0.5.0 (PO, 2026-10-23) | An always-online stub (banner reachable only with fakes) | This document (§7.3) |
+| TD-13 | The config row stores the E5 wire JSON, written by `MerchantConfig.toDto()` and read by the E5 mapper | One parser for network and cache; no domain serialization annotations in `:core:domain` | `@Serializable` domain types; a column per config field | This document (§6.1) |
+| TD-14 | A catalog held back during an order is applied by `:app`'s `CatalogSyncCoordinator` when `OrderSessionHolder.current` returns to `null` | `:core:data` has no application scope; the trigger list lives in one app-level place (§7.2) | The data layer observing the session in its own scope | This document (§7.1, §7.2) |
+| TD-15 | Item detail renders modifier groups generically: required `SINGLE` groups with no default first (option cards, "Required"); a `SINGLE` group of exactly two options whose default costs Rp 0 as one switch row ("Make it a meal"); other `SINGLE` groups as option rows; `LEVEL` groups as a collapsed "Customize" row; `MULTI` groups as a collapsed "Add extras" row | FR-010 asks for generic rendering from the groups; the API has no display hint, and this rule reproduces the design for b2 and gives a sensible layout for every sample product | A display-type field in E6 (contract change) | This document (§10.1), DEV-029 |
 
 ---
 

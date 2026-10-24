@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | Product | Hitachi Kiosk (Android self-ordering kiosk app) |
-| Document version | 1.5 (2026-10-23), see the [revision history](#revision-history) |
+| Document version | 1.6 (2026-10-23), see the [revision history](#revision-history) |
 | Target release | `1.0.0` |
 | Companion documents | [`technical-requirement.md`](technical-requirement.md), [`technical-design.md`](technical-design.md), [`technology-stack.md`](technology-stack.md), [`architecture.md`](architecture.md), [`dev-plan.md`](dev-plan.md), [`testing-plan.md`](testing-plan.md) |
 | Design source of truth | [`ui-design/`](ui-design/) — the final light design "Linen & Paprika": 20 screen artboards, 33 state boards (`S_<Screen>_<scenario>`), the `Photo` component, `canvas.json` and `README.md`. It is mirrored from https://claude.ai/artifact/Lv6W9bttmG8fH4ho4CkWMg |
@@ -17,6 +17,7 @@
 | 1.3 | 2026-10-23 | DEP-1 owner: the PO builds the mock and the backend from `api/api-spec.md`. |
 | 1.4 | 2026-10-23 | A-42: option choice for planned items. The api-spec sample menu is complete and adds required choices on c4, r1 and d2. |
 | 1.5 | 2026-10-23 | 0.2.0 decisions (PO): a closed merchant's opening time comes from the new optional E1/E2 field `opensAt` ("Closed" when unknown); SCR-03 lists **every** coming-soon merchant and scrolls; copy for a sign-in failure outside FR-003's three cases and for a merchant-list failure; while a bind runs the chosen card shows a spinner. Design colours used by the 0.2.0 screens added to §11.1. |
+| 1.6 | 2026-10-23 | 0.3.0 decisions (PO): a product needs a choice ("Choose ›", no quick add) only when a required group has **no default** option, so s1 and d1 quick-add with their defaults (FR-009, A-08); OQ-08 closed, sold-out products stay hidden (A-09); A-29 is kept strictly, so Item detail shows "No longer available" from the catalog the order started with (FR-010); a combo side or drink can be sold out (new optional E6 field `available`, FR-011); the offline banner is driven by the validated network until the E14 probe of 0.5.0 (FR-028). Banner and toast colours added to §11.1. |
 
 ## 0. How to read this document
 
@@ -368,8 +369,8 @@ Priority: **MVP** = required for 1.0.0. **Post-1.0** = specified for later, not 
   - **Cart dock:** up to 3 most-recent thumbnails, "N items", total, and "View order →". A linen fade above the dock stops grid cards from sitting under it.
   - **States:** offline shows an amber banner "Ordering is paused — reconnecting…" and disables add buttons and "View order". An empty category shows "Nothing here right now", "Everything in this category is sold out. Try another one — the full menu is just above." and a "See popular items" button. Reaching the 20-per-item limit shows the toast "Maximum 20 per item" and dims that card's add button.
 - **Rules:**
-  - Products that require a choice (a required modifier group) cannot be quick-added. They show "Choose ›" and open SCR-08 instead [A-08].
-  - Unavailable (sold-out) items are not shown [A-09, OQ-08].
+  - Products that require a choice (a required modifier group with no default option) cannot be quick-added. They show "Choose ›" and open SCR-08 instead [A-08]. A required group that has a default does not block quick add, which uses the defaults (FR-010; PO, 2026-10-23).
+  - Unavailable (sold-out) items are not shown [A-09; OQ-08 closed by the PO, 2026-10-23].
   - Section heading shows "Popular now" for Popular, otherwise the category label, plus "N items".
   - With an empty cart, the dock shows "0 items · Rp 0" and "View order" opens SCR-10's empty state [V].
 - **Acceptance criteria:**
@@ -398,7 +399,7 @@ Priority: **MVP** = required for 1.0.0. **Post-1.0** = specified for later, not 
 - **Edge cases:**
   - Adding would exceed qty 20 on a merged line: cap at 20 and show "Maximum 20 per item".
   - A required group without a selection: the group shows "Required" and the dock button is disabled and reads "Choose a size to continue".
-  - The product sells out while open: a "No longer available" banner ("This item just sold out. Pick something else from the menu."), a dimmed hero, and a disabled button.
+  - The product sells out while open: a "No longer available" banner ("This item just sold out. Pick something else from the menu."), a dimmed hero, and a disabled button. The screen reads the catalog the order started with, because a sync during an order waits until it ends [A-29]. So in 1.0 the state shows when that catalog marks the product unavailable, and a sale that sold out meanwhile is caught by E7 `ITEM_UNAVAILABLE` (FR-016) (PO, 2026-10-23).
 - **Acceptance criteria:**
   - AC1: For the design sample (Smoky Double, meal, cheddar Extra, Fried egg, qty 1), the price shown is Rp 52.000 + 18.000 + 5.000 + 6.000 = **Rp 81.000**.
   - AC2: The stepper stops at 1 and 20.
@@ -413,6 +414,7 @@ Priority: **MVP** = required for 1.0.0. **Post-1.0** = specified for later, not 
   - "Size" segmented: Regular / Large +Rp 6.000.
   - Dock: summary text "{combo} · {side} · {drink} · {size}", rolling total, and "Add combo". While a side or drink is missing the button is disabled and reads "Choose a side", "Choose a drink" or "Pick side & drink". This becomes "✓ Added" for 1.8 s and the cart badge bumps.
 - **Rules:**
+  - A side or drink the backend marks `available: false` (E6 `comboSlots`) stays listed but greyed with "Sold out" and cannot be picked. The defaults skip it.
   - Combo price = combo base + (side upcharge + drink upcharge + large upcharge) × multiplier.
   - The multiplier is 2 for combos marked as serving 2 (e.g. "Feast for Two"), otherwise 1 [V].
   - "Save" = separate price − combo base price (backend-supplied `separatePrice`).
@@ -905,7 +907,7 @@ No backend exists yet [D-06]. The app **defines** the contract below, which the 
 - **ModifierGroup** `{id, name{en,id}, type: SINGLE|MULTI|LEVEL, required, min, max, options[]}`
   - **Option** `{id, name{en,id}, priceDelta, default, imageUrl?}`
   - For LEVEL groups, each option has levels `[None, Regular, Extra]` with per-level `priceDelta`.
-- **Combo** `{id, name{en,id}, shortName, includes{en,id}, price, separatePrice, serves (multiplier), slots: [{type: SIDE|DRINK, optionIds[], upcharges}], sizeUpcharge}`
+- **Combo** `{id, name{en,id}, shortName, includes{en,id}, price, separatePrice, serves (multiplier), slots: [{type: SIDE|DRINK, optionIds[], upcharges}], sizeUpcharge}`. A slot option may be `available: false` (sold out, FR-011).
 - **Promo** `{id, type: THRESHOLD_FIXED, threshold, amount, label{en,id}}`
 
 ---
@@ -931,10 +933,11 @@ No backend exists yet [D-06]. The app **defines** the contract below, which the 
 | `errorBg` / `errorBorder` / `errorText` | `#FBEEE8` / `#F0CDBF` / `#4F4A44` | Error panels (Sign in, Choose a restaurant) |
 | `closedDot`, `skeletonHighlight` | `#A39C92`, `#F6F3EE` | "Closed" badge dot; skeleton shimmer highlight |
 | `photoTone` | `#E9DED0` (`#E6DCD3` when the given tone is too dark) | Photo slot placeholder (`Photo.dc.html`, NFR-013) |
+| `warningBg` / `warningBorder` / `warningTrack` / `warningAccent` / `warningText` | `#FFF4DB` / `#EBD39A` / `#E2C877` / `#8A6A12` / `#4A3A08` | Amber offline banner and its spinner ("Ordering is paused — reconnecting…", `S_Menu_offline`) |
 | Type | Schibsted Grotesk 400/500/600/700/800 (bundled font resource, SIL OFL) | All text |
 | Type scale (dpx / weight) | display 112/800, title 80/700, section 44/700, item 36/600, body 30/400, button 34/700, meta 26/500. Nothing below 24. | Headlines are tight (−0.02 to −0.035 em) |
 | Radii | 999 (pills), 48 (docks), 40 (cards), 32/28/24 (smaller) | — |
-| Layout | 72 dpx side margins (936 content width); header top 48, height 96; 8-pt spacing; touch targets ≥ 96 dpx; one accent action per screen, in the bottom dock | Elevations: flat, and floating (`0 24 48 rgba(23,21,19,.10)`) for docks and overlays |
+| Layout | 72 dpx side margins (936 content width); header top 48, height 96; 8-pt spacing; touch targets ≥ 96 dpx; one accent action per screen, in the bottom dock | Elevations: flat, floating (`0 24 48 rgba(23,21,19,.10)`) for docks and overlays, and raised (`0 24 48 rgba(23,21,19,.18)`) for toasts and the fly-to-cart thumbnail |
 
 ### 11.2 Units
 1 dpx = `screenWidthDp / 1080` dp. Text uses the same factor in `sp`, multiplied by 1.15 when Larger text is on. A Compose `DesignUnit` helper provides `Int.dpx` and `Int.spx`. This mirrors the design at any density (NFR-002).
@@ -1072,7 +1075,7 @@ Sized for one developer. Features live as packages inside `:app` rather than sep
 | A-05 | With one order type enabled, SCR-05 still shows (one card). | Could skip the screen instead. Minor. |
 | A-06 | Superseded by D-29: staff settings are English. | — |
 | A-07 | Greeting by time of day (05–11 morning, 11–17 afternoon, 17–05 evening). | Copy only. |
-| A-08 | Products with required choices open Item detail on "+". | UX. |
+| A-08 | Products with a required choice that has no default open Item detail instead of quick add (they show "Choose ›"). | UX. |
 | A-09 | Unavailable items are hidden. | UX (OQ-08). |
 | A-10 | Limits: 20 per line, 30 lines. | Config change. |
 | A-11 | Process death mid-order resets to Idle, except during payment, which recovers. | UX. |
@@ -1119,7 +1122,7 @@ Sized for one developer. Features live as packages inside `:app` rather than sep
 | OQ-05 | **Closed (1.1):** Upsell screen design — delivered as `Upsell.dc.html`. | — | — |
 | OQ-06 | **Closed (1.1):** "Still there?" overlay — delivered as `StillThere.dc.html`. | — | — |
 | OQ-07 | How do staff change or rebind the merchant after setup (no design path from Settings)? | FR-004 | 0.7.0 |
-| OQ-08 | Should sold-out items show as disabled ("Sold out") instead of hidden? | FR-009 | 0.3.0 |
+| OQ-08 | **Closed (1.6):** sold-out products stay hidden on the Menu (A-09, PO 2026-10-23). Sold-out combo sides and drinks stay listed, greyed (FR-011). | — | — |
 | OQ-09 | What does the order-number letter mean (kiosk, order type, day)? | Display only | 0.5.0 |
 | OQ-10 | Which MDM and device-owner provisioning method (QR provisioning, `dpm` via adb, iMin tool)? | FR-029, release | 0.7.0 |
 | OQ-11 | Legal receipt requirements (NPWP, tax invoice wording) for Indonesia. | FR-021 | 0.6.0 |

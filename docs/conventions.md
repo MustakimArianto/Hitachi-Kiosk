@@ -5,12 +5,12 @@ How code is written and how changes land. [`architecture.md`](architecture.md) c
 ## 1. Packages
 
 ```
-com.hitachi.kiosk                      :app (MainActivity, KioskApp, navigation/, di/, devtools/, kiosk/)
+com.hitachi.kiosk                      :app (MainActivity, KioskApp, navigation/, di/, devtools/, kiosk/, image/, sync/, ui/, log/, time/)
 com.hitachi.kiosk.debug                :app src/debug only (Developer options, switchable wrappers)
 com.hitachi.kiosk.feature.<feature>    :app feature packages (menu, cart, checkout, …)
 com.hitachi.kiosk.core.designsystem    :core:designsystem (theme/, unit/, motion/, component/)
-com.hitachi.kiosk.core.domain          :core:domain (model/, error/, backend/, pricing/, cart/, planner/, order/, payment/, repository/, setup/, device/, time/, id/, log/)
-com.hitachi.kiosk.core.data            :core:data (api/, backend/, dto/, mapper/, db/, prefs/, repository/, sync/, di/)
+com.hitachi.kiosk.core.domain          :core:domain (model/, error/, backend/, pricing/, cart/, planner/, order/, payment/, repository/, setup/, device/, time/, id/, log/, format/, image/)
+com.hitachi.kiosk.core.data            :core:data (api/, backend/, dto/, mapper/, db/, prefs/, repository/, sync/, net/, di/)
 com.hitachi.kiosk.core.hardware        :core:hardware (identity/, printer/, terminal/, di/)
 com.hitachi.kiosk.core.testing         :core:testing (fake/, fixture/, rule/)
 ```

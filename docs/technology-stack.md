@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Document version | 1.2 (2026-10-23) — 0.2.0: Hilt ViewModel Compose, Coil used from 0.2.0, DataStore in `:core:hardware`, iMin device library not used (ADR-0002) |
+| Document version | 1.3 (2026-10-23) — 0.3.0: Room, WorkManager with Hilt workers, Coil loader with the 200 MB disk cache, work-testing and Robolectric in `:core:data` |
 | Answers | *What technologies does the project use, at which version, and why?* |
 | Requirements | [`product-requirement.md`](product-requirement.md) (FR-/NFR-/D-) and [`technical-requirement.md`](technical-requirement.md) (TR-) |
 | Design | [`architecture.md`](architecture.md) (structure), [`technical-design.md`](technical-design.md) (implementation), [ADR-0001](adr/0001-architecture.md) (stack decision) |
@@ -95,7 +95,7 @@ The modules column follows [architecture §3](architecture.md#3-modules). "BOM" 
 | Hilt | `com.google.dagger:hilt-android`, `hilt-android-compiler` (KSP), plugin `com.google.dagger.hilt.android` | **2.60.1** | Compile-time DI graph (architecture §10) | `:app`, `:core:data`, `:core:hardware` |
 | Hilt Navigation Compose | `androidx.hilt:hilt-navigation-compose` | **1.4.0** | Listed for navigation-scoped Hilt helpers; not used yet. `hiltViewModel()` comes from the artifact below, where it moved in 1.3.0 | — |
 | Hilt ViewModel Compose | `androidx.hilt:hilt-lifecycle-viewmodel-compose` | **1.4.0** | `hiltViewModel()` per navigation destination (Splash, Sign in, Merchants, app root) | `:app` |
-| Hilt Work | `androidx.hilt:hilt-work`, `androidx.hilt:hilt-compiler` (KSP) | **1.4.0** | `@HiltWorker` for the catalog sync `CoroutineWorker` | `:core:data` |
+| Hilt Work | `androidx.hilt:hilt-work`, `androidx.hilt:hilt-compiler` (KSP) | **1.4.0** | `@HiltWorker` for the catalog sync `CoroutineWorker` (`:core:data`, with the compiler); `HiltWorkerFactory` in `KioskApp` (`:app`) | `:core:data`, `:app` |
 | Hilt testing | `com.google.dagger:hilt-android-testing` | 2.60.1 | `@HiltAndroidTest`, `@TestInstallIn` with fakes | `:app` (androidTest) |
 
 `:core:domain` has no DI library. Its classes use plain constructors (architecture §10).
@@ -113,18 +113,18 @@ The modules column follows [architecture §3](architecture.md#3-modules). "BOM" 
 
 | Library | Artifact | Version | Purpose | Modules |
 |---|---|---|---|---|
-| Room | `androidx.room:room-runtime`, `room-ktx`, `room-compiler` (KSP), plugin `androidx.room` | **2.8.5** | Config, menu and `pending_order` tables. Atomic menu replacement. Exported schemas (`core/data/schemas/`) for migrations (architecture §6) | `:core:data` |
+| Room | `androidx.room:room-runtime`, `room-compiler` (KSP), plugin `androidx.room` | **2.8.5** | Config and menu tables from 0.3.0, `pending_order` from 0.5.0. Atomic catalog replacement. Exported schemas (`core/data/schemas/`) for migrations (architecture §6). `room-ktx` is not needed: since 2.7 the runtime has the coroutine APIs, so it stays in the catalog unused | `:core:data` |
 | DataStore Preferences | `androidx.datastore:datastore-preferences` | **1.3.0** | `device.preferences_pb`, `settings.preferences_pb`, PIN lockout state; the serial-number cache `identity.preferences_pb`; the debug-only Developer options choices (`developer_options`) | `:core:data`, `:core:hardware`, `:app` (debug) |
 | DataStore + Tink | `androidx.datastore:datastore`, `androidx.datastore:datastore-tink` | **1.3.0** | Secure DataStore `secure.pb`: `AeadSerializer` encrypts each write with AES-256-GCM (ADR-0001, NFR-005) | `:core:data` |
 | Tink | `com.google.crypto.tink:tink-android` | **1.24.0** | `Aead` primitive, `AndroidKeysetManager` with an `android-keystore://` master key | `:core:data` |
-| WorkManager | `androidx.work:work-runtime-ktx` | **2.12.0** | 15-minute periodic catalog sync with a `CONNECTED` constraint (FR-028) | `:core:data` |
+| WorkManager | `androidx.work:work-runtime-ktx` | **2.12.0** | 15-minute periodic catalog sync with a `CONNECTED` constraint (FR-028). Started on demand by `KioskApp` as `Configuration.Provider`; the default initializer is removed in the manifest | `:core:data`, `:app` |
 
 ### 3.6 Images and QR
 
 | Library | Artifact | Version | Purpose | Modules |
 |---|---|---|---|---|
-| Coil 3 | `io.coil-kt.coil3:coil-compose` | **3.6.3** | Async image loading (`AsyncImage`) placed in the `PhotoSlot` component's image slot, which shows the tone placeholder (NFR-013). `:core:designsystem` stays Compose-only (architecture §3). Used from 0.2.0 (merchant photo and logo) with Coil's default singleton loader; DEV-023 configures the loader below. | `:app` |
-| Coil network | `io.coil-kt.coil3:coil-network-okhttp` | **3.6.3** | Shares the app's OkHttp stack. 200 MB disk cache (A-37) and prefetch after sync (through the domain `ImagePrefetcher` port) | `:app` |
+| Coil 3 | `io.coil-kt.coil3:coil-compose` | **3.6.3** | Async image loading (`AsyncImage`) placed in the `PhotoSlot` component's image slot, which shows the tone placeholder (NFR-013). `:core:designsystem` stays Compose-only (architecture §3). Used from 0.2.0 (merchant photo and logo); since 0.3.0 `KioskApp` provides the singleton loader (`image/kioskImageLoader`) and `ui/MenuPhoto` wraps `AsyncImage` in the slot. | `:app` |
+| Coil network | `io.coil-kt.coil3:coil-network-okhttp` | **3.6.3** | OkHttp fetcher on a plain client (public image URLs never get the device token). 200 MB disk cache (A-37) and prefetch after sync (through the domain `ImagePrefetcher` port) | `:app` |
 | ZXing core | `com.google.zxing:core` | **3.5.4** | Encodes `qrString` into a `BitMatrix` that Compose draws (FR-017, DEV-048). Also decodes the bitmap in TC-079. No `zxing-android-embedded`, because nothing is scanned with the camera. | `:app` (encode), tests (decode) |
 
 ### 3.7 Hardware and platform integrations
@@ -166,9 +166,9 @@ Rules for test dependencies are in [testing-plan §1.3](testing-plan.md#13-test-
 | Turbine | `app.cash.turbine:turbine` | **1.2.1** | `Flow` and `StateFlow` assertions | JVM tests |
 | kotest-property | `io.kotest:kotest-property` | **6.2.6** | Property tests with generators and shrinking (TC-061 pricing over 1,000 random carts; FR-032 AC8 exact-match coverage). Used standalone (`checkAll`) inside JUnit 4 tests; the Kotest runner is not used. Not used until the first property test (0.4.0); check there that it runs in a JUnit 4 test. Fallback: the latest 5.x release. | `:core:domain` |
 | MockWebServer 3 | `com.squareup.okhttp3:mockwebserver3`, `mockwebserver3-junit4` | 5.5.1 | HTTP contract and fault-injection tests that serve the fixtures from `api-spec.md` (NFR-010, DEV-006). `mockwebserver3-junit4` provides the JUnit 4 rule. | `:core:data` |
-| Room testing | `androidx.room:room-testing` | 2.8.5 | `MigrationTestHelper`, in-memory database | `:core:data` |
-| WorkManager testing | `androidx.work:work-testing` | 2.12.0 | `WorkManagerTestInitHelper`, `TestDriver` (DEV-023) | `:core:data` |
-| Robolectric | `org.robolectric:robolectric` | **4.17** | Android framework on the JVM for Room, DataStore and Roborazzi tests. DEV-001 result: 4.17 starts the API 37 image, but Compose draws nothing there in NATIVE graphics mode, so the screenshot modules pin `sdk=36` in `src/test/resources/robolectric.properties`. API 37 is covered by the instrumented tests. The unit-test JVM gets `--add-exports=java.base/jdk.internal.access=ALL-UNNAMED` (set in build-logic). | `:core:data`, `:app`, `:core:designsystem` |
+| Room testing | `androidx.room:room-testing` | 2.8.5 | `MigrationTestHelper` from 1.0.0. The 0.3.0 DAO tests use `Room.inMemoryDatabaseBuilder` from the runtime, so this artifact is not declared yet | `:core:data` |
+| WorkManager testing | `androidx.work:work-testing` | 2.12.0 | `WorkManagerTestInitHelper`, `TestListenableWorkerBuilder` (DEV-023) | `:core:data` |
+| Robolectric | `org.robolectric:robolectric` | **4.17** | Android framework on the JVM for Room, WorkManager, network-callback and Roborazzi tests. DEV-001 result: 4.17 starts the API 37 image, but Compose draws nothing there in NATIVE graphics mode, so the screenshot modules pin `sdk=36` in `src/test/resources/robolectric.properties`. API 37 is covered by the instrumented tests. The unit-test JVM gets `--add-exports=java.base/jdk.internal.access=ALL-UNNAMED` (set in build-logic). | `:core:data`, `:app`, `:core:designsystem` |
 | Roborazzi | `io.github.takahirom.roborazzi:roborazzi`, `roborazzi-compose`, `roborazzi-junit-rule`, plugin `io.github.takahirom.roborazzi` | **1.77.0** | JVM screenshot tests at 1080 × 1920 and 160/240/320 dpi, one per `S_<Screen>_<scenario>` board (TC-180) | `:app`, `:core:designsystem` |
 | AndroidX Test | `androidx.test:core`, `androidx.test:runner` (**1.7.0**), `androidx.test.ext:junit` (**1.3.0**) | as listed | Instrumented test runner (a custom `HiltTestRunner`) | `:app` (androidTest) |
 | Espresso | `androidx.test.espresso:espresso-core` | **3.7.0** | Not used directly: a dependency **constraint** in `kiosk.compose`. The Compose test rule drives Espresso, and the 3.5.0 it brings transitively calls `InputManager.getInstance()`, which API 37 removed, so every Compose test failed on API 37 without it. | test and androidTest of Compose modules |

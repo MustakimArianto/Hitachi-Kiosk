@@ -773,7 +773,7 @@ Bold items are in "Popular" (`featuredProductIds`). Combos and slot options are 
 - s1 French Fries: Size (default Regular). d1 Iced Lychee Tea: Ice (default Regular ice).
 - c4 Family Bucket: "Choose a flavour" (Original / Spicy / Half & half). r1 Sambal Matah Rice Bowl: "Spice level" (Mild / Medium / Hot). d2 Cola: "Choose a cola" (Classic / Zero sugar). All three are required, have no default and cost Rp 0, so no price or Budget Plan total changes. The Menu artboard marks these items as needing a choice; the options themselves are sample data chosen on 2026-10-23, and the PO may replace them.
 - Every other product has no groups.
-- Products with any required group open Item detail instead of quick add (FR-009, A-08). A Budget Plan uses each group's default option, or the first option when it has none (A-42).
+- Products with a required group that has no default (b2, c4, r1, d2) open Item detail instead of quick add; s1 and d1 have defaults, so quick add uses them (FR-009, A-08). A Budget Plan uses each group's default option, or the first option when it has none (A-42).
 - The Budget Plan tags above are canonical. The Budget Plan artboard also offers d1 to children and orders its mains by preference; the planner uses these tags and `plannerWeight` instead (TC-161–TC-163 depend on them).
 
 **Budget Plan tags for the mock:**

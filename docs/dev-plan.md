@@ -678,7 +678,6 @@ Rolled out to pilot kiosks with no P1/P2 issues in 48 h. The full rollout is app
 | Language switching (EN/ID control, `values-in`, Bahasa translation, per-order receipt language) | FR-008, D-09, D-29 | 1.1.0 (decision needed) |
 | Menu promo carousel on Popular (removed from the design; idle promos remain) | FR-009 | Not planned |
 | Merchant rebinding from settings (if OQ-07 is not resolved by 0.7.0) | OQ-07 | 1.0.1 |
-| Sold-out display variant | OQ-08 | 1.0.x |
 | Dark theme | D-02 | Not planned |
 | Telemetry / crash reporting | D-23 | 1.1.0 (decision needed) |
 | Multiple promos / promo types beyond threshold | A-12 | 1.1.0 |

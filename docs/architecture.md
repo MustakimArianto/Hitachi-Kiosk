@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Document version | 1.2 (2026-10-23) — device state, 401 handling, persistence and DI modules as built in 0.2.0 |
+| Document version | 1.3 (2026-10-23) — catalog cache and sync, order session holder, connectivity and image cache as built in 0.3.0 |
 | Requirements | [`product-requirement.md`](product-requirement.md): this document explains *how*; the PRD decides *what*. Where they disagree, the PRD wins. Measurable technical requirements: [`technical-requirement.md`](technical-requirement.md). |
 | Implementation | [`technical-design.md`](technical-design.md) adds the implementation detail (build, schemas, algorithms, configuration) under this structure. [`technology-stack.md`](technology-stack.md) pins the libraries and versions. |
 | Contract | [`api/api-spec.md`](api/api-spec.md) (E1–E14) |
@@ -161,7 +161,7 @@ stateDiagram-v2
     TimedOut --> Idle
 ```
 
-- **Owner**: one `OrderSession` per order, held by an app-scoped `OrderSessionHolder` (Hilt `@Singleton`). Feature ViewModels read it and send intents to it. This is how Menu, Item, Combo, Budget Plan and Cart share one cart without passing it through navigation arguments.
+- **Owner**: one `OrderSession` per order, held by an app-scoped `OrderSessionHolder` (Hilt `@Singleton`, `SessionModule`). Feature ViewModels read it and send intents to it. This is how Menu, Item, Combo, Budget Plan and Cart share one cart without passing it through navigation arguments; routes carry only IDs (`ItemDetailRoute(productId)`, `ComboRoute(comboId?)`). Idle is the holder holding no session. Built in 0.3.0 with the states up to Building (choose or change the order type, add to the cart); DEV-041 (0.4.0) completes the machine below.
 - **What the session holds**: cart lines, order type, catalog version, the `upsellShown` flag (Upsell appears once per order) and an optional `PlanTag(budget, adults, children)`. It does **not** hold a language: the 1.0 UI is English only (D-29), so there is no per-order language to reset.
 - **Budget Plan hand-off**: `BudgetPlanner` is pure. The two-step screen (step 1 "Your table", step 2 "Your plan") keeps its own state in `BudgetPlanViewModel`: the current step, the Just under / Just over choice, the Customize bottom sheet, swaps, the include-sides/desserts toggles and the Strict / Up to +10% tolerance. Only when the customer taps "Add plan to order" does it send the chosen plan's lines to the session, tagged with `PlanTag`. Payment reads the tag to show the "Budget Plan" row. Editing or removing those lines in the cart clears the tag.
 - **Inactivity** (FR-023) is a separate `InactivityController` that watches the session state and touch events. It is suspended in `Paying`, `Paid` and staff settings.
@@ -210,8 +210,8 @@ Everything else in a customer session is deliberately lost on process death [A-1
 | deviceId, merchant binding, kiosk name/code, operating mode (FR-005) | DataStore `device.preferences_pb` | Not secret. The binding is written only after the first config and menu download succeeds (FR-004) |
 | Serial number cache (FR-002) | DataStore `identity.preferences_pb`, owned by `:core:hardware` | Keeps `:core:hardware` independent of `:core:data` (§3) |
 | Device settings (order types, timeout, printers + roles, toggles, QR expiry, rounding) | DataStore `settings.preferences_pb` | Exposed as `Flow<KioskSettings>` |
-| Merchant config (E5) + ETag | Room `config` (from 0.3.0; in 0.2.0 the last download is kept in memory only, DEV-016) | Includes the staff PIN hash (`staffPin`, verified offline, FR-024) |
-| Menu (E6) + ETag + `menuVersion` | Room `category`, `product`, `modifier_group`, `option`, `combo`, … | Replaced in one transaction (DEV-021) |
+| Merchant config (E5) + ETag | Room `config`, the E5 body as JSON (technical-design §6.1) | Includes the staff PIN hash (`staffPin`, verified offline, FR-024) |
+| Menu (E6) + ETag + `menuVersion` | Room `menu_meta`, `category`, `product`, `product_modifier_group`, `modifier_group`, `modifier_option`, `modifier_level`, `combo`, `combo_slot_option`, `featured` | Config and menu are replaced together in one transaction (DEV-021) and wiped with the device state on Log out or HTTP 401 |
 | Pending order/payment | Room `pending_order` | §5.3 |
 | PIN lockout counter and until-time | DataStore | Survives restart (FR-024) |
 | Images | Coil disk cache, 200 MB [A-37] | |
@@ -233,9 +233,11 @@ Upgrades (NFR-014): Room uses explicit `Migration`s from 1.0.0 onward, with `exp
 
 ## 8. Sync and offline
 
-- `CatalogSyncRepository.sync()` fetches E5 then E6 and writes both atomically. It runs on binding, on startup (in the background; the splash never waits for it, FR-001), on "Sync now", on reconnect, and every 15 min through a `CoroutineWorker` with a `CONNECTED` constraint (DEV-022/023).
-- After a sync, product images are pre-fetched into the Coil disk cache.
-- `ConnectivityMonitor` (DEV-051) combines `ConnectivityManager` validated-network callbacks with an E14 health probe into `StateFlow<Connectivity>`. The checkout gate and the offline banner both read only this flow (FR-028).
+- `CatalogSyncRepository.sync()` fetches E5 then E6 with ETags and writes both atomically. It runs on binding, on startup (in the background; the splash never waits for it, FR-001), on "Sync now", on reconnect, and every 15 min through a `CoroutineWorker` with a `CONNECTED` constraint (DEV-022/023). The reconnect, periodic and order-end triggers live in `:app`'s `CatalogSyncCoordinator`.
+- A sync that lands during an order is held in memory and applied when the session returns to Idle, so the menu never changes under a customer (A-29).
+- `CatalogRepository` serves the cached catalog to the customer screens from memory after one Room read, and works offline (D-11).
+- After a sync, product images are pre-fetched into the Coil disk cache (200 MB, A-37).
+- `ConnectivityMonitor` combines `ConnectivityManager` validated-network callbacks with an E14 health probe into `StateFlow<Connectivity>` (DEV-051). The checkout gate and the offline banner both read only this flow (FR-028). Until DEV-051 (0.5.0) it follows the validated network only (technical-design §7.3, TD-12).
 
 ## 9. Hardware abstraction
 
@@ -247,20 +249,20 @@ All interfaces live in `:core:domain`. Real implementations live in `:core:hardw
 | `PrinterManager` / `PrinterDriver` | `IminPrinterDriver`, `UsbEscPosDriver` (bulk transfer), `BtEscPosDriver` (SPP) (FR-022, ADR-0004) | ready, offline, out of paper, fails mid-job |
 | `ReceiptRenderer` | Pure Kotlin: domain order → ESC/POS command list (58/80 mm) | n/a (unit-tested directly) |
 | `CardTerminal` | Adapter per OQ-03 (ADR-0003) | approved, declined, timeout, cancelled |
-| `ConnectivityMonitor` | §8 | online, offline, flapping |
+| `ConnectivityMonitor` | `DefaultConnectivityMonitor` (`:core:data`), §8 | online, offline, checking, flapping |
 | `Clock` | `SystemClock` wrapper | controllable time |
 
 The receipt renderer produces a device-independent command list, and each driver only transports bytes. That way receipts can be checked in unit tests without hardware.
 
-**Real vs fake selection**: Hilt modules in `:app` bind real implementations. They also declare optional `BindingOverrides`, which only the `debug` source set provides: it wraps the real implementations in switchable wrappers (`SwitchableBackendApi` in 0.1.0, `SwitchableDeviceIdentityProvider` in 0.2.0, then `SwitchableCardTerminal` etc.) that delegate to either the real implementation or the fake, based on the Developer options choice (DEV-009, technical-design §4.3 TD-11). Release builds contain neither the wrappers nor the fakes (checked in the dex files and the R8 mapping by `scripts/check-release-apk.sh`, part of `./gradlew verify`).
+**Real vs fake selection**: Hilt modules in `:app` bind real implementations. They also declare optional `BindingOverrides`, which only the `debug` source set provides: it wraps the real implementations in switchable wrappers (`SwitchableBackendApi` in 0.1.0, `SwitchableDeviceIdentityProvider` in 0.2.0, then `SwitchableCardTerminal` etc.; `ConnectivityMonitor` has an override since 0.3.0 that debug builds leave real and instrumented tests replace with a fake) that delegate to either the real implementation or the fake, based on the Developer options choice (DEV-009, technical-design §4.3 TD-11). Release builds contain neither the wrappers nor the fakes (checked in the dex files and the R8 mapping by `scripts/check-release-apk.sh`, part of `./gradlew verify`).
 
 ## 10. Dependency injection
 
 Hilt. One `@Module` per concern, installed in `SingletonComponent` unless stated otherwise:
 
-- `:core:data`: `NetworkModule`, `DataStoreModule`, `RepositoryModule` (`@Binds` interface → implementation, plus `UnauthorizedHandler` → `SessionInvalidator`), and `DatabaseModule` from 0.3.0. DataStore instances are process-wide (one per file), outside the Hilt graph.
+- `:core:data`: `NetworkModule`, `DataStoreModule`, `RepositoryModule` (`@Binds` interface → implementation, plus `UnauthorizedHandler` → `SessionInvalidator`, the catalog cache and `CatalogSyncScheduler`), and `DatabaseModule` (Room, from 0.3.0). DataStore instances are process-wide (one per file), outside the Hilt graph. The `CatalogSyncWorker` is a `@HiltWorker`.
 - `:core:hardware`: `HardwareModule`.
-- `:app`: `CoroutinesModule` (`@IoDispatcher`, `@DefaultDispatcher`, `@ApplicationScope`), `ClockModule` (`Clock`, `IdGenerator`), `BackendModule` (`ApiConfig`, `BackendApi` and `PaymentGateway` → `:core:data` implementations, optional debug overrides), `HardwareBindingsModule` (`DeviceIdentityProvider` → `:core:hardware`, optional debug override), `SetupModule` (`ActivateKiosk`, `@VersionName`, `ZoneId`), and from 0.4.0 `SessionModule` (`OrderSessionHolder`). `src/debug` adds `DeveloperOptionsModule`.
+- `:app`: `CoroutinesModule` (`@IoDispatcher`, `@DefaultDispatcher`, `@ApplicationScope`), `ClockModule` (`Clock`, `IdGenerator`), `BackendModule` (`ApiConfig`, `BackendApi` and `PaymentGateway` → `:core:data` implementations, optional debug overrides), `HardwareBindingsModule` (`DeviceIdentityProvider` → `:core:hardware` and `ConnectivityMonitor` → `:core:data`, each with its optional override), `SetupModule` (`ActivateKiosk`, `@VersionName`, `ZoneId`), and from 0.3.0 `SessionModule` (`OrderSessionHolder`, `ImagePrefetcher` → Coil). `KioskApp` is the WorkManager `Configuration.Provider` (`HiltWorkerFactory`) and Coil's `SingletonImageLoader.Factory`. `src/debug` adds `DeveloperOptionsModule`.
 - `:core:domain` has no Hilt. Its classes use plain constructors, and modules in `:app` or `:core:data` provide them.
 
 Tests: unit tests construct classes by hand with fakes. Instrumented tests use `@TestInstallIn` to swap modules for fakes.
@@ -279,7 +281,7 @@ Tests: unit tests construct classes by hand with fakes. Instrumented tests use `
 
 - **Units**: `DesignUnit` gives `Int.dpx` / `Int.spx` = value × `screenWidthDp / 1080`, with `spx` multiplied by 1.15 when Larger text is on (PRD §11.2). Every layout dimension in feature code uses `dpx`/`spx`, never raw `dp`/`sp`.
 - **Tokens**: `KioskColors`, `KioskType`, `KioskShapes`, `KioskSpacing` provided through `KioskTheme`. Material 3 is the foundation only. Feature code reads `KioskTheme.*`, not `MaterialTheme.*`.
-- **Accent**: `LocalAccent` is set from merchant config `accentColor` at the theme root [A-38].
+- **Accent**: `LocalAccent` is set from merchant config `accentColor` at the theme root [A-38] (`MainActivity` reads it through `BrandingViewModel`; paprika until a merchant is bound).
 - **Motion**: named easings (`Emphasized`, `Press`, `Spring`, `InOut`, `Fly`) and per-screen duration constants mirror PRD §11.4. `LocalReduceMotion = true` turns every spec into `snap()` (DEV-004).
 - **Components** (PRD §11.3) take plain parameters and lambdas, never ViewModels or domain types, so they can be previewed and screenshot-tested alone.
 - **Visual language**: the "Linen & Paprika" palette (linen `#FAF8F5`, ink `#171513`, accent from merchant config, default `#C8552B`) and Schibsted Grotesk 400–800. Layout is 72 px margins and one accent action per screen in a bottom dock. Components the final design needs beyond the base list: bottom sheet (Budget Plan Customize), expandable row (Item detail, Budget Plan, Payment "Details"), status banner (offline, prices changed, promo nudge), toast ("Maximum 20 per item") and skeleton rows (Merchants loading).
