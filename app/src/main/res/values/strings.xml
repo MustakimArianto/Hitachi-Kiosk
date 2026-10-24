@@ -9,7 +9,6 @@
     <string name="screen_your_order">Your order</string>
     <string name="screen_checkout">Checkout</string>
     <string name="screen_complete">Transaction complete</string>
-    <string name="screen_still_there">Still there?</string>
     <string name="screen_staff_pin">Staff PIN</string>
     <string name="screen_settings_home">Settings</string>
     <string name="screen_settings_printer">Receipt printer</string>
@@ -225,4 +224,20 @@
     <string name="combo_choose_side">Choose a side</string>
     <string name="combo_choose_drink">Choose a drink</string>
     <!-- end SCR-07 / SCR-08 -->
+
+    <!-- SCR-13 Still there? (StillThere.dc.html, FR-023) -->
+    <string name="still_there_title">Still there?</string>
+    <plurals name="still_there_body">
+        <item quantity="one">Your order will be cancelled in %1$d s. Tap anywhere to keep ordering.</item>
+        <item quantity="other">Your order will be cancelled in %1$d s. Tap anywhere to keep ordering.</item>
+    </plurals>
+    <string name="still_there_seconds">seconds</string>
+    <plurals name="still_there_countdown_description">
+        <item quantity="one">%1$d second left</item>
+        <item quantity="other">%1$d seconds left</item>
+    </plurals>
+    <string name="still_there_continue">Continue ordering</string>
+    <string name="still_there_start_over">Start over</string>
+    <string name="still_there_tap_anywhere">Tap anywhere to keep ordering</string>
+    <!-- end SCR-13 -->
 </resources>
