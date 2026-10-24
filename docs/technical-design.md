@@ -406,7 +406,7 @@ A root `Modifier.pointerInput(Unit) { awaitPointerEventScope { while (true) { aw
 - `MainActivity`: `exported=true`, `screenOrientation="portrait"`, `launchMode="singleTask"`, `lockTaskMode="if_whitelisted"`. Intent filters for `MAIN/LAUNCHER` and `MAIN/HOME/DEFAULT`.
 - `KioskDeviceAdminReceiver`: `exported=true`, `permission="android.permission.BIND_DEVICE_ADMIN"`, `res/xml/device_admin.xml`.
 - `BootReceiver`: `exported=true` with `RECEIVE_BOOT_COMPLETED` only. It relaunches `MainActivity` as a safety net, since the persistent home activity normally relaunches it anyway.
-- No other exported component. `WorkManager`'s and `ProfileInstaller`'s own receivers are merged with their library defaults (permission-guarded) and listed in the release check allow-list.
+- No other exported component. `WorkManager`'s components (`DiagnosticsReceiver`, and `SystemJobService`, which the system binds only with `BIND_JOB_SERVICE`) and `ProfileInstaller`'s receiver are merged with their library defaults (permission-guarded) and listed in the release check allow-list.
 - `android:allowBackup="false"`, no `dataExtractionRules`, `usesCleartextTraffic` not set (the network security config governs cleartext).
 - Permissions are exactly PRD §12.3:
   - `INTERNET`, `ACCESS_NETWORK_STATE`, `ACCESS_WIFI_STATE`, `RECEIVE_BOOT_COMPLETED`;
