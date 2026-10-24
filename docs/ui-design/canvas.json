@@ -16,7 +16,7 @@
    "title": "Settings \u00b7 Change PIN",
    "w": 1080,
    "x": 6000,
-   "y": 27800
+   "y": 35200
   },
   "Checkout.dc.html": {
    "h": 1920,
@@ -103,7 +103,7 @@
    "is_interactive": true,
    "title": "8 \u00b7 Payment",
    "w": 1080,
-   "x": 6000,
+   "x": 4800,
    "y": 2600
   },
   "S_BudgetPas_exact.dc.html": {
@@ -111,7 +111,7 @@
    "is_interactive": true,
    "title": "Budget Plan \u00b7 Exact match",
    "w": 1080,
-   "x": 0,
+   "x": 4800,
    "y": 17800
   },
   "S_BudgetPas_group.dc.html": {
@@ -119,24 +119,24 @@
    "is_interactive": true,
    "title": "Budget Plan \u00b7 Group over 10",
    "w": 1080,
-   "x": 3600,
-   "y": 17800
+   "x": 4800,
+   "y": 20200
   },
   "S_BudgetPas_moreThanEnough.dc.html": {
    "h": 1920,
    "is_interactive": true,
    "title": "Budget Plan \u00b7 More than enough",
    "w": 1080,
-   "x": 2400,
-   "y": 17800
+   "x": 3600,
+   "y": 20200
   },
   "S_BudgetPas_tooLow.dc.html": {
    "h": 1920,
    "is_interactive": true,
    "title": "Budget Plan \u00b7 Budget too low",
    "w": 1080,
-   "x": 1200,
-   "y": 17800
+   "x": 2400,
+   "y": 20200
   },
   "S_Checkout_cancelled.dc.html": {
    "h": 1920,
@@ -144,7 +144,7 @@
    "title": "Checkout \u00b7 Cancelled",
    "w": 1080,
    "x": 2400,
-   "y": 22800
+   "y": 30200
   },
   "S_Checkout_creating.dc.html": {
    "h": 1920,
@@ -152,7 +152,7 @@
    "title": "Checkout \u00b7 Creating payment",
    "w": 1080,
    "x": 0,
-   "y": 22800
+   "y": 30200
   },
   "S_Checkout_declined.dc.html": {
    "h": 1920,
@@ -160,7 +160,7 @@
    "title": "Checkout \u00b7 Declined",
    "w": 1080,
    "x": 3600,
-   "y": 22800
+   "y": 30200
   },
   "S_Checkout_expired.dc.html": {
    "h": 1920,
@@ -168,7 +168,7 @@
    "title": "Checkout \u00b7 QR expired",
    "w": 1080,
    "x": 1200,
-   "y": 22800
+   "y": 30200
   },
   "S_Checkout_offline.dc.html": {
    "h": 1920,
@@ -176,7 +176,7 @@
    "title": "Checkout \u00b7 Offline",
    "w": 1080,
    "x": 6000,
-   "y": 22800
+   "y": 30200
   },
   "S_Checkout_terminalTimeout.dc.html": {
    "h": 1920,
@@ -184,23 +184,23 @@
    "title": "Checkout \u00b7 Terminal timeout",
    "w": 1080,
    "x": 4800,
-   "y": 22800
+   "y": 30200
   },
   "S_Combo_requiredMissing.dc.html": {
    "h": 1920,
    "is_interactive": true,
    "title": "Combo \u00b7 Pick side & drink",
    "w": 1080,
-   "x": 4800,
-   "y": 12800
+   "x": 0,
+   "y": 15200
   },
   "S_Combo_soldOut.dc.html": {
    "h": 1920,
    "is_interactive": true,
    "title": "Combo \u00b7 Sold-out option",
    "w": 1080,
-   "x": 6000,
-   "y": 12800
+   "x": 1200,
+   "y": 15200
   },
   "S_Complete_printFailed.dc.html": {
    "h": 1920,
@@ -208,7 +208,7 @@
    "title": "Complete \u00b7 Print failed",
    "w": 1080,
    "x": 1200,
-   "y": 25200
+   "y": 32600
   },
   "S_Complete_takeaway.dc.html": {
    "h": 1920,
@@ -216,7 +216,7 @@
    "title": "Complete \u00b7 Takeaway",
    "w": 1080,
    "x": 0,
-   "y": 25200
+   "y": 32600
   },
   "S_Idle_issues.dc.html": {
    "h": 1920,
@@ -231,7 +231,7 @@
    "is_interactive": true,
    "title": "Item \u00b7 Required choice missing",
    "w": 1080,
-   "x": 2400,
+   "x": 4800,
    "y": 12800
   },
   "S_ItemDetail_soldOut.dc.html": {
@@ -239,7 +239,7 @@
    "is_interactive": true,
    "title": "Item \u00b7 No longer available",
    "w": 1080,
-   "x": 3600,
+   "x": 6000,
    "y": 12800
   },
   "S_Login_networkTimeout.dc.html": {
@@ -317,58 +317,58 @@
   "S_Payment_emptyTray.dc.html": {
    "h": 1920,
    "is_interactive": true,
-   "title": "Payment \u00b7 Empty tray",
+   "title": "Payment \u00b7 Empty tray (with plan button)",
    "w": 1080,
    "x": 4800,
-   "y": 20400
+   "y": 27600
   },
   "S_Payment_itemUnavailable.dc.html": {
    "h": 1920,
    "is_interactive": true,
    "title": "Payment \u00b7 Item unavailable",
    "w": 1080,
-   "x": 1200,
-   "y": 20400
+   "x": 0,
+   "y": 27600
   },
   "S_Payment_noMethods.dc.html": {
    "h": 1920,
    "is_interactive": true,
    "title": "Payment \u00b7 No methods",
    "w": 1080,
-   "x": 3600,
-   "y": 20400
+   "x": 2400,
+   "y": 27600
   },
   "S_Payment_offline.dc.html": {
    "h": 1920,
    "is_interactive": true,
    "title": "Payment \u00b7 Offline",
    "w": 1080,
-   "x": 2400,
-   "y": 20400
+   "x": 1200,
+   "y": 27600
   },
   "S_Payment_priceChanged.dc.html": {
    "h": 1920,
    "is_interactive": true,
    "title": "Payment \u00b7 Prices updated",
    "w": 1080,
-   "x": 0,
-   "y": 20400
+   "x": 6000,
+   "y": 25200
   },
   "S_Payment_promoNudge.dc.html": {
    "h": 1920,
    "is_interactive": true,
    "title": "Payment \u00b7 Promo nudge",
    "w": 1080,
-   "x": 6000,
-   "y": 20400
+   "x": 3600,
+   "y": 27600
   },
   "S_Upsell_noSuggestions.dc.html": {
    "h": 1920,
    "is_interactive": true,
-   "title": "Upsell \u00b7 Nothing to suggest",
+   "title": "Retired \u00b7 Upsell empty",
    "w": 1080,
-   "x": 0,
-   "y": 15200
+   "x": 1200,
+   "y": 42800
   },
   "Settings.dc.html": {
    "h": 1920,
@@ -376,7 +376,7 @@
    "title": "Settings home (hold bottom-right corner on Idle)",
    "w": 1080,
    "x": 0,
-   "y": 27800
+   "y": 35200
   },
   "SettingsDevice.dc.html": {
    "h": 1920,
@@ -384,7 +384,7 @@
    "title": "Settings \u00b7 Device & network",
    "w": 1080,
    "x": 4800,
-   "y": 27800
+   "y": 35200
   },
   "SettingsKiosk.dc.html": {
    "h": 1920,
@@ -392,7 +392,7 @@
    "title": "Settings \u00b7 Kiosk behaviour",
    "w": 1080,
    "x": 3600,
-   "y": 27800
+   "y": 35200
   },
   "SettingsPayment.dc.html": {
    "h": 1920,
@@ -400,7 +400,7 @@
    "title": "Settings \u00b7 Payment",
    "w": 1080,
    "x": 2400,
-   "y": 27800
+   "y": 35200
   },
   "SettingsPrinter.dc.html": {
    "h": 1920,
@@ -408,7 +408,7 @@
    "title": "Settings \u00b7 Receipt printer",
    "w": 1080,
    "x": 1200,
-   "y": 27800
+   "y": 35200
   },
   "StillThere.dc.html": {
    "h": 1920,
@@ -421,10 +421,208 @@
   "Upsell.dc.html": {
    "h": 1920,
    "is_interactive": true,
-   "title": "9 \u00b7 Upsell (before payment)",
+   "title": "Retired \u00b7 Upsell screen (replaced by Your order strip)",
    "w": 1080,
+   "x": 0,
+   "y": 42800
+  },
+  "S_Payment_upsellAdded.dc.html": {
+   "x": 0,
+   "y": 25200,
+   "w": 1080,
+   "h": 1920,
+   "title": "Your order \u00b7 Suggestion added",
+   "is_interactive": true
+  },
+  "S_Payment_upsellBudget.dc.html": {
+   "x": 1200,
+   "y": 25200,
+   "w": 1080,
+   "h": 1920,
+   "title": "Your order \u00b7 Fits the budget",
+   "is_interactive": true
+  },
+  "S_Payment_upsellMeal.dc.html": {
+   "x": 2400,
+   "y": 25200,
+   "w": 1080,
+   "h": 1920,
+   "title": "Your order \u00b7 Make it a meal",
+   "is_interactive": true
+  },
+  "S_Payment_planAdded.dc.html": {
+   "x": 3600,
+   "y": 25200,
+   "w": 1080,
+   "h": 1920,
+   "title": "Your order \u00b7 Plan added",
+   "is_interactive": true
+  },
+  "S_Payment_planTag.dc.html": {
    "x": 4800,
-   "y": 2600
+   "y": 25200,
+   "w": 1080,
+   "h": 1920,
+   "title": "Your order \u00b7 Plan tag + Edit plan",
+   "is_interactive": true
+  },
+  "S_Payment_emptyTrayNoPlan.dc.html": {
+   "x": 6000,
+   "y": 27600,
+   "w": 1080,
+   "h": 1920,
+   "title": "Payment \u00b7 Empty tray (no plan)",
+   "is_interactive": true
+  },
+  "S_Menu_drinksTab.dc.html": {
+   "x": 2400,
+   "y": 12800,
+   "w": 1080,
+   "h": 1920,
+   "title": "Menu \u00b7 Plan by budget on other tabs",
+   "is_interactive": true
+  },
+  "S_Menu_planOff.dc.html": {
+   "x": 3600,
+   "y": 12800,
+   "w": 1080,
+   "h": 1920,
+   "title": "Menu \u00b7 Budget Plan off",
+   "is_interactive": true
+  },
+  "S_BudgetPas_step1.dc.html": {
+   "x": 0,
+   "y": 17800,
+   "w": 1080,
+   "h": 1920,
+   "title": "Budget Plan \u00b7 Step 1 (empty)",
+   "is_interactive": true
+  },
+  "S_BudgetPas_step1Budget.dc.html": {
+   "x": 1200,
+   "y": 17800,
+   "w": 1080,
+   "h": 1920,
+   "title": "Budget Plan \u00b7 Step 1 with budget",
+   "is_interactive": true
+  },
+  "S_BudgetPas_keypadMin.dc.html": {
+   "x": 2400,
+   "y": 17800,
+   "w": 1080,
+   "h": 1920,
+   "title": "Budget Plan \u00b7 Keypad minimum",
+   "is_interactive": true
+  },
+  "S_BudgetPas_twoPlans.dc.html": {
+   "x": 3600,
+   "y": 17800,
+   "w": 1080,
+   "h": 1920,
+   "title": "Budget Plan \u00b7 Two plans",
+   "is_interactive": true
+  },
+  "S_BudgetPas_detailsOpen.dc.html": {
+   "x": 6000,
+   "y": 17800,
+   "w": 1080,
+   "h": 1920,
+   "title": "Budget Plan \u00b7 Price details",
+   "is_interactive": true
+  },
+  "S_BudgetPas_optionsOff.dc.html": {
+   "x": 0,
+   "y": 20200,
+   "w": 1080,
+   "h": 1920,
+   "title": "Budget Plan \u00b7 Options off",
+   "is_interactive": true
+  },
+  "S_BudgetPas_swapOpen.dc.html": {
+   "x": 1200,
+   "y": 20200,
+   "w": 1080,
+   "h": 1920,
+   "title": "Budget Plan \u00b7 Swap picker",
+   "is_interactive": true
+  },
+  "S_BudgetPas_cartFull.dc.html": {
+   "x": 6000,
+   "y": 20200,
+   "w": 1080,
+   "h": 1920,
+   "title": "Budget Plan \u00b7 Cart full",
+   "is_interactive": true
+  },
+  "S_BudgetPas_added.dc.html": {
+   "x": 0,
+   "y": 22600,
+   "w": 1080,
+   "h": 1920,
+   "title": "Budget Plan \u00b7 Added to order",
+   "is_interactive": true
+  },
+  "S_SettingsPrinter_list.dc.html": {
+   "x": 0,
+   "y": 37800,
+   "w": 1080,
+   "h": 1920,
+   "title": "Printers \u00b7 Several printers",
+   "is_interactive": true
+  },
+  "S_SettingsPrinter_roles.dc.html": {
+   "x": 1200,
+   "y": 37800,
+   "w": 1080,
+   "h": 1920,
+   "title": "Printers \u00b7 Role moved",
+   "is_interactive": true
+  },
+  "S_SettingsPrinter_empty.dc.html": {
+   "x": 2400,
+   "y": 37800,
+   "w": 1080,
+   "h": 1920,
+   "title": "Printers \u00b7 None yet",
+   "is_interactive": true
+  },
+  "S_SettingsPrinter_add.dc.html": {
+   "x": 3600,
+   "y": 37800,
+   "w": 1080,
+   "h": 1920,
+   "title": "Printers \u00b7 Add a printer",
+   "is_interactive": true
+  },
+  "S_SettingsPrinter_offline.dc.html": {
+   "x": 4800,
+   "y": 37800,
+   "w": 1080,
+   "h": 1920,
+   "title": "Printers \u00b7 Offline",
+   "is_interactive": true
+  },
+  "S_SettingsPrinter_outOfPaper.dc.html": {
+   "x": 6000,
+   "y": 37800,
+   "w": 1080,
+   "h": 1920,
+   "title": "Printers \u00b7 Out of paper",
+   "is_interactive": true
+  },
+  "S_SettingsPrinter_btPermission.dc.html": {
+   "x": 0,
+   "y": 40200,
+   "w": 1080,
+   "h": 1920,
+   "title": "Printers \u00b7 Bluetooth permission",
+   "is_interactive": true
+  },
+  "Photo.dc.html": {
+   "h": 360,
+   "w": 480,
+   "x": 7160,
+   "y": 0
   }
  },
  "createdOnFiles": {
@@ -455,7 +653,7 @@
   "row2": {
    "kind": "title1",
    "maxW": 7080,
-   "text": "Finish",
+   "text": "Pay & finish",
    "w": 240,
    "x": 0,
    "y": 4900
@@ -487,18 +685,42 @@
   "row6": {
    "kind": "title1",
    "maxW": 7080,
-   "text": "States \u00b7 Payment, checkout & done",
+   "text": "States \u00b7 Your order",
    "w": 240,
    "x": 0,
-   "y": 20100
+   "y": 24900
   },
   "row7": {
+   "kind": "title1",
+   "maxW": 7080,
+   "text": "States \u00b7 Checkout & done",
+   "w": 240,
+   "x": 0,
+   "y": 29900
+  },
+  "row8": {
    "kind": "title1",
    "maxW": 7080,
    "text": "Staff settings",
    "w": 240,
    "x": 0,
-   "y": 27500
+   "y": 34900
+  },
+  "row9": {
+   "kind": "title1",
+   "maxW": 7080,
+   "text": "States \u00b7 Printers",
+   "w": 240,
+   "x": 0,
+   "y": 37500
+  },
+  "row10": {
+   "kind": "title1",
+   "maxW": 7080,
+   "text": "Retired",
+   "w": 240,
+   "x": 0,
+   "y": 42500
   }
  },
  "order": [
@@ -512,7 +734,6 @@
   "Combo.dc.html",
   "ItemDetail.dc.html",
   "BudgetPas.dc.html",
-  "Upsell.dc.html",
   "Payment.dc.html",
   "Checkout.dc.html",
   "Complete.dc.html",
@@ -526,21 +747,37 @@
   "S_OrderType_singleOption.dc.html",
   "S_Menu_offline.dc.html",
   "S_Menu_emptyCategory.dc.html",
+  "S_Menu_drinksTab.dc.html",
+  "S_Menu_planOff.dc.html",
   "S_ItemDetail_requiredMissing.dc.html",
   "S_ItemDetail_soldOut.dc.html",
   "S_Combo_requiredMissing.dc.html",
   "S_Combo_soldOut.dc.html",
-  "S_Upsell_noSuggestions.dc.html",
+  "S_BudgetPas_step1.dc.html",
+  "S_BudgetPas_step1Budget.dc.html",
+  "S_BudgetPas_keypadMin.dc.html",
+  "S_BudgetPas_twoPlans.dc.html",
   "S_BudgetPas_exact.dc.html",
+  "S_BudgetPas_detailsOpen.dc.html",
+  "S_BudgetPas_optionsOff.dc.html",
+  "S_BudgetPas_swapOpen.dc.html",
   "S_BudgetPas_tooLow.dc.html",
   "S_BudgetPas_moreThanEnough.dc.html",
   "S_BudgetPas_group.dc.html",
+  "S_BudgetPas_cartFull.dc.html",
+  "S_BudgetPas_added.dc.html",
+  "S_Payment_upsellAdded.dc.html",
+  "S_Payment_upsellBudget.dc.html",
+  "S_Payment_upsellMeal.dc.html",
+  "S_Payment_planAdded.dc.html",
+  "S_Payment_planTag.dc.html",
   "S_Payment_priceChanged.dc.html",
   "S_Payment_itemUnavailable.dc.html",
   "S_Payment_offline.dc.html",
   "S_Payment_noMethods.dc.html",
-  "S_Payment_emptyTray.dc.html",
   "S_Payment_promoNudge.dc.html",
+  "S_Payment_emptyTray.dc.html",
+  "S_Payment_emptyTrayNoPlan.dc.html",
   "S_Checkout_creating.dc.html",
   "S_Checkout_expired.dc.html",
   "S_Checkout_cancelled.dc.html",
@@ -554,7 +791,17 @@
   "SettingsPayment.dc.html",
   "SettingsKiosk.dc.html",
   "SettingsDevice.dc.html",
-  "ChangePin.dc.html"
+  "ChangePin.dc.html",
+  "S_SettingsPrinter_list.dc.html",
+  "S_SettingsPrinter_roles.dc.html",
+  "S_SettingsPrinter_empty.dc.html",
+  "S_SettingsPrinter_add.dc.html",
+  "S_SettingsPrinter_offline.dc.html",
+  "S_SettingsPrinter_outOfPaper.dc.html",
+  "S_SettingsPrinter_btPermission.dc.html",
+  "Upsell.dc.html",
+  "S_Upsell_noSuggestions.dc.html",
+  "Photo.dc.html"
  ],
  "pages": [],
  "title": "Hitachi Kiosk"

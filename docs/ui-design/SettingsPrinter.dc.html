@@ -27,6 +27,7 @@ input:focus{border-color:#171513!important;background:#FFFFFF!important}
 @keyframes spin{to{transform:rotate(360deg)}}
 @keyframes popIn{0%{opacity:0;transform:scale(.4) rotate(-30deg)}70%{opacity:1;transform:scale(1.12)}100%{transform:none}}
 @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(47,122,80,.45)}100%{box-shadow:0 0 0 12px rgba(47,122,80,0)}}
+@keyframes sheetUp{0%{transform:translateY(100%)}100%{transform:none}}
 @keyframes tileIn{0%{opacity:0;transform:scale(.7) rotate(-6deg)}100%{opacity:1;transform:none}}
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:1ms!important;animation-delay:0ms!important;animation-iteration-count:1!important;transition-duration:1ms!important}}
 </style>
@@ -51,69 +52,65 @@ input:focus{border-color:#171513!important;background:#FFFFFF!important}
         <h2 style="margin: 0; font-size: 30px; font-weight: 700; letter-spacing: -0.01em">Printers</h2>
         <span style="font-size: 26px; font-weight: 500; color: #6F6961">Each role prints on one printer</span>
       </div>
-      <div style="border-radius: 40px; background: #FFFFFF; border: 2px solid #EFE9E0; padding: 0 32px">
-        <sc-for list="{{printers}}" as="pr" hint-placeholder-count="2">
-          <div style="padding: 32px 0; display: flex; flex-direction: column; gap: 24px; border-bottom: 2px solid #F1EDE7; animation: up 600ms cubic-bezier(.16,1,.3,1) {{pr.delay}}ms backwards">
-            <div style="display: flex; align-items: center; gap: 28px">
-              <span style="width: 112px; height: 112px; flex-shrink: 0; border-radius: 32px; background: #F1EDE7; display: flex; align-items: center; justify-content: center; animation: tileIn 700ms cubic-bezier(.3,1.15,.4,1) {{pr.delay}}ms both">
-                <svg aria-hidden="true" viewBox="0 0 24 24" style="width: 52px; height: 52px"><path d="{{pr.icon}}" fill="none" stroke="#171513" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"></path></svg>
-              </span>
-              <span style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px">
-                <span style="font-size: 34px; font-weight: 600; letter-spacing: -0.01em; line-height: 1.15">{{pr.name}}</span>
-                <span style="font-size: 26px; color: #6F6961; line-height: 1.3">{{pr.conn}} · {{pr.model}}</span>
-              </span>
-              <span style="flex-shrink: 0; height: 60px; padding: 0 24px; border-radius: 999px; background: #EAF3EC; color: #2F7A50; display: flex; align-items: center; gap: 10px; font-size: 26px; font-weight: 600">
-                <span style="width: 12px; height: 12px; border-radius: 50%; background: #2F7A50; animation: pulse 2s cubic-bezier(.2,0,0,1) infinite"></span>{{pr.status}}
-              </span>
-            </div>
-            <div role="group" aria-label="Roles for {{pr.name}}" style="display: flex; align-items: center; gap: 16px; padding-left: 140px">
-              <span style="font-size: 26px; font-weight: 500; color: #6F6961; margin-right: 8px">Prints</span>
-              <sc-for list="{{pr.roles}}" as="ro" hint-placeholder-count="2">
-                <button onClick="{{ro.pick}}" aria-pressed="{{ro.on}}" class="press" style="height: 80px; padding: 0 30px 0 22px; border-radius: 999px; background: {{ro.bg}}; color: {{ro.fg}}; border: 2px solid {{ro.border}}; display: flex; align-items: center; gap: 12px; font-size: 28px; font-weight: 600; transition: background-color 360ms cubic-bezier(.2,0,0,1), color 360ms, border-color 360ms, transform 140ms">
-                  <span aria-hidden="true" style="width: 36px; height: 36px; border-radius: 50%; background: {{ro.dotBg}}; border: 2px solid {{ro.dotBorder}}; display: flex; align-items: center; justify-content: center; transition: background-color 360ms, border-color 360ms">
-                    <sc-if value="{{ro.on}}" hint-placeholder-val="{{ false }}"><svg viewBox="0 0 24 24" style="width: 24px; height: 24px; animation: popIn 420ms cubic-bezier(.3,1.15,.4,1) both"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></path></svg></sc-if>
-                  </span>
-                  {{ro.label}}
-                </button>
-              </sc-for>
-            </div>
-          </div>
-        </sc-for>
-        <button onClick="{{toggleAdd}}" aria-expanded="{{adding}}" class="press" style="width: 100%; min-height: 136px; display: flex; align-items: center; gap: 28px; font-size: 32px; font-weight: 600">
-          <span style="width: 112px; height: 112px; flex-shrink: 0; border-radius: 32px; border: 2px dashed #D9D2C8; display: flex; align-items: center; justify-content: center">
-            <svg aria-hidden="true" viewBox="0 0 24 24" style="width: 44px; height: 44px; transform: rotate({{addRot}}deg); transition: transform 420ms cubic-bezier(.3,1.15,.4,1)"><path d="M12 5v14M5 12h14" fill="none" stroke="#171513" stroke-width="2" stroke-linecap="round"></path></svg>
-          </span>
-          {{addLabel}}
-        </button>
-        <sc-if value="{{adding}}" hint-placeholder-val="{{ false }}">
-          <div style="padding: 0 0 32px; display: flex; flex-direction: column; gap: 16px; animation: up 500ms cubic-bezier(.16,1,.3,1) both">
-            <sc-for list="{{sources}}" as="src" hint-placeholder-count="3">
-              <div style="border-radius: 32px; background: #FAF8F5; padding: 24px 28px; display: flex; flex-direction: column; gap: 12px; animation: up 500ms cubic-bezier(.16,1,.3,1) {{src.delay}}ms backwards">
-                <span style="display: flex; align-items: center; gap: 16px">
-                  <svg aria-hidden="true" viewBox="0 0 24 24" style="width: 36px; height: 36px"><path d="{{src.icon}}" fill="none" stroke="#171513" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path></svg>
-                  <span style="font-size: 30px; font-weight: 700">{{src.title}}</span>
-                  <span style="font-size: 26px; color: #6F6961">{{src.note}}</span>
+
+      <sc-if value="{{isEmpty}}" hint-placeholder-val="{{ false }}">
+        <div style="border-radius: 40px; background: #FFFFFF; border: 2px solid #EFE9E0; padding: 56px 48px 48px; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 16px">
+          <span style="width: 144px; height: 144px; border-radius: 40px; background: #F1EDE7; display: flex; align-items: center; justify-content: center; margin-bottom: 16px"><svg aria-hidden="true" viewBox="0 0 24 24" style="width: 72px; height: 72px"><path d="{{printerIcon}}" fill="none" stroke="#171513" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"></path></svg></span>
+          <span style="font-size: 44px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.1">No printers yet</span>
+          <span style="font-size: 30px; line-height: 1.4; color: #6F6961; max-width: 640px; text-wrap: pretty">Add a printer to print receipts and kitchen tickets</span>
+          <button onClick="{{openAdd}}" class="press" style="margin-top: 24px; height: 112px; padding: 0 56px; border-radius: 36px; background: {{accent}}; color: #FFFFFF; display: flex; align-items: center; gap: 16px; font-size: 34px; font-weight: 700">
+            <svg aria-hidden="true" viewBox="0 0 24 24" style="width: 40px; height: 40px"><path d="M12 5v14M5 12h14" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round"></path></svg>
+            Add a printer
+          </button>
+        </div>
+      </sc-if>
+
+      <sc-for list="{{printers}}" as="pr" hint-placeholder-count="3">
+        <div style="border-radius: 40px; background: #FFFFFF; box-shadow: {{pr.ring}}; padding: 8px 32px 32px; display: flex; flex-direction: column; gap: 8px; transition: box-shadow 300ms cubic-bezier(.2,0,0,1); animation: up 600ms cubic-bezier(.16,1,.3,1) {{pr.delay}}ms backwards">
+          <button role="radio" aria-checked="{{pr.sel}}" aria-label="Select {{pr.name}}" onClick="{{pr.select}}" style="width: 100%; min-height: 144px; padding: 16px 0; display: flex; align-items: center; gap: 28px">
+            <span style="width: 112px; height: 112px; flex-shrink: 0; border-radius: 32px; background: #F1EDE7; display: flex; align-items: center; justify-content: center; animation: tileIn 700ms cubic-bezier(.3,1.15,.4,1) {{pr.delay}}ms both">
+              <svg aria-hidden="true" viewBox="0 0 24 24" style="width: 52px; height: 52px"><path d="{{pr.icon}}" fill="none" stroke="#171513" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+            </span>
+            <span style="flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px">
+              <span style="font-size: 34px; font-weight: 600; letter-spacing: -0.01em; line-height: 1.15">{{pr.name}}</span>
+              <span style="font-size: 26px; color: #6F6961; line-height: 1.3">{{pr.conn}} · {{pr.paperLabel}} · {{pr.model}}</span>
+            </span>
+            <span style="flex-shrink: 0; height: 60px; padding: 0 24px; border-radius: 999px; background: {{pr.pillBg}}; color: {{pr.pillFg}}; display: flex; align-items: center; gap: 10px; font-size: 26px; font-weight: 600">
+              <span style="width: 12px; height: 12px; border-radius: 50%; background: {{pr.pillFg}}; animation: {{pr.pulse}}"></span>{{pr.status}}
+            </span>
+          </button>
+          <div role="group" aria-label="Roles for {{pr.name}}" style="display: flex; align-items: center; gap: 16px; padding-left: 140px">
+            <span style="font-size: 26px; font-weight: 500; color: #6F6961; margin-right: 8px">Prints</span>
+            <sc-for list="{{pr.roles}}" as="ro" hint-placeholder-count="2">
+              <button onClick="{{ro.pick}}" role="switch" aria-checked="{{ro.on}}" class="press" style="height: 96px; padding: 0 36px 0 24px; border-radius: 999px; background: {{ro.bg}}; color: {{ro.fg}}; border: 2px solid {{ro.border}}; display: flex; align-items: center; gap: 14px; font-size: 28px; font-weight: 600; transition: background-color 360ms cubic-bezier(.2,0,0,1), color 360ms, border-color 360ms, transform 140ms">
+                <span aria-hidden="true" style="width: 40px; height: 40px; border-radius: 50%; background: {{ro.dotBg}}; border: 2px solid {{ro.dotBorder}}; display: flex; align-items: center; justify-content: center; transition: background-color 360ms, border-color 360ms">
+                  <sc-if value="{{ro.on}}" hint-placeholder-val="{{ false }}"><svg viewBox="0 0 24 24" style="width: 26px; height: 26px; animation: popIn 420ms cubic-bezier(.3,1.15,.4,1) both"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></path></svg></sc-if>
                 </span>
-                <sc-for list="{{src.devices}}" as="dv" hint-placeholder-count="1">
-                  <div style="min-height: 96px; display: flex; align-items: center; justify-content: space-between; gap: 24px; padding-left: 52px">
-                    <span style="display: flex; flex-direction: column; gap: 4px">
-                      <span style="font-size: 30px; font-weight: 600">{{dv.name}}</span>
-                      <span style="font-size: 24px; color: #6F6961">{{dv.detail}}</span>
-                    </span>
-                    <sc-if value="{{dv.canAdd}}" hint-placeholder-val="{{ true }}">
-                      <button onClick="{{dv.add}}" class="press" style="flex-shrink: 0; height: 80px; padding: 0 32px; border-radius: 999px; background: #171513; color: #FFFFFF; display: flex; align-items: center; font-size: 28px; font-weight: 600">Add</button>
-                    </sc-if>
-                    <sc-if value="{{dv.added}}" hint-placeholder-val="{{ false }}">
-                      <span style="flex-shrink: 0; height: 80px; padding: 0 28px; border-radius: 999px; background: #EAF3EC; color: #2F7A50; display: flex; align-items: center; gap: 10px; font-size: 28px; font-weight: 600"><svg aria-hidden="true" viewBox="0 0 24 24" style="width: 28px; height: 28px; animation: popIn 420ms cubic-bezier(.3,1.15,.4,1) both"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="#2F7A50" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"></path></svg>Added</span>
-                    </sc-if>
-                  </div>
-                </sc-for>
-              </div>
+                {{ro.label}}
+              </button>
             </sc-for>
           </div>
-        </sc-if>
-      </div>
+        </div>
+      </sc-for>
+
+      <sc-if value="{{hasMoved}}" hint-placeholder-val="{{ false }}">
+        <p style="margin: 0; padding-left: 8px; display: flex; align-items: center; gap: 14px; font-size: 26px; font-weight: 500; color: #2F7A50; animation: up 500ms cubic-bezier(.16,1,.3,1) both"><svg aria-hidden="true" viewBox="0 0 24 24" style="width: 32px; height: 32px; flex: none"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="#2F7A50" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"></path></svg>{{movedNote}}</p>
+      </sc-if>
+
+      <sc-if value="{{hasPrinters}}" hint-placeholder-val="{{ true }}">
+        <button onClick="{{openAdd}}" class="press" style="width: 100%; height: 112px; border-radius: 36px; border: 2px solid #171513; display: flex; align-items: center; justify-content: center; gap: 16px; font-size: 32px; font-weight: 600">
+          <svg aria-hidden="true" viewBox="0 0 24 24" style="width: 40px; height: 40px"><path d="M12 5v14M5 12h14" fill="none" stroke="#171513" stroke-width="2.2" stroke-linecap="round"></path></svg>
+          Add printer
+        </button>
+      </sc-if>
     </section>
+
+    <sc-if value="{{hasNotice}}" hint-placeholder-val="{{ false }}">
+      <div role="status" style="flex-shrink: 0; border-radius: 32px; background: #FBEAE3; padding: 28px 32px; display: flex; align-items: center; gap: 24px; animation: up 600ms cubic-bezier(.16,1,.3,1) 200ms backwards">
+        <span aria-hidden="true" style="width: 72px; height: 72px; flex-shrink: 0; border-radius: 24px; background: #FFFFFF; display: flex; align-items: center; justify-content: center"><svg viewBox="0 0 24 24" style="width: 40px; height: 40px"><path d="M12 8v5M12 16.5h.01M10.3 3.9L2.4 17.6A2 2 0 0 0 4.1 20.6h15.8a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z" fill="none" stroke="#B3411F" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"></path></svg></span>
+        <span style="font-size: 30px; font-weight: 600; line-height: 1.3; color: #171513">{{noticeText}}</span>
+      </div>
+    </sc-if>
 
     <sc-for list="{{groups}}" as="g" hint-placeholder-count="3">
       <section style="flex-shrink: 0; display: flex; flex-direction: column; gap: 16px; animation: up 700ms cubic-bezier(.16,1,.3,1) {{g.delay}}ms backwards">
@@ -139,7 +136,7 @@ input:focus{border-color:#171513!important;background:#FFFFFF!important}
                 </div>
               </sc-if>
               <sc-if value="{{r.isAction}}" hint-placeholder-val="{{ false }}">
-                <button onClick="{{r.act}}" class="press" style="flex-shrink: 0; height: 88px; padding: 0 36px; border-radius: 999px; background: {{r.btnBg}}; color: #FFFFFF; display: flex; align-items: center; gap: 12px; font-size: 28px; font-weight: 600; transition: background-color 360ms cubic-bezier(.2,0,0,1), transform 140ms">
+                <button onClick="{{r.act}}" aria-disabled="{{r.off}}" class="press" style="flex-shrink: 0; height: 88px; padding: 0 36px; border-radius: 999px; background: {{r.btnBg}}; color: #FFFFFF; display: flex; align-items: center; gap: 12px; font-size: 28px; font-weight: 600; transition: background-color 360ms cubic-bezier(.2,0,0,1), transform 140ms">
                   <sc-if value="{{r.busy}}" hint-placeholder-val="{{ false }}"><svg aria-hidden="true" viewBox="0 0 24 24" style="width: 32px; height: 32px; animation: spin .9s linear infinite"><path d="M12 3a9 9 0 1 0 9 9" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round"></path></svg></sc-if>
                   <sc-if value="{{r.done}}" hint-placeholder-val="{{ false }}"><svg aria-hidden="true" viewBox="0 0 24 24" style="width: 32px; height: 32px; animation: popIn 420ms cubic-bezier(.3,1.15,.4,1) both"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="#FFFFFF" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"></path></svg></sc-if>
                   {{r.btnLabel}}
@@ -154,7 +151,7 @@ input:focus{border-color:#171513!important;background:#FFFFFF!important}
               <sc-if value="{{r.isMeter}}" hint-placeholder-val="{{ false }}">
                 <span style="flex-shrink: 0; display: flex; align-items: center; gap: 24px">
                   <span style="display: block; width: 280px; height: 12px; border-radius: 6px; background: #F1EDE7; overflow: hidden"><span style="display: block; height: 100%; width: {{r.pct}}%; border-radius: 6px; background: {{r.meterColor}}; transform-origin: left center; animation: grow 1100ms cubic-bezier(.16,1,.3,1) 450ms both"></span></span>
-                  <span style="width: 84px; text-align: right; font-size: 28px; font-weight: 600; font-variant-numeric: tabular-nums">{{r.pct}}%</span>
+                  <span style="min-width: 120px; text-align: right; font-size: 28px; font-weight: 600; color: {{r.pctColor}}">{{r.pctLabel}}</span>
                 </span>
               </sc-if>
             </div>
@@ -163,67 +160,148 @@ input:focus{border-color:#171513!important;background:#FFFFFF!important}
       </section>
     </sc-for>
   </main>
+
+  <sc-if value="{{sheetOpen}}" hint-placeholder-val="{{ false }}">
+    <div style="position: absolute; inset: 0; z-index: 10">
+      <button aria-label="Close" onClick="{{closeSheet}}" style="position: absolute; inset: 0; width: 100%; height: 100%; background: rgba(23,21,19,.48); animation: fade 400ms ease both"></button>
+      <div role="dialog" aria-label="Add a printer" class="scroller" style="position: absolute; left: 0; right: 0; bottom: 0; max-height: 1620px; overflow-y: auto; border-radius: 48px 48px 0 0; background: #FAF8F5; padding: 24px 72px 56px; box-shadow: 0 -24px 48px rgba(23,21,19,.10); display: flex; flex-direction: column; gap: 24px; animation: sheetUp 700ms cubic-bezier(.16,1,.3,1) both">
+        <span aria-hidden="true" style="align-self: center; width: 96px; height: 8px; border-radius: 4px; background: #D9D2C8"></span>
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 24px">
+          <h2 style="margin: 0; font-size: 52px; font-weight: 700; letter-spacing: -0.03em; line-height: 1.05">Add a printer</h2>
+          <button aria-label="Close" onClick="{{closeSheet}}" class="press" style="width: 96px; height: 96px; border-radius: 50%; background: #F1EDE7; display: flex; align-items: center; justify-content: center"><svg viewBox="0 0 24 24" style="width: 40px; height: 40px"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="#171513" stroke-width="2.2" stroke-linecap="round"></path></svg></button>
+        </div>
+        <sc-for list="{{sources}}" as="src" hint-placeholder-count="3">
+          <div style="border-radius: 32px; background: #FFFFFF; border: 2px solid #EFE9E0; padding: 28px 32px; display: flex; flex-direction: column; gap: 16px; animation: up 500ms cubic-bezier(.16,1,.3,1) {{src.delay}}ms backwards">
+            <span style="display: flex; align-items: center; gap: 16px">
+              <svg aria-hidden="true" viewBox="0 0 24 24" style="width: 40px; height: 40px; flex: none"><path d="{{src.icon}}" fill="none" stroke="#171513" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+              <span style="font-size: 34px; font-weight: 700">{{src.title}}</span>
+              <span style="font-size: 26px; color: #6F6961; line-height: 1.3">{{src.note}}</span>
+            </span>
+            <sc-for list="{{src.devices}}" as="dv" hint-placeholder-count="1">
+              <div style="min-height: 112px; display: flex; align-items: center; justify-content: space-between; gap: 24px; padding-left: 56px; border-top: 2px solid #F1EDE7">
+                <span style="display: flex; flex-direction: column; gap: 4px; min-width: 0">
+                  <span style="font-size: 30px; font-weight: 600">{{dv.name}}</span>
+                  <span style="font-size: 26px; color: #6F6961; line-height: 1.3">{{dv.detail}}</span>
+                </span>
+                <sc-if value="{{dv.canAdd}}" hint-placeholder-val="{{ true }}">
+                  <button onClick="{{dv.add}}" class="press" style="flex-shrink: 0; height: 96px; padding: 0 40px; border-radius: 999px; background: #171513; color: #FFFFFF; display: flex; align-items: center; font-size: 28px; font-weight: 600">Add</button>
+                </sc-if>
+                <sc-if value="{{dv.added}}" hint-placeholder-val="{{ false }}">
+                  <span style="flex-shrink: 0; height: 80px; padding: 0 28px; border-radius: 999px; background: #EAF3EC; color: #2F7A50; display: flex; align-items: center; gap: 10px; font-size: 28px; font-weight: 600"><svg aria-hidden="true" viewBox="0 0 24 24" style="width: 28px; height: 28px; animation: popIn 420ms cubic-bezier(.3,1.15,.4,1) both"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="#2F7A50" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"></path></svg>Added</span>
+                </sc-if>
+              </div>
+            </sc-for>
+            <sc-if value="{{src.none}}" hint-placeholder-val="{{ false }}">
+              <div style="min-height: 112px; display: flex; align-items: center; justify-content: space-between; gap: 24px; padding-left: 56px; border-top: 2px solid #F1EDE7">
+                <span style="display: flex; flex-direction: column; gap: 4px; min-width: 0">
+                  <span style="font-size: 30px; font-weight: 600">No printers found</span>
+                  <span style="font-size: 26px; color: #6F6961; line-height: 1.3">{{src.noneNote}}</span>
+                </span>
+                <button onClick="{{search}}" class="press" style="flex-shrink: 0; height: 96px; padding: 0 36px; border-radius: 999px; background: #F1EDE7; display: flex; align-items: center; gap: 12px; font-size: 28px; font-weight: 600">
+                  <sc-if value="{{searching}}" hint-placeholder-val="{{ false }}"><svg aria-hidden="true" viewBox="0 0 24 24" style="width: 32px; height: 32px; animation: spin .9s linear infinite"><path d="M12 3a9 9 0 1 0 9 9" fill="none" stroke="#171513" stroke-width="2.4" stroke-linecap="round"></path></svg></sc-if>
+                  {{searchLabel}}
+                </button>
+              </div>
+            </sc-if>
+            <sc-if value="{{src.needsPermission}}" hint-placeholder-val="{{ false }}">
+              <div style="border-radius: 32px; background: #F1EDE7; padding: 28px; display: flex; flex-direction: column; gap: 24px">
+                <span style="display: flex; align-items: center; gap: 20px">
+                  <span aria-hidden="true" style="width: 88px; height: 88px; flex-shrink: 0; border-radius: 28px; background: #FFFFFF; display: flex; align-items: center; justify-content: center"><svg viewBox="0 0 24 24" style="width: 48px; height: 48px"><path d="M7 7l10 10-5 4V3l5 4L7 17" fill="none" stroke="#171513" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"></path></svg></span>
+                  <span style="font-size: 32px; font-weight: 700; line-height: 1.2">Bluetooth access is needed to find your printers</span>
+                </span>
+                <span style="font-size: 28px; line-height: 1.4; color: #6F6961">Hitachi Kiosk only looks for printers you have already paired in Android settings.</span>
+                <button onClick="{{grantBt}}" class="press" style="height: 112px; border-radius: 36px; background: {{accent}}; color: #FFFFFF; display: flex; align-items: center; justify-content: center; font-size: 34px; font-weight: 700">Grant</button>
+              </div>
+            </sc-if>
+          </div>
+        </sc-for>
+        <button onClick="{{closeSheet}}" class="press" style="height: 112px; border-radius: 36px; background: #171513; color: #FFFFFF; display: flex; align-items: center; justify-content: center; font-size: 34px; font-weight: 700">Done</button>
+      </div>
+    </div>
+  </sc-if>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#C8552B","options":["#C8552B","#2F5D4A","#3A4C7A","#171513"]},"$preview":{"width":1080,"height":1920}}'>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#C8552B","options":["#C8552B","#2F5D4A","#3A4C7A","#171513"]},"scenario":{"editor":"enum","options":["default","list","roles","empty","add","offline","outOfPaper","btPermission"],"default":"default"},"$preview":{"width":1080,"height":1920}}'>
 class Component extends DCLogic {
   constructor(props) {
     super(props);
-    this.def = {
-      pageTitle: 'Receipt printer',
-      hero: { title: 'Thermal printer', sub: 'TP-80 · connected by USB · 80 mm paper', status: 'Ready', icon: 'M7 8V3h10v5M7 17H5a1 1 0 0 1-1-1v-6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v6a1 1 0 0 1-1 1h-2M7 14h10v7H7z' },
-      groups: [
-        { title: 'Status', statusOf: true, rows: [
-          { k: 'paper', type: 'meter', label: 'Paper roll', sub: 'Replace below 15%', pct: 68 },
-          { k: 'last', type: 'info', label: 'Last printed', value: 'Order A246 · 2 min ago' },
-          { k: 'test', type: 'action', label: 'Test page', sub: 'Prints a sample receipt', btn: 'Print test page', busyLabel: 'Printing…', doneLabel: 'Printed' },
-          { k: 'feed', type: 'action', label: 'Feed paper', sub: 'Advances the roll by 5 cm', btn: 'Feed', busyLabel: 'Feeding…', doneLabel: 'Done' }
-        ] },
-        { title: 'Receipt', rows: [
-          { k: 'receipt', type: 'toggle', label: 'Customer receipt', sub: 'Print automatically after payment', on: true },
-          { k: 'kitchen', type: 'toggle', label: 'Kitchen ticket', sub: 'Send to the kitchen printer when paid', on: true },
-          { k: 'logo', type: 'toggle', label: 'Logo on receipt', sub: 'Uses the restaurant logo from the menu system', on: true },
-          { k: 'footer', type: 'input', label: 'Receipt footer', sub: 'Printed at the bottom', value: 'Thank you for dining with us!' }
-        ] },
-        { title: 'Paper', rows: [
-          { k: 'width', type: 'seg', label: 'Paper width', opts: ['58 mm', '80 mm'], sel: 1, w: 150 },
-          { k: 'density', type: 'seg', label: 'Print density', opts: ['Light', 'Normal', 'Dark'], sel: 1, w: 130 }
-        ] }
-      ]
-    };
-    const vals = {};
-    this.def.groups.forEach((g) => g.rows.forEach((r) => {
-      if (r.type === 'toggle') vals[r.k] = r.on;
-      if (r.type === 'seg') vals[r.k] = r.sel;
-      if (r.type === 'input') vals[r.k] = r.value;
-    }));
     this.icons = {
       builtin: 'M7 8V3h10v5M7 17H5a1 1 0 0 1-1-1v-6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v6a1 1 0 0 1-1 1h-2M7 14h10v7H7z',
       usb: 'M12 2v14M9 5l3-3 3 3M7 9v3l5 3M17 8v2l-5 3M12 22a2 2 0 1 0 0-4 2 2 0 0 0 0 4z',
       bt: 'M7 7l10 10-5 4V3l5 4L7 17'
     };
     this.catalog = {
-      builtin: [{ id: 'imin', name: 'Built-in printer', model: 'iMin 80 mm', conn: 'Built-in' }],
-      usb: [{ id: 'xp', name: 'Counter printer', model: 'Xprinter XP-Q80', conn: 'USB' }],
-      bt: [{ id: 'tm', name: 'Kitchen printer', model: 'EPSON TM-m30', conn: 'Bluetooth' }, { id: 'rpp', name: 'Bar printer', model: 'RPP02N', conn: 'Bluetooth' }]
+      imin: { id: 'imin', kind: 'builtin', name: 'Built-in printer', model: 'iMin 80 mm', conn: 'Built-in', paper: 1 },
+      xp: { id: 'xp', kind: 'usb', name: 'Counter printer', model: 'Xprinter XP-Q80', conn: 'USB', paper: 1 },
+      rpp: { id: 'rpp', kind: 'bt', name: 'Bar printer', model: 'RPP02N', conn: 'Bluetooth', paper: 0 }
     };
-    this.state = { vals, act: {}, printers: ['imin', 'tm'], roles: { receipt: 'imin', kitchen: 'tm' }, adding: false, justAdded: null };
+    this.def = { groups: [
+      { title: 'Status', statusOf: true, rows: [
+        { k: 'paper', type: 'meter', label: 'Paper roll', sub: 'Replace below 15%' },
+        { k: 'last', type: 'info', label: 'Last printed', value: 'Order A246 · 2 min ago' },
+        { k: 'err', type: 'info', label: 'Last error', value: 'Can’t reach the printer', bad: true, only: 'offline' },
+        { k: 'test', type: 'action', label: 'Test page', sub: 'Prints a sample receipt', btn: 'Print test page', busyLabel: 'Printing…', doneLabel: 'Printed' },
+        { k: 'feed', type: 'action', label: 'Feed paper', sub: 'Advances the roll by 5 cm', btn: 'Feed', busyLabel: 'Feeding…', doneLabel: 'Done' }
+      ] },
+      { title: 'Receipt', rows: [
+        { k: 'receipt', type: 'toggle', label: 'Customer receipt', sub: 'Print automatically after payment', on: true },
+        { k: 'kitchen', type: 'toggle', label: 'Kitchen ticket', sub: 'Send to the kitchen printer when paid', on: true },
+        { k: 'logo', type: 'toggle', label: 'Logo on receipt', sub: 'Uses the restaurant logo from the menu system', on: true },
+        { k: 'footer', type: 'input', label: 'Receipt footer', sub: 'Printed at the bottom', value: 'Thank you for dining with us!' }
+      ] },
+      { title: 'Paper', rows: [
+        { k: 'width', type: 'seg', label: 'Paper width', opts: ['58 mm', '80 mm'], w: 150 },
+        { k: 'density', type: 'seg', label: 'Print density', opts: ['Light', 'Normal', 'Dark'], sel: 1, w: 130 }
+      ] }
+    ] };
+    const vals = {};
+    this.def.groups.forEach((g) => g.rows.forEach((r) => {
+      if (r.type === 'toggle') vals[r.k] = r.on;
+      if (r.type === 'seg') vals[r.k] = r.sel;
+      if (r.type === 'input') vals[r.k] = r.value;
+    }));
+    const mk = (id, over) => Object.assign({}, this.catalog[id], { status: 'online', pct: 72 }, over || {});
+    const sc = props.scenario || 'default';
+    let printers = [mk('xp')], roles = { receipt: 'xp', kitchen: null }, selected = 'xp', sheet = false, btGranted = true, moved = null;
+    if (sc === 'list') { printers = [mk('imin', { pct: 90 }), mk('xp'), mk('rpp', { pct: 55 })]; roles = { kitchen: 'imin', receipt: 'xp' }; }
+    if (sc === 'roles') { printers = [mk('imin', { pct: 90 }), mk('xp'), mk('rpp', { pct: 55 })]; roles = { kitchen: 'imin', receipt: 'rpp' }; selected = 'rpp'; moved = 'Receipt now prints on Bar printer, not Counter printer'; }
+    if (sc === 'empty') { printers = []; roles = { receipt: null, kitchen: null }; selected = null; }
+    if (sc === 'add') { sheet = true; }
+    if (sc === 'offline') { printers = [mk('xp', { status: 'offline', pct: null })]; }
+    if (sc === 'outOfPaper') { printers = [mk('xp', { status: 'paper', pct: 0 })]; }
+    if (sc === 'btPermission') { sheet = true; btGranted = false; }
+    if (sc === 'list') selected = 'xp';
+    if (!props.scenario || sc === 'default') btGranted = true;
+    this.state = { vals, act: {}, printers, roles, selected, sheet, btGranted: btGranted, moved, searching: false };
+    if (!btGranted) this.state.btGranted = false;
     this.timers = [];
   }
   componentWillUnmount() { this.timers.forEach((t) => clearTimeout(t)); }
-  find(id) {
-    const all = [].concat(this.catalog.builtin, this.catalog.usb, this.catalog.bt);
-    const p = all.find((x) => x.id === id);
-    const kind = this.catalog.builtin.indexOf(p) >= 0 ? 'builtin' : (this.catalog.usb.indexOf(p) >= 0 ? 'usb' : 'bt');
-    return Object.assign({ kind: kind }, p);
-  }
+  selPrinter() { return this.state.printers.find((x) => x.id === this.state.selected) || null; }
   addPrinter(id) {
-    if (this.state.printers.indexOf(id) >= 0) return;
-    this.setState((s) => ({ printers: s.printers.concat([id]), justAdded: id }));
+    if (this.state.printers.some((x) => x.id === id)) return;
+    const base = this.catalog[id];
+    this.setState((st) => ({ printers: st.printers.concat([Object.assign({}, base, { status: 'online', pct: 72 })]), selected: id, sheet: false }));
+  }
+  setRole(k, id) {
+    this.setState((st) => {
+      const had = st.roles[k];
+      const on = had === id;
+      const roles = Object.assign({}, st.roles, { [k]: on ? null : id });
+      const nameOf = (x) => (st.printers.find((p) => p.id === x) || {}).name;
+      const lab = k === 'receipt' ? 'Receipt' : 'Kitchen';
+      let moved = null;
+      if (!on && had) moved = lab + ' now prints on ' + nameOf(id) + ', not ' + nameOf(had);
+      if (on) moved = lab + ' is not assigned to any printer';
+      if (!on && !had) moved = lab + ' now prints on ' + nameOf(id);
+      return { roles, moved, selected: id };
+    });
   }
   set(k, v) { this.setState((s) => ({ vals: Object.assign({}, s.vals, { [k]: v }) })); }
   run(k) {
     if (this.state.act[k] === 'busy') return;
+    const pr = this.selPrinter();
+    if (pr && pr.status === 'offline') return;
     const setA = (v) => this.setState((s) => ({ act: Object.assign({}, s.act, { [k]: v }) }));
     setA('busy');
     this.timers.push(setTimeout(() => setA('done'), 1500));
@@ -232,77 +310,120 @@ class Component extends DCLogic {
   renderVals() {
     const s = this.state;
     const accent = this.props.accent ?? '#C8552B';
-    const d = this.def;
-    const recName = this.find(s.roles.receipt).name;
+    const sel = this.selPrinter();
+    const st = sel ? sel.status : 'online';
     const roleDefs = [{ k: 'receipt', label: 'Receipt' }, { k: 'kitchen', label: 'Kitchen' }];
+    const pill = { online: ['Online', '#EAF3EC', '#2F7A50'], offline: ['Offline', '#FBEAE3', '#B3411F'], paper: ['Out of paper', '#FBEAE3', '#B3411F'] };
+    const recP = s.printers.find((x) => x.id === s.roles.receipt);
+    const found = {
+      builtin: [{ id: 'imin', model: 'iMin 80 mm', detail: 'Thermal · 80 mm' }],
+      usb: [{ id: 'xp', model: 'Xprinter XP-Q80', detail: 'USB · 80 mm' }],
+      bt: []
+    };
+    const mkDev = (kind) => found[kind].map((d) => {
+      const added = s.printers.some((x) => x.id === d.id);
+      return { name: d.model, detail: added ? 'Added as ' + this.catalog[d.id].name.toLowerCase() : d.detail, added: added, canAdd: !added, add: () => this.addPrinter(d.id) };
+    });
     const srcDefs = [
-      { kind: 'builtin', title: 'Built-in', note: 'Detected on this kiosk' },
-      { kind: 'usb', title: 'USB', note: '1 device attached' },
-      { kind: 'bt', title: 'Bluetooth', note: 'Paired devices' }
+      { kind: 'builtin', title: 'Built-in', note: 'Found automatically' },
+      { kind: 'usb', title: 'USB', note: 'You will be asked to allow USB access' },
+      { kind: 'bt', title: 'Bluetooth', note: 'Paired printers only' }
     ];
+    const sources = srcDefs.map((sd, i) => {
+      const devices = (sd.kind === 'bt' && !s.btGranted) ? [] : mkDev(sd.kind);
+      const none = sd.kind !== 'bt' ? false : (s.btGranted && devices.length === 0);
+      return {
+        title: sd.title, note: sd.note, icon: this.icons[sd.kind], delay: 60 + i * 70,
+        devices: devices, none: none, noneNote: 'Pair the printer in Android Bluetooth settings first',
+        needsPermission: sd.kind === 'bt' && !s.btGranted
+      };
+    });
+    const sizeLine = (pr) => (pr.paper === 0 ? '58 mm' : '80 mm');
+    const d = this.def;
+    const showGroups = !!sel;
+    const groups = !showGroups ? [] : d.groups.map((g, gi) => ({
+      title: g.statusOf ? 'Status · ' + sel.name : g.title,
+      delay: 320 + gi * 90,
+      rows: g.rows.filter((r) => !r.only || r.only === st).map((r, ri, arr) => {
+        const a = s.act[r.k] || 'idle';
+        let v = s.vals[r.k];
+        if (r.k === 'width') v = sel.paper;
+        const w = Math.round((r.w || 130) * 1.2);
+        const off = (r.k === 'test' || r.k === 'feed') && st === 'offline';
+        const unknown = r.type === 'meter' && st === 'offline';
+        const pct = r.type === 'meter' ? (st === 'paper' ? 0 : (sel.pct == null ? 0 : sel.pct)) : 0;
+        return {
+          label: r.label,
+          sub: off ? 'Reconnect the printer to use this' : (r.sub || ''),
+          hasSub: !!(off || r.sub),
+          line: ri < arr.length - 1 ? '2px solid #F1EDE7' : 'none',
+          isToggle: r.type === 'toggle', isSeg: r.type === 'seg', isAction: r.type === 'action',
+          isInfo: r.type === 'info', isInput: r.type === 'input', isMeter: r.type === 'meter',
+          on: !!v,
+          track: v ? '#2F7A50' : '#D9D2C8',
+          x: v ? 52 : 0,
+          segW: w,
+          segX: (v || 0) * w,
+          opts: (r.opts || []).map((label, oi) => ({ label, w: w, on: v === oi, color: v === oi ? '#FAF8F5' : '#171513', pick: () => {
+            if (r.k === 'width') this.setState((q) => ({ printers: q.printers.map((x) => x.id === q.selected ? Object.assign({}, x, { paper: oi }) : x) }));
+            else this.set(r.k, oi);
+          } })),
+          busy: a === 'busy',
+          done: a === 'done',
+          off: off,
+          btnLabel: off ? 'Printer offline' : (a === 'busy' ? r.busyLabel : (a === 'done' ? r.doneLabel : r.btn)),
+          btnBg: off ? '#B5AEA4' : (a === 'done' ? '#2F7A50' : '#171513'),
+          value: r.type === 'input' ? v : r.value,
+          valColor: r.bad ? '#B3411F' : '#171513',
+          change: (e) => this.set(r.k, e && e.target ? e.target.value : v),
+          pct: pct,
+          pctLabel: unknown ? 'Unknown' : pct + '%',
+          pctColor: unknown ? '#6F6961' : (pct < 15 ? '#B3411F' : '#171513'),
+          meterColor: unknown ? '#D9D2C8' : (pct < 15 ? '#B3411F' : '#2F7A50'),
+          act: r.type === 'toggle' ? () => this.set(r.k, !v) : () => this.run(r.k)
+        };
+      })
+    }));
     return {
       accent: accent,
-      pageTitle: d.pageTitle,
-      printers: s.printers.map((id, i) => {
-        const p = this.find(id);
+      pageTitle: 'Receipt printer',
+      printerIcon: this.icons.builtin,
+      isEmpty: s.printers.length === 0,
+      hasPrinters: s.printers.length > 0,
+      hasMoved: !!s.moved,
+      movedNote: s.moved || '',
+      hasNotice: st === 'paper' && !!sel,
+      noticeText: 'Replace the paper roll, then print a test page',
+      printers: s.printers.map((pr, i) => {
+        const isSel = pr.id === s.selected;
+        const pl = pill[pr.status];
         return {
-          name: p.name, model: p.model, conn: p.conn, status: 'Ready', icon: this.icons[p.kind],
-          delay: id === s.justAdded ? 0 : 220 + i * 80,
+          name: pr.name, model: pr.model, conn: pr.conn, paperLabel: sizeLine(pr), icon: this.icons[pr.kind],
+          status: pl[0], pillBg: pl[1], pillFg: pl[2], pulse: pr.status === 'online' ? 'pulse 2s cubic-bezier(.2,0,0,1) infinite' : 'none',
+          sel: isSel,
+          ring: isSel ? '0 0 0 3px ' + accent : '0 0 0 2px #EFE9E0',
+          delay: 220 + i * 80,
+          select: () => this.setState({ selected: pr.id }),
           roles: roleDefs.map((r) => {
-            const on = s.roles[r.k] === id;
+            const on = s.roles[r.k] === pr.id;
             return {
               label: r.label, on: on,
               bg: on ? '#171513' : '#FFFFFF', fg: on ? '#FAF8F5' : '#171513', border: on ? '#171513' : '#E9E4DC',
               dotBg: on ? accent : 'transparent', dotBorder: on ? accent : '#D9D2C8',
-              pick: () => { if (!on) this.setState((st) => ({ roles: Object.assign({}, st.roles, { [r.k]: id }) })); }
+              pick: () => this.setRole(r.k, pr.id)
             };
           })
         };
       }),
-      adding: s.adding,
-      addLabel: s.adding ? 'Close' : 'Add printer',
-      addRot: s.adding ? 45 : 0,
-      toggleAdd: () => this.setState((st) => ({ adding: !st.adding })),
-      sources: srcDefs.map((sd, i) => ({
-        title: sd.title, note: sd.note, icon: this.icons[sd.kind], delay: 60 + i * 70,
-        devices: this.catalog[sd.kind].map((p) => {
-          const added = s.printers.indexOf(p.id) >= 0;
-          return { name: p.model, detail: added ? 'In use as ' + p.name.toLowerCase() : 'Not set up yet', added: added, canAdd: !added, add: () => this.addPrinter(p.id) };
-        })
-      })),
-      groups: d.groups.map((g, gi) => ({
-        title: g.statusOf ? 'Status · ' + recName : g.title,
-        delay: 320 + gi * 90,
-        rows: g.rows.map((r, ri) => {
-          const a = s.act[r.k] || 'idle';
-          const v = s.vals[r.k];
-          const w = Math.round((r.w || 130) * 1.2);
-          return {
-            label: r.label,
-            sub: r.sub || '',
-            hasSub: !!r.sub,
-            line: ri < g.rows.length - 1 ? '2px solid #F1EDE7' : 'none',
-            isToggle: r.type === 'toggle', isSeg: r.type === 'seg', isAction: r.type === 'action',
-            isInfo: r.type === 'info', isInput: r.type === 'input', isMeter: r.type === 'meter',
-            on: !!v,
-            track: v ? '#2F7A50' : '#D9D2C8',
-            x: v ? 52 : 0,
-            segW: w,
-            segX: (v || 0) * w,
-            opts: (r.opts || []).map((label, oi) => ({ label, w: w, on: v === oi, color: v === oi ? '#FAF8F5' : '#171513', pick: () => this.set(r.k, oi) })),
-            busy: a === 'busy',
-            done: a === 'done',
-            btnLabel: a === 'busy' ? r.busyLabel : (a === 'done' ? r.doneLabel : r.btn),
-            btnBg: a === 'done' ? '#2F7A50' : '#171513',
-            value: r.type === 'input' ? v : r.value,
-            valColor: r.ok ? '#2F7A50' : '#171513',
-            change: (e) => this.set(r.k, e && e.target ? e.target.value : v),
-            pct: r.pct || 0,
-            meterColor: (r.pct || 0) < 15 ? accent : '#2F7A50',
-            act: r.type === 'toggle' ? () => this.set(r.k, !v) : () => this.run(r.k)
-          };
-        })
-      }))
+      sheetOpen: s.sheet,
+      openAdd: () => this.setState({ sheet: true }),
+      closeSheet: () => this.setState({ sheet: false }),
+      grantBt: () => this.setState({ btGranted: true }),
+      searching: s.searching,
+      searchLabel: s.searching ? 'Searching…' : 'Search again',
+      search: () => { this.setState({ searching: true }); this.timers.push(setTimeout(() => this.setState({ searching: false }), 1400)); },
+      sources: sources,
+      groups: groups
     };
   }
 }

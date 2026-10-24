@@ -3,9 +3,11 @@
 Published design: https://claude.ai/artifact/Lv6W9bttmG8fH4ho4CkWMg (Claude Design canvas). These files mirror it.
 
 - `canvas.json` — artboard index and layout. One `*.dc.html` per artboard, 1080 × 1920 portrait.
-- Main flow: `Main` (splash) → `Login` → `Merchants` → `OrderType` → `Menu` (→ `Combo`, `ItemDetail`, `BudgetPas`) → `Upsell` → `Payment` → `Checkout` → `Complete` → `Idle`; `StillThere` is the inactivity overlay.
+- Main flow: `Main` (splash) → `Login` → `Merchants` → `OrderType` → `Menu` (→ `Combo`, `ItemDetail`, `BudgetPas`) → `Payment` ("Your order", with the "Goes well with your order" suggestion strip) → `Checkout` → `Complete` → `Idle`; `StillThere` is the inactivity overlay.
 - Staff area: `Settings`, `SettingsPrinter`, `SettingsPayment`, `SettingsKiosk`, `SettingsDevice`, `ChangePin`.
 - `S_<Screen>_<scenario>.dc.html` — state boards. Each imports the real screen with a `scenario` prop (for example `S_Checkout_expired` = `Checkout` with `scenario="expired"`). Every screen with states exposes the same `scenario` prop, so the list of valid values is in that screen's `data-props`.
+- `Upsell.dc.html` and `S_Upsell_noSuggestions` are retired (PRD v1.9 D-33: the Upsell screen became the strip on `Payment`). They stay on the canvas in the "Retired" row for reference only.
+- `BudgetPas` is a two-step flow (Step 1 "Your table", Step 2 "Your plan"); its states are the `S_BudgetPas_*` boards.
 - `Photo.dc.html` — image slot component used by other artboards (not a screen).
 
 ## Tokens
