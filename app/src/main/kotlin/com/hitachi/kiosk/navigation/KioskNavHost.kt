@@ -15,7 +15,9 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.navigation
 import com.hitachi.kiosk.R
 import com.hitachi.kiosk.feature.activation.SignInRoute as SignInFeatureRoute
+import com.hitachi.kiosk.feature.combo.ComboRoute as ComboFeatureRoute
 import com.hitachi.kiosk.feature.idle.IdleRoute as IdleFeatureRoute
+import com.hitachi.kiosk.feature.item.ItemDetailRoute as ItemDetailFeatureRoute
 import com.hitachi.kiosk.feature.menu.MenuRoute as MenuFeatureRoute
 import com.hitachi.kiosk.feature.merchant.MerchantsRoute as MerchantsFeatureRoute
 import com.hitachi.kiosk.feature.ordertype.OrderTypeRoute as OrderTypeFeatureRoute
@@ -23,8 +25,8 @@ import com.hitachi.kiosk.feature.splash.SplashRoute as SplashFeatureRoute
 
 /**
  * The navigation graph of architecture §11 with every edge of PRD §5.1 (DEV-010a). Splash, Sign in and Choose a
- * restaurant are the real screens (0.2.0); every other destination is a [PlaceholderScreen] until its milestone
- * replaces it with the feature's `XxxRoute`.
+ * restaurant (0.2.0) and Idle, Order type, Menu, Item detail and Combo (0.3.0) are the real screens; every other
+ * destination is a [PlaceholderScreen] until its milestone replaces it with the feature's `XxxRoute`.
  *
  * @param onInactivity shows the SCR-13 overlay; offered on the screens where the inactivity timer runs (FR-023).
  * @param onBrandMarkClick taps on the splash mark (5 taps open Developer options in debug builds, DEV-009).
@@ -103,27 +105,15 @@ private fun NavGraphBuilder.orderingDestinations(
         )
     }
     composable<ItemDetailRoute> {
-        PlaceholderScreen(
-            screenId = "SCR-08",
-            title = R.string.screen_item,
-            actions =
-                listOf(
-                    PlaceholderAction(R.string.nav_keep_ordering) { navController.popBackStack(MenuRoute, false) },
-                    PlaceholderAction(R.string.nav_view_order) { navController.navigateToYourOrder() },
-                    inactivity,
-                ),
+        ItemDetailFeatureRoute(
+            onNavigateToMenu = { navController.popBackStack(MenuRoute, false) },
+            onNavigateToYourOrder = { navController.navigateToYourOrder() },
         )
     }
     composable<ComboRoute> {
-        PlaceholderScreen(
-            screenId = "SCR-07",
-            title = R.string.screen_combo,
-            actions =
-                listOf(
-                    PlaceholderAction(R.string.nav_back_to_menu) { navController.popBackStack(MenuRoute, false) },
-                    PlaceholderAction(R.string.nav_my_order) { navController.navigateToYourOrder() },
-                    inactivity,
-                ),
+        ComboFeatureRoute(
+            onNavigateToMenu = { navController.popBackStack(MenuRoute, false) },
+            onNavigateToYourOrder = { navController.navigateToYourOrder() },
         )
     }
     composable<BudgetPlanRoute> {
