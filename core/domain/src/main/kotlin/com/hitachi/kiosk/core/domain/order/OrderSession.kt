@@ -7,6 +7,8 @@ import com.hitachi.kiosk.core.domain.cart.CartAddition
 import com.hitachi.kiosk.core.domain.cart.CartItem
 import com.hitachi.kiosk.core.domain.cart.CartLimit
 import com.hitachi.kiosk.core.domain.cart.LineChoice
+import com.hitachi.kiosk.core.domain.id.IdempotencyKey
+import com.hitachi.kiosk.core.domain.model.OrderRequest
 import com.hitachi.kiosk.core.domain.model.OrderType
 import com.hitachi.kiosk.core.domain.model.Rupiah
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -70,6 +72,9 @@ data class PlanTag(
  *
  * @property upsellShown whether SCR-09 was already offered in this order (FR-014: at most once).
  * @property planTag the Budget Plan that filled the cart, while its lines are untouched (FR-032).
+ * @property issues what E7 asked the customer to review: re-priced and unavailable lines (FR-016, DEV-046).
+ * @property submission the body and `Idempotency-Key` of the last E7 attempt, kept until "Back to order" so a retry
+ *   of the same body reuses the key (technical-design §5.3, BR-08).
  */
 data class OrderState(
     val orderType: OrderType,
@@ -79,6 +84,8 @@ data class OrderState(
     val configVersion: String,
     val upsellShown: Boolean = false,
     val planTag: PlanTag? = null,
+    val issues: ReviewIssues = ReviewIssues(),
+    val submission: Submission? = null,
 )
 
 /**
@@ -87,6 +94,7 @@ data class OrderState(
  * on a stale cart. A transition that the machine does not allow from the current phase changes nothing and returns
  * `false`.
  */
+@Suppress("TooManyFunctions") // One function per edge of the machine and per cart edit.
 class OrderSession(
     orderType: OrderType,
     menuVersion: String,
@@ -179,19 +187,102 @@ class OrderSession(
         }
     }
 
-    /** "Pay" on Your order: Reviewing → Submitting, only with something to pay for (FR-016). */
+    /**
+     * "Pay" on Your order: Reviewing → Submitting, only with something to pay for and nothing left to review
+     * ([ReviewIssues.isBlocking], FR-016). This is the phase change alone; [SubmitOrder] uses the overload below, which
+     * also settles the E7 body and key in the same atomic step.
+     */
     fun submit(): Boolean =
-        transition({ it == OrderPhase.REVIEWING }, { !it.cart.isEmpty() }) { it.copy(phase = OrderPhase.SUBMITTING) }
+        transition({ it == OrderPhase.REVIEWING }, { !it.cart.isEmpty() && !it.issues.isBlocking }) {
+            it.copy(phase = OrderPhase.SUBMITTING)
+        }
 
-    /** E7 refused or failed (`PRICE_CHANGED`, `ITEM_UNAVAILABLE`, network): Submitting → Reviewing (FR-016). */
+    /**
+     * "Pay" for E7 (FR-016 AC1): Reviewing → Submitting and the request to send, atomically. [buildRequest] must be
+     * pure; it sees the state the transition applies to, so the body always matches the cart that gets locked. The
+     * key is the one of the last submission when the body is equal (a retry, also after a network failure returned to
+     * Reviewing), otherwise a fresh one from [newKey] (a cart edit, re-pricing after `PRICE_CHANGED`; technical-design
+     * §5.3). `null` when the transition is not allowed, so a second tap changes nothing and sends nothing.
+     */
+    fun submit(
+        buildRequest: (OrderState) -> OrderRequest,
+        newKey: () -> IdempotencyKey,
+    ): Submission? {
+        val fresh by lazy(newKey)
+        while (true) {
+            val current = mutableState.value
+            if (current.phase != OrderPhase.REVIEWING || current.cart.isEmpty() || current.issues.isBlocking) {
+                return null
+            }
+            val request = buildRequest(current)
+            val key = current.submission?.takeIf { it.request == request }?.key ?: fresh
+            val submission = Submission(request, key)
+            val next = current.copy(phase = OrderPhase.SUBMITTING, submission = submission)
+            if (mutableState.compareAndSet(current, next)) return submission
+        }
+    }
+
+    /** E7 failed without a verdict on the order (network, 5xx, bad answer): Submitting → Reviewing (FR-016). */
     fun submissionFailed(): Boolean =
         transition({ it == OrderPhase.SUBMITTING }) { it.copy(phase = OrderPhase.REVIEWING) }
+
+    /**
+     * E7 answered `PRICE_CHANGED` and the catalog was refreshed (DEV-046): Submitting → Reviewing with the re-priced
+     * [cart], the new catalog versions and [issues] to review. The cart is locked while Submitting, so [cart] is the
+     * one that was sent, re-priced.
+     */
+    fun priceChanged(
+        cart: Cart,
+        menuVersion: String,
+        configVersion: String,
+        issues: ReviewIssues,
+    ): Boolean =
+        transition({ it == OrderPhase.SUBMITTING }) {
+            it.copy(
+                phase = OrderPhase.REVIEWING,
+                cart = cart,
+                menuVersion = menuVersion,
+                configVersion = configVersion,
+                issues = issues,
+            )
+        }
+
+    /**
+     * E7 answered `ITEM_UNAVAILABLE` (DEV-046): Submitting → Reviewing with [lineIds] flagged "No longer available".
+     * Unknown line IDs are ignored.
+     */
+    fun itemsUnavailable(lineIds: Set<String>): Boolean =
+        transition({ it == OrderPhase.SUBMITTING }) { current ->
+            val flagged = lineIds.filterTo(mutableSetOf()) { current.cart.line(it) != null }
+            current.copy(
+                phase = OrderPhase.REVIEWING,
+                issues = current.issues.copy(unavailableLineIds = current.issues.unavailableLineIds + flagged),
+            )
+        }
+
+    /** "Review" on the price-changed banner: the notes go and Pay is enabled again (FR-016, TC-177). */
+    fun reviewPrices(): Boolean = transition({ it.isEditable }) { it.copy(issues = it.issues.reviewed()) }
+
+    /** "Remove it" on the unavailable banner: every flagged line leaves the cart (FR-016). `false` with none flagged. */
+    fun removeUnavailable(): Boolean =
+        transition({ it.isEditable }, { it.issues.unavailableLineIds.isNotEmpty() }) { current ->
+            val gone = current.issues.unavailableLineIds
+            current.copy(
+                cart = gone.fold(current.cart) { cart, lineId -> cart.remove(lineId) },
+                planTag = current.planTag?.takeUnless { tag -> tag.lineIds.any { it in gone } },
+                issues = gone.fold(current.issues) { issues, lineId -> issues.without(lineId) },
+            )
+        }
 
     /** E7 created the order: Submitting → Paying (FR-016). */
     fun orderCreated(): Boolean = transition({ it == OrderPhase.SUBMITTING }) { it.copy(phase = OrderPhase.PAYING) }
 
-    /** "Back to order" on Checkout after E11 and E8: Paying → Reviewing (FR-019, BR-08). */
-    fun backToOrder(): Boolean = transition({ it == OrderPhase.PAYING }) { it.copy(phase = OrderPhase.REVIEWING) }
+    /**
+     * "Back to order" on Checkout after E11 and E8: Paying → Reviewing (FR-019, BR-08). The cancelled order's key is
+     * forgotten, so the next Pay creates a new order with a new key.
+     */
+    fun backToOrder(): Boolean =
+        transition({ it == OrderPhase.PAYING }) { it.copy(phase = OrderPhase.REVIEWING, submission = null) }
 
     /** The backend reported `PAID`: Paying → Paid (A-15). */
     fun paid(): Boolean = transition({ it == OrderPhase.PAYING }) { it.copy(phase = OrderPhase.PAID) }
@@ -210,7 +301,12 @@ class OrderSession(
         edit: (Cart) -> Cart,
     ): Boolean =
         transition({ it.isEditable }, { it.cart.line(lineId) != null }) { current ->
-            current.copy(cart = edit(current.cart), planTag = current.planTag.without(lineId))
+            val cart = edit(current.cart)
+            current.copy(
+                cart = cart,
+                planTag = current.planTag.without(lineId),
+                issues = if (cart.line(lineId) == null) current.issues.without(lineId) else current.issues,
+            )
         }
 
     /** Applies [change] atomically when the phase passes [allowed] and the state passes [guard]. */

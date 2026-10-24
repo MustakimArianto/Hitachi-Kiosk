@@ -24,7 +24,7 @@ import kotlin.coroutines.cancellation.CancellationException
  * The one owner of the stored device state (FR-001, FR-003, FR-004): the encrypted token, the device record and the
  * binding, the in-memory credentials OkHttp reads, and the [state] flow. Activation, binding, Log out and the 401
  * handler all write through it, so the three always agree. Writes are serialized by a [Mutex]. A wipe also empties the
- * catalog cache, so a logged-out kiosk keeps no merchant data (FR-004 AC3).
+ * catalog cache and forgets the pending order, so a logged-out kiosk keeps no merchant data (FR-004 AC3).
  */
 @Singleton
 internal class DeviceSession
@@ -34,6 +34,7 @@ internal class DeviceSession
         private val deviceStore: DeviceStore,
         private val credentials: InMemoryDeviceCredentialsStore,
         private val catalogCache: CatalogCache,
+        private val pendingOrders: PendingOrderCache,
     ) {
         private val mutex = Mutex()
         private val mutableState = MutableStateFlow<DeviceState>(DeviceState.NotActivated)
@@ -93,8 +94,8 @@ internal class DeviceSession
             }
 
         /**
-         * Forgets the token, device, binding and cached catalog (Log out FR-004 AC3, HTTP 401 TR-NET-06). Never
-         * throws.
+         * Forgets the token, device, binding, cached catalog and pending order (Log out FR-004 AC3, HTTP 401
+         * TR-NET-06). Never throws.
          */
         suspend fun wipe(reason: String) {
             mutex.withLock {
@@ -103,6 +104,7 @@ internal class DeviceSession
                 mutableState.value = DeviceState.NotActivated
             }
             catalogCache.clear()
+            pendingOrders.clear()
         }
 
         private suspend fun read(): DeviceState {

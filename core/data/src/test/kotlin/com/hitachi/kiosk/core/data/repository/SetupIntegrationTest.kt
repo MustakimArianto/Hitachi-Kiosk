@@ -46,7 +46,10 @@ class SetupIntegrationTest {
     private val tokens = InMemoryTokenStore()
     private val credentials = InMemoryDeviceCredentialsStore()
     private val catalogStore = InMemoryCatalogStore()
-    private val session by lazy { DeviceSession(tokens, newDeviceStore(folder.root), credentials, catalogStore) }
+    private val pendingOrders = InMemoryPendingOrderStore()
+    private val session by lazy {
+        DeviceSession(tokens, newDeviceStore(folder.root), credentials, catalogStore, pendingOrders)
+    }
     private val config by lazy {
         ApiConfig(
             baseUrl = server.url("/").toString(),

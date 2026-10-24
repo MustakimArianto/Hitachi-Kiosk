@@ -169,6 +169,83 @@ class DefaultCatalogSyncRepositoryTest {
         }
 
     @Test
+    fun `syncNow stores the new catalog at once even during an order (FR-016, DEV-046)`() =
+        runTest {
+            sync.sync(SampleData.MERCHANT_ID)
+            orders.chooseOrderType(OrderType.DINE_IN, "menu-118", "cfg-42")
+            backend.menu.succeed(Conditional.Modified(newMenu, "\"menu-119\""))
+
+            assertThat(sync.syncNow(SampleData.MERCHANT_ID)).isEqualTo(Outcome.Success(KioskMode.SINGLE))
+
+            assertThat(store.stored?.catalog?.menu).isEqualTo(newMenu)
+            assertThat(store.stored?.stamp?.menuEtag).isEqualTo("\"menu-119\"")
+            assertThat(images.requests).hasSize(2)
+            // Nothing is left to apply later.
+            orders.endOrder()
+            sync.applyPending()
+            assertThat(store.writes).isEqualTo(2)
+        }
+
+    @Test
+    fun `syncNow supersedes a catalog held back earlier and sends its ETags`() =
+        runTest {
+            sync.sync(SampleData.MERCHANT_ID)
+            orders.chooseOrderType(OrderType.DINE_IN, "menu-118", "cfg-42")
+            backend.menu.succeed(Conditional.Modified(newMenu, "\"menu-119\""))
+            sync.sync(SampleData.MERCHANT_ID)
+            assertThat(store.stored?.catalog?.menu).isEqualTo(SampleData.menu)
+            val newest = newMenu.copy(menuVersion = "menu-120")
+            backend.menu.succeed(Conditional.Modified(newest, "\"menu-120\""))
+
+            sync.syncNow(SampleData.MERCHANT_ID)
+
+            assertThat(backend.callsTo(Endpoint.E6).last().args).containsExactly(SampleData.MERCHANT_ID, "\"menu-119\"")
+            assertThat(store.stored?.catalog?.menu).isEqualTo(newest)
+            orders.endOrder()
+            sync.applyPending()
+            assertThat(store.stored?.catalog?.menu).isEqualTo(newest)
+        }
+
+    @Test
+    fun `syncNow with nothing newer still applies the catalog that was held back`() =
+        runTest {
+            sync.sync(SampleData.MERCHANT_ID)
+            orders.chooseOrderType(OrderType.DINE_IN, "menu-118", "cfg-42")
+            backend.menu.succeed(Conditional.Modified(newMenu, "\"menu-119\""))
+            sync.sync(SampleData.MERCHANT_ID)
+            backend.config.succeed(Conditional.NotModified)
+            backend.menu.succeed(Conditional.NotModified)
+
+            assertThat(sync.syncNow(SampleData.MERCHANT_ID)).isEqualTo(Outcome.Success(KioskMode.SINGLE))
+
+            assertThat(store.stored?.catalog?.menu).isEqualTo(newMenu)
+        }
+
+    @Test
+    fun `syncNow with nothing newer and nothing held back writes nothing`() =
+        runTest {
+            sync.sync(SampleData.MERCHANT_ID)
+            backend.config.succeed(Conditional.NotModified)
+            backend.menu.succeed(Conditional.NotModified)
+
+            sync.syncNow(SampleData.MERCHANT_ID)
+
+            assertThat(store.writes).isEqualTo(1)
+        }
+
+    @Test
+    fun `a failed syncNow keeps the catalog the order started with`() =
+        runTest {
+            sync.sync(SampleData.MERCHANT_ID)
+            orders.chooseOrderType(OrderType.DINE_IN, "menu-118", "cfg-42")
+            backend.menu.fail(DomainError.Network())
+
+            assertThat(sync.syncNow(SampleData.MERCHANT_ID)).isEqualTo(Outcome.Failure(DomainError.Network()))
+
+            assertThat(store.stored?.catalog?.menu).isEqualTo(SampleData.menu)
+        }
+
+    @Test
     fun `images are prefetched after a write (NFR-013)`() =
         runTest {
             val withImages =

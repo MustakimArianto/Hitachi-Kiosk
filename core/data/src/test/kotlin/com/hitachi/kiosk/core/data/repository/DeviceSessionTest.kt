@@ -22,7 +22,8 @@ class DeviceSessionTest {
     private val deviceStore by lazy { newDeviceStore(folder.root) }
     private val credentials = InMemoryDeviceCredentialsStore()
     private val catalogStore = InMemoryCatalogStore()
-    private val session by lazy { DeviceSession(tokens, deviceStore, credentials, catalogStore) }
+    private val pendingOrders = InMemoryPendingOrderStore()
+    private val session by lazy { DeviceSession(tokens, deviceStore, credentials, catalogStore, pendingOrders) }
 
     private val token = SampleData.activation.deviceToken
 
@@ -117,8 +118,9 @@ class DeviceSessionTest {
         }
 
     @Test
-    fun `wipe forgets the token, the device, the credentials and the catalog`() =
+    fun `wipe forgets the token, the device, the credentials, the catalog and the pending order`() =
         runTest {
+            pendingOrders.stored = SamplePendingOrder
             session.saveActivation(SampleData.activation)
             session.saveBinding(SampleData.boundMerchant, KioskMode.SINGLE)
 
@@ -129,6 +131,7 @@ class DeviceSessionTest {
             assertThat(deviceStore.read()).isNull()
             assertThat(credentials.current()).isNull()
             assertThat(catalogStore.clears).isEqualTo(1)
+            assertThat(pendingOrders.stored).isNull()
             assertThat(session.load()).isEqualTo(DeviceState.NotActivated)
         }
 }

@@ -25,7 +25,8 @@ internal class SetupHarness(
     val deviceStore = newDeviceStore(folder)
     val credentials = InMemoryDeviceCredentialsStore()
     val catalogStore = InMemoryCatalogStore()
-    val session = DeviceSession(tokens, deviceStore, credentials, catalogStore)
+    val pendingOrders = InMemoryPendingOrderStore()
+    val session = DeviceSession(tokens, deviceStore, credentials, catalogStore, pendingOrders)
     val catalog =
         DefaultCatalogSyncRepository(
             backend,

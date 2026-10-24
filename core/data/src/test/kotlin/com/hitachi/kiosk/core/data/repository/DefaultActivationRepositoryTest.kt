@@ -73,7 +73,13 @@ private class SetupHarnessRestart(
     harness: SetupHarness,
 ) {
     private val session =
-        DeviceSession(harness.tokens, harness.deviceStore, InMemoryDeviceCredentialsStore(), harness.catalogStore)
+        DeviceSession(
+            harness.tokens,
+            harness.deviceStore,
+            InMemoryDeviceCredentialsStore(),
+            harness.catalogStore,
+            harness.pendingOrders,
+        )
 
     suspend fun load(): DeviceState = session.load()
 }

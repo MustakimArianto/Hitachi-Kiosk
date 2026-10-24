@@ -204,6 +204,13 @@ data class Cart(
     /** The trash icon or "Remove" (FR-012, FR-016 `ITEM_UNAVAILABLE`): the line is gone. An unknown line is ignored. */
     fun remove(lineId: String): Cart = copy(lines = lines.filterNot { it.lineId == lineId })
 
+    /**
+     * The same lines with a new unit price for each line in [unitPrices] (line ID → price); other lines keep theirs.
+     * Used when `PRICE_CHANGED` re-prices the cart from a refreshed menu (FR-016, DEV-046).
+     */
+    fun withUnitPrices(unitPrices: Map<String, Rupiah>): Cart =
+        copy(lines = lines.map { line -> unitPrices[line.lineId]?.let { line.copy(unitPrice = it) } ?: line })
+
     /** Adds [quantity] to the line at [index], capped at [MAX_PER_LINE]; a full line does not change. */
     private fun merge(
         index: Int,

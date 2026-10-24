@@ -1,3 +1,4 @@
+import com.android.build.api.variant.HasUnitTest
 import com.hitachi.kiosk.buildlogic.kioskCoverage
 
 // Retrofit API, DTOs and mappers, interceptors and error mapping (architecture §3, §7).
@@ -10,6 +11,17 @@ plugins {
 
 android {
     namespace = "com.hitachi.kiosk.core.data"
+}
+
+// The exported Room schemas feed MigrationTestHelper in the unit tests (technical-design §6.1, TR-DAT-04).
+androidComponents {
+    onVariants { variant ->
+        (variant as? HasUnitTest)
+            ?.unitTest
+            ?.sources
+            ?.assets
+            ?.addStaticSourceDirectory("$projectDir/schemas")
+    }
 }
 
 // Room schemas are committed (technical-design §6.1, TR-DAT-04).
@@ -49,6 +61,7 @@ dependencies {
     testImplementation(libs.robolectric)
     testImplementation(libs.androidx.test.core)
     testImplementation(libs.androidx.work.testing)
+    testImplementation(libs.androidx.room.testing)
 }
 
 kioskCoverage(minLinePercent = 70)

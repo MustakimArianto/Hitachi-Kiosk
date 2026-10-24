@@ -16,6 +16,13 @@ interface CatalogSyncRepository {
      */
     suspend fun sync(merchantId: String): Outcome<KioskMode>
 
+    /**
+     * [sync], but the new catalog is stored at once even while an order is in progress, together with any catalog held
+     * back earlier. This is the one exception to A-29: after E7 answered `PRICE_CHANGED` the order has to be re-priced
+     * from the backend's current menu (FR-016, DEV-046). A failure keeps the previous catalog.
+     */
+    suspend fun syncNow(merchantId: String): Outcome<KioskMode>
+
     /** Stores a catalog that arrived during an order, if there is one (FR-028, A-29). Call it when the order ends. */
     suspend fun applyPending()
 }
