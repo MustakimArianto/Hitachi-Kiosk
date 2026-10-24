@@ -13,8 +13,8 @@ import kotlinx.coroutines.flow.stateIn
 import javax.inject.Inject
 
 /**
- * The merchant accent for the theme root (A-38, architecture §12): config `accentColor` from the cached catalog, or
- * `null` (the default paprika) before a merchant is bound or when the value is malformed.
+ * The merchant branding for the theme root (A-38, architecture §12), from the cached catalog's config: the `accentColor`,
+ * or `null` (the default paprika) before a merchant is bound or when the value is malformed, and the `logoUrl`.
  */
 @HiltViewModel
 class BrandingViewModel
@@ -25,6 +25,11 @@ class BrandingViewModel
         val accent: StateFlow<Color?> =
             catalog.catalog
                 .map { parseHexColor(it?.config?.accentColor) }
+                .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS), null)
+
+        val logoUrl: StateFlow<String?> =
+            catalog.catalog
+                .map { it?.config?.logoUrl }
                 .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS), null)
 
         private companion object {

@@ -29,6 +29,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.em
 import com.hitachi.kiosk.R
 import com.hitachi.kiosk.core.designsystem.component.BrandLockup
+import com.hitachi.kiosk.core.designsystem.component.BrandMarkTile
 import com.hitachi.kiosk.core.designsystem.component.KioskIcon
 import com.hitachi.kiosk.core.designsystem.component.KioskIcons
 import com.hitachi.kiosk.core.designsystem.component.KioskText
@@ -43,6 +44,7 @@ import com.hitachi.kiosk.core.designsystem.unit.DesignFrame
 import com.hitachi.kiosk.core.designsystem.unit.dpx
 import com.hitachi.kiosk.core.designsystem.unit.spx
 import com.hitachi.kiosk.core.domain.model.OrderType
+import com.hitachi.kiosk.ui.MerchantLogoImage
 import com.hitachi.kiosk.core.designsystem.motion.KioskMotion.OrderType as Motion
 
 /** Test tag of the Order type root. */
@@ -115,7 +117,7 @@ private fun OrderTypeHeader(brandName: String) {
                 .fadeIn(fade),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        BrandLockup(name = brandName)
+        BrandLockup(name = brandName, logo = { MerchantLogoImage() })
     }
 }
 
@@ -130,7 +132,7 @@ private fun Welcome(brandName: String) {
     val welcomeText = stringResource(R.string.order_type_welcome)
     val heading = stringResource(R.string.order_type_welcome_description, brandName)
     Column(verticalArrangement = Arrangement.spacedBy(16.dpx)) {
-        Box(
+        BrandMarkTile(
             modifier =
                 Modifier
                     .padding(bottom = 40.dpx)
@@ -141,11 +143,11 @@ private fun Welcome(brandName: String) {
                         val scale = LOGO_FROM_SCALE + (1f - LOGO_FROM_SCALE) * p
                         scaleX = scale
                         scaleY = scale
-                    }.background(colors.ink, KioskTheme.shapes.dock),
-            contentAlignment = Alignment.Center,
-        ) {
-            Box(Modifier.size(56.dpx).background(colors.accent, CircleShape))
-        }
+                    },
+            shape = KioskTheme.shapes.dock,
+            dotSize = 56.dpx,
+            logo = { MerchantLogoImage() },
+        )
         Column(
             modifier =
                 Modifier.semantics(mergeDescendants = true) {

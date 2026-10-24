@@ -5,6 +5,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -14,6 +15,7 @@ import com.hitachi.kiosk.devtools.DeveloperMenu
 import com.hitachi.kiosk.devtools.DeveloperMenuTapCounter
 import com.hitachi.kiosk.navigation.BrandingViewModel
 import com.hitachi.kiosk.navigation.KioskRoot
+import com.hitachi.kiosk.ui.LocalMerchantLogoUrl
 import com.hitachi.kiosk.ui.rememberSystemReduceMotion
 import dagger.hilt.android.AndroidEntryPoint
 import java.util.Optional
@@ -37,8 +39,11 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             val accent by branding.accent.collectAsStateWithLifecycle()
+            val logoUrl by branding.logoUrl.collectAsStateWithLifecycle()
             KioskTheme(accent = accent ?: KioskPalette.AccentPaprika, reduceMotion = rememberSystemReduceMotion()) {
-                KioskRoot(onBrandMarkClick = ::onBrandMarkClick)
+                CompositionLocalProvider(LocalMerchantLogoUrl provides logoUrl) {
+                    KioskRoot(onBrandMarkClick = ::onBrandMarkClick)
+                }
             }
         }
     }

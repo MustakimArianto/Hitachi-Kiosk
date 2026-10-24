@@ -50,6 +50,7 @@ import com.hitachi.kiosk.core.designsystem.theme.kioskShadow
 import com.hitachi.kiosk.core.designsystem.unit.dpx
 import com.hitachi.kiosk.core.designsystem.unit.spx
 import com.hitachi.kiosk.core.domain.model.PaymentMethod
+import com.hitachi.kiosk.ui.MerchantLogoImage
 import com.hitachi.kiosk.ui.qr.QrCode
 
 /** The state area fades up over 600 ms after 160 ms (`stateIn`). */
@@ -267,7 +268,7 @@ private fun QrBlock(
             modifier = Modifier.testTag(CHECKOUT_QR_TAG),
             contentDescription = stringResource(R.string.checkout_qr_description),
             onEncodeFailed = onEncodeFailed,
-            centerMark = { QrCenterMark() },
+            centerMark = { QrCenterMark(logo = { MerchantLogoImage() }) },
         )
     }
 }

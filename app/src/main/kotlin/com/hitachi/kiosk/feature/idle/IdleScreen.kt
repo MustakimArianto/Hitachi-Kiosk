@@ -55,6 +55,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.em
 import com.hitachi.kiosk.R
+import com.hitachi.kiosk.core.designsystem.component.BrandMarkTile
 import com.hitachi.kiosk.core.designsystem.component.KioskIcon
 import com.hitachi.kiosk.core.designsystem.component.KioskIcons
 import com.hitachi.kiosk.core.designsystem.component.KioskText
@@ -71,6 +72,7 @@ import com.hitachi.kiosk.core.designsystem.theme.kioskShadow
 import com.hitachi.kiosk.core.designsystem.unit.DesignFrame
 import com.hitachi.kiosk.core.designsystem.unit.dpx
 import com.hitachi.kiosk.core.designsystem.unit.spx
+import com.hitachi.kiosk.ui.MerchantLogoImage
 
 /** Test tag of the Idle root. */
 const val IDLE_SCREEN_TAG = "screen:SCR-04"
@@ -193,7 +195,7 @@ private fun IdleHeader(
     }
 }
 
-/** The white merchant chip: the ink tile with the accent dot and the name (34/700). */
+/** The white merchant chip: the brand tile (the merchant logo, else the ink tile with the accent dot) and the name (34/700). */
 @Composable
 private fun BrandChip(
     name: String,
@@ -212,15 +214,12 @@ private fun BrandChip(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(18.dpx),
     ) {
-        Box(
-            modifier =
-                Modifier
-                    .size(80.dpx)
-                    .background(colors.ink, KioskTheme.shapes.small),
-            contentAlignment = Alignment.Center,
-        ) {
-            Box(Modifier.size(26.dpx).background(colors.accent, CircleShape))
-        }
+        BrandMarkTile(
+            modifier = Modifier.size(80.dpx),
+            shape = KioskTheme.shapes.small,
+            dotSize = 26.dpx,
+            logo = { MerchantLogoImage() },
+        )
         KioskText(
             text = name,
             style = KioskTheme.typography.button,

@@ -32,6 +32,7 @@ import com.hitachi.kiosk.core.designsystem.theme.KioskTheme
 import com.hitachi.kiosk.core.designsystem.unit.DesignFrame
 import com.hitachi.kiosk.core.designsystem.unit.dpx
 import com.hitachi.kiosk.core.domain.model.PaymentMethod
+import com.hitachi.kiosk.ui.MerchantLogoImage
 
 /** Test tag of the Checkout root; the edge-walk test finds screens by it. */
 const val CHECKOUT_SCREEN_TAG = "screen:SCR-11"
@@ -140,7 +141,7 @@ private fun CheckoutHeader(brandName: String) {
                 .fadeIn(fade),
         contentAlignment = Alignment.CenterStart,
     ) {
-        BrandLockup(name = brandName)
+        BrandLockup(name = brandName, logo = { MerchantLogoImage() })
     }
 }
 

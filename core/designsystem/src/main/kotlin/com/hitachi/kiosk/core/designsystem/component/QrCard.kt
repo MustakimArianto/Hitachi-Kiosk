@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -123,12 +124,13 @@ fun QrCard(
 /**
  * The merchant mark that sits in the middle of the QR (`Checkout.dc.html`): a white rounded chip, an ink tile and
  * an [accent] dot. It fills whatever space it is given (the QR gives it at most 20 % of its width, TD-07) and
- * scales its radii and inner tile with it. Pass your own content to the QR's centre slot instead for a logo image.
+ * scales its radii and inner tile with it. [logo] is drawn over the inner tile when the merchant has a logo.
  */
 @Composable
 fun QrCenterMark(
     modifier: Modifier = Modifier,
     accent: Color = KioskTheme.colors.accent,
+    logo: @Composable BoxScope.() -> Unit = {},
 ) {
     val colors = KioskTheme.colors
     val chip = RoundedCornerShape(percent = MARK_RADIUS_PERCENT)
@@ -141,6 +143,7 @@ fun QrCenterMark(
             contentAlignment = Alignment.Center,
         ) {
             Box(Modifier.fillMaxSize(MARK_DOT_FRACTION).clip(CircleShape).background(accent))
+            logo()
         }
     }
 }

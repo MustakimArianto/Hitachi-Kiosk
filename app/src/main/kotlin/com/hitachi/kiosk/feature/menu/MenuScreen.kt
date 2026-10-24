@@ -69,6 +69,7 @@ import com.hitachi.kiosk.core.designsystem.unit.dpx
 import com.hitachi.kiosk.core.designsystem.unit.spx
 import com.hitachi.kiosk.core.domain.model.OrderType
 import com.hitachi.kiosk.core.domain.time.DayPart
+import com.hitachi.kiosk.ui.MerchantLogoImage
 
 /** Test tag of the Menu root; the edge-walk test finds screens by it. */
 const val MENU_SCREEN_TAG = "screen:SCR-06"
@@ -238,7 +239,7 @@ private fun MenuHeader(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
-        BrandLockup(name = brandName)
+        BrandLockup(name = brandName, logo = { MerchantLogoImage() })
         Row(horizontalArrangement = Arrangement.spacedBy(16.dpx)) {
             val changeDescription = stringResource(R.string.menu_change_description, orderLabel)
             OutlinePill(

@@ -274,8 +274,36 @@ private fun MerchantCardLayout(
     }
 }
 
+/**
+ * The 272 dpx picture box of a live card. The merchant logo fills the whole box when there is one (PO, 2026-10-25,
+ * `ui-design/photo-guidelines.md` §5). Without a logo it is the design's cover photo with the initial chip on it. The
+ * initial shows until the logo loads, and stays when it fails (NFR-013).
+ */
 @Composable
 private fun MerchantPhoto(merchant: MerchantCardUi) {
+    val logoDescription = stringResource(R.string.merchants_logo_description, merchant.name)
+    val initial = merchant.name.take(1).uppercase()
+    val logoUrl = merchant.logoUrl
+    if (logoUrl != null) {
+        PhotoSlot(
+            contentDescription = logoDescription,
+            modifier = Modifier.size(272.dpx),
+            shape = KioskTheme.shapes.large,
+        ) {
+            KioskText(
+                text = initial,
+                style = KioskTheme.typography.display.copy(fontSize = 96.spx),
+                modifier = Modifier.align(Alignment.Center),
+            )
+            AsyncImage(
+                model = logoUrl,
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.matchParentSize(),
+            )
+        }
+        return
+    }
     Box {
         PhotoSlot(
             contentDescription = null,
@@ -291,7 +319,6 @@ private fun MerchantPhoto(merchant: MerchantCardUi) {
                 )
             }
         }
-        val logoDescription = stringResource(R.string.merchants_logo_description, merchant.name)
         Box(
             modifier =
                 Modifier
@@ -305,19 +332,7 @@ private fun MerchantPhoto(merchant: MerchantCardUi) {
                     },
             contentAlignment = Alignment.Center,
         ) {
-            // The initial shows until the logo loads, and stays when there is none or it fails (NFR-013).
-            KioskText(
-                text = merchant.name.take(1).uppercase(),
-                style = KioskTheme.typography.section.copy(fontSize = 36.spx),
-            )
-            merchant.logoUrl?.let { logoUrl ->
-                AsyncImage(
-                    model = logoUrl,
-                    contentDescription = null,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.matchParentSize(),
-                )
-            }
+            KioskText(text = initial, style = KioskTheme.typography.section.copy(fontSize = 36.spx))
         }
     }
 }
