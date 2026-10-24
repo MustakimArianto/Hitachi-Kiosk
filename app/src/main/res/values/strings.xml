@@ -227,6 +227,52 @@
     <string name="still_there_tap_anywhere">Tap anywhere to keep ordering</string>
     <!-- end SCR-13 -->
 
+    <!-- SCR-11 Checkout (Checkout.dc.html, S_Checkout_*, FR-016–FR-019) -->
+    <string name="checkout_amount_label">Amount to pay</string>
+    <string name="checkout_secure">Secure payment</string>
+    <string name="checkout_methods_description">Payment method</string>
+    <string name="checkout_method_qris">QRIS</string>
+    <string name="checkout_method_card">Debit / credit card</string>
+    <string name="checkout_waiting">Waiting for your payment</string>
+    <string name="checkout_qr_title">QRIS</string>
+    <string name="checkout_qr_caption">%1$s · %2$s</string>
+    <string name="checkout_qr_description">Payment QR code</string>
+    <string name="checkout_qr_expires_in">Code expires in %1$s</string>
+    <string name="checkout_card_title">Tap, insert or swipe\non the terminal below</string>
+    <string name="checkout_card_accepted">Visa, Mastercard and GPN accepted · contactless works too</string>
+    <string name="checkout_terminal_amount">Amount</string>
+    <string name="checkout_back_to_order">Back to order</string>
+    <string name="checkout_creating_title">Creating your payment…</string>
+    <string name="checkout_creating_text_qr">Setting up your QR code. This only takes a moment.</string>
+    <string name="checkout_creating_text_card">Getting the card terminal ready.</string>
+    <string name="checkout_checking_title">Checking your payment…</string>
+    <string name="checkout_checking_text">We haven’t seen it yet. Please keep this screen open.</string>
+    <string name="checkout_processing_title">Confirming payment</string>
+    <string name="checkout_processing_text_qr">Waiting for your bank to confirm. Please keep this screen open.</string>
+    <string name="checkout_processing_text_card">Keep your card on the terminal until it beeps.</string>
+    <string name="checkout_failed_expired_title">QR code expired</string>
+    <string name="checkout_failed_expired_text">The QR code expired before we received your payment.</string>
+    <string name="checkout_failed_cancelled_title">Payment cancelled</string>
+    <string name="checkout_failed_cancelled_text_qr">The payment was cancelled in your app. Try again with a fresh code, or choose another method.</string>
+    <string name="checkout_failed_cancelled_text_card">The payment was cancelled on the terminal. Try again or choose another method.</string>
+    <string name="checkout_failed_declined_title">Card declined</string>
+    <string name="checkout_failed_declined_text">Your bank declined the card. Try again or use another card.</string>
+    <string name="checkout_failed_timeout_title">Terminal not responding</string>
+    <string name="checkout_failed_timeout_text">The card terminal didn’t respond. Try again or pay with QRIS.</string>
+    <string name="checkout_failed_generic_title">Payment didn’t go through</string>
+    <string name="checkout_failed_generic_text">Something went wrong. Please try again.</string>
+    <string name="checkout_failed_unreachable_text">Can\'t reach the restaurant system. Please try again.</string>
+    <string name="checkout_failed_paused_title">Ordering is paused</string>
+    <string name="checkout_failed_paused_text">Ordering is paused — reconnecting…</string>
+    <string name="checkout_failed_not_charged">You have not been charged · your order is saved</string>
+    <string name="checkout_failed_saved">Your order is saved</string>
+    <string name="checkout_pay_by_card">Pay by card instead</string>
+    <string name="checkout_pay_by_qris">Pay by QRIS instead</string>
+    <string name="checkout_cancel_order">Cancel order</string>
+    <string name="checkout_try_again">Try again</string>
+    <string name="checkout_reconnecting">Reconnecting…</string>
+    <!-- end SCR-11 -->
+
     <!-- SCR-09 Upsell (Upsell.dc.html, FR-014) -->
     <string name="upsell_eyebrow">Before you pay</string>
     <string name="upsell_title">Anything on the side?</string>

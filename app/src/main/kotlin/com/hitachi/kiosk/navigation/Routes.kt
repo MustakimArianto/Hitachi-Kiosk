@@ -1,5 +1,6 @@
 package com.hitachi.kiosk.navigation
 
+import com.hitachi.kiosk.core.domain.model.PaymentMethod
 import kotlinx.serialization.Serializable
 
 // Type-safe routes, one per screen of PRD §4 (architecture §11). SCR-13 "Still there?" is an overlay above the
@@ -42,8 +43,18 @@ import kotlinx.serialization.Serializable
 /** SCR-10. */
 @Serializable data object YourOrderRoute
 
-/** SCR-11. */
-@Serializable data object CheckoutRoute
+/**
+ * SCR-11. Only the chosen method travels, by name (an enum argument would need `@Keep` for minified builds, which
+ * `:core:domain` cannot declare); the order is in the session (FR-016, FR-017, FR-018).
+ */
+@Serializable data class CheckoutRoute(
+    val method: String,
+) {
+    constructor(method: PaymentMethod) : this(method.name)
+
+    /** The method to pay with. */
+    val paymentMethod: PaymentMethod get() = PaymentMethod.valueOf(method)
+}
 
 /** SCR-12. */
 @Serializable data object CompleteRoute

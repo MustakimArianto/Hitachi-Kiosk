@@ -11,6 +11,7 @@ import androidx.navigation.compose.navigation
 import com.hitachi.kiosk.R
 import com.hitachi.kiosk.feature.activation.SignInRoute as SignInFeatureRoute
 import com.hitachi.kiosk.feature.budgetplan.BudgetPlanRoute as BudgetPlanFeatureRoute
+import com.hitachi.kiosk.feature.checkout.CheckoutRoute as CheckoutFeatureRoute
 import com.hitachi.kiosk.feature.combo.ComboRoute as ComboFeatureRoute
 import com.hitachi.kiosk.feature.idle.IdleRoute as IdleFeatureRoute
 import com.hitachi.kiosk.feature.item.ItemDetailRoute as ItemDetailFeatureRoute
@@ -129,21 +130,18 @@ private fun NavGraphBuilder.checkoutDestinations(navController: NavHostControlle
     composable<YourOrderRoute> {
         YourOrderFeatureRoute(
             onBackToMenu = { navController.popBackStack(MenuRoute, false) },
-            // The chosen method reaches Checkout with order submission in 0.5.0 (DEV-046).
-            onPay = { navController.navigate(CheckoutRoute) },
+            // Checkout submits the order (E7) and starts the payment with the chosen method (FR-016).
+            onPay = { method -> navController.navigate(CheckoutRoute(method)) { launchSingleTop = true } },
         )
     }
     composable<CheckoutRoute> {
-        PlaceholderScreen(
-            screenId = "SCR-11",
-            title = R.string.screen_checkout,
-            actions =
-                listOf(
-                    PlaceholderAction(R.string.nav_back_to_order) { navController.popBackStack(YourOrderRoute, false) },
-                    PlaceholderAction(R.string.nav_paid) {
-                        navController.navigate(CompleteRoute) { popUpTo(IdleRoute) }
-                    },
-                ),
+        CheckoutFeatureRoute(
+            // "Back to order", PRICE_CHANGED and ITEM_UNAVAILABLE return to Your order with the cart intact.
+            onNavigateToYourOrder = { navController.popBackStack(YourOrderRoute, false) },
+            // Paid: Complete replaces the order screens, so Back cannot return to Checkout (A-15).
+            onNavigateToComplete = { navController.navigate(CompleteRoute) { popUpTo(IdleRoute) } },
+            // "Cancel order" ends the order and returns to Idle (FR-019).
+            onNavigateToIdle = { navController.popBackStack(IdleRoute, false) },
         )
     }
     composable<CompleteRoute> {
