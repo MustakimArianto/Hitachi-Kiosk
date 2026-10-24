@@ -136,6 +136,9 @@ object KioskPalette {
     /** `switchOff`: the track of a switch that is off (Budget Plan "Include sides"). */
     val SwitchOff = Color(0xFFD9D3CA)
 
+    /** `disabledText`: the label of a light button that cannot be pressed (Checkout "Reconnecting…"). */
+    val DisabledText = Color(0xFF8A837A)
+
     /** The floating elevation's shadow color, `rgba(23,21,19,.10)` (PRD §11.1). */
     val FloatingShadow = Ink.copy(alpha = 0.10f)
 

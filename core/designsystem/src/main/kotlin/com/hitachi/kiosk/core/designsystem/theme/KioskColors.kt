@@ -51,6 +51,7 @@ data class KioskColors(
     val shortBg: Color = KioskPalette.ShortBg,
     val rowDivider: Color = KioskPalette.RowDivider,
     val switchOff: Color = KioskPalette.SwitchOff,
+    val disabledText: Color = KioskPalette.DisabledText,
     val sheetScrim: Color = KioskPalette.SheetScrim,
 )
 

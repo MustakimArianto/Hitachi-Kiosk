@@ -61,6 +61,7 @@ fun DeveloperOptionsScreen(
     onBackendModeChange: (BackendMode) -> Unit,
     onScenarioChange: (FakeScenario) -> Unit,
     onIdentityModeChange: (IdentityMode) -> Unit,
+    onTerminalModeChange: (TerminalMode) -> Unit,
     serialActions: SerialActions,
     onClose: () -> Unit,
     modifier: Modifier = Modifier,
@@ -140,6 +141,8 @@ fun DeveloperOptionsScreen(
             selected = settings.identityMode == IdentityMode.REAL,
         ) { onIdentityModeChange(IdentityMode.REAL) }
 
+        TerminalSection(mode = settings.terminalMode, onModeChange = onTerminalModeChange)
+
         SerialDiagnosticsSection(
             diagnostics = serial,
             onRefresh = serialActions.onRefresh,
@@ -161,6 +164,44 @@ fun DeveloperOptionsScreen(
         ) {
             KioskText(text = stringResource(R.string.dev_options_close), style = typography.button, color = colors.bg)
         }
+    }
+}
+
+/** The card terminal source of Checkout (FR-018, DEV-049): one choice per [TerminalMode]. */
+@Composable
+private fun TerminalSection(
+    mode: TerminalMode,
+    onModeChange: (TerminalMode) -> Unit,
+) {
+    val colors = KioskTheme.colors
+    KioskText(
+        text = stringResource(R.string.dev_options_terminal),
+        style = KioskTheme.typography.section,
+        color = colors.ink,
+    )
+    KioskText(
+        text = stringResource(R.string.dev_options_terminal_hint),
+        style = KioskTheme.typography.meta,
+        color = colors.muted,
+    )
+    listOf(
+        Triple(TerminalMode.MANUAL, R.string.dev_options_terminal_manual, R.string.dev_options_terminal_manual_hint),
+        Triple(TerminalMode.APPROVE, R.string.dev_options_terminal_approve, R.string.dev_options_terminal_approve_hint),
+        Triple(TerminalMode.DECLINE, R.string.dev_options_terminal_decline, R.string.dev_options_terminal_decline_hint),
+        Triple(
+            TerminalMode.CUSTOMER_CANCEL,
+            R.string.dev_options_terminal_cancel,
+            R.string.dev_options_terminal_cancel_hint,
+        ),
+        Triple(TerminalMode.ERROR, R.string.dev_options_terminal_error, R.string.dev_options_terminal_error_hint),
+        Triple(
+            TerminalMode.NO_ANSWER,
+            R.string.dev_options_terminal_no_answer,
+            R.string.dev_options_terminal_no_answer_hint,
+        ),
+        Triple(TerminalMode.REAL, R.string.dev_options_terminal_real, R.string.dev_options_terminal_real_hint),
+    ).forEach { (option, label, hint) ->
+        Choice(label = label, hint = stringResource(hint), selected = mode == option) { onModeChange(option) }
     }
 }
 
@@ -232,6 +273,7 @@ private fun DeveloperOptionsScreenPreview() {
                 onBackendModeChange = {},
                 onScenarioChange = {},
                 onIdentityModeChange = {},
+                onTerminalModeChange = {},
                 serialActions = SerialActions(onRefresh = {}, onClearCache = {}, onCopy = {}, onShare = {}),
                 onClose = {},
             )

@@ -64,6 +64,7 @@ class DeveloperOptionsActivity : ComponentActivity() {
                         onBackendModeChange = { mode -> scope.launch { store.setBackendMode(mode) } },
                         onScenarioChange = { scenario -> scope.launch { store.setScenario(scenario) } },
                         onIdentityModeChange = { mode -> scope.launch { store.setIdentityMode(mode) } },
+                        onTerminalModeChange = { mode -> scope.launch { store.setTerminalMode(mode) } },
                         serialActions =
                             SerialActions(
                                 onRefresh = refresh,
