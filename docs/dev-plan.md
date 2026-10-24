@@ -32,16 +32,16 @@ Everything below is therefore greenfield. No existing code is changed or migrate
 |---|---|---|---|---|
 | 0.1.0 | Foundation | 1 | NFR-001/002/011/012, contract | — |
 | 0.2.0 | Device activation & setup | 1 | FR-001–005 | iMin device for SN spike (DEP-4) |
-| 0.3.0 | Catalog: idle, order type, menu, item, combo | 1.75 | FR-006, FR-007, FR-009–011, FR-028 (sync), NFR-013 | — |
+| 0.3.0 | Catalog: idle, order type, menu, item, combo | 1.5 | FR-006, FR-007, FR-009–011, FR-028 (sync), NFR-013 | — |
 | 0.4.0 | Cart, pricing, Budget Plan, upsell & inactivity | 2.75 | FR-012–015, FR-023, FR-032 | Menu role tags in mock (DEP-8) |
 | 0.5.0 | Order submission & payments (fakes) | 2 | FR-016–019, FR-028 (offline gate), NFR-017 | Gateway + EDC specs (DEP-2/3) |
 | 0.6.0 | Printing & completion | 1.5 | FR-020–022, NFR-016 | Test printers (DEP-7) |
 | 0.7.0 | Staff settings & kiosk lockdown | 1.5 | FR-024–027, FR-029–031 | MDM/provisioning answer (OQ-10) |
 | 0.8.0 | Accessibility, motion & performance | 0.75 | NFR-003/007/008/009 | — |
 | 0.9.0 | Release candidate: real integrations & pilot | 1.5 | FR-017/018 real, NFR-004/005/006/014/015 | Real backend, gateway sandbox, EDC (DEP-1/2/3), pilot content (DEP-6) |
-| 1.0.0 | Release | 0.5 | All MVP | Sign-off |
+| 1.0.0 | Performance benchmarks & release | 0.75 | NFR-003 benchmarks (DEV-031), all MVP | iMin device for the benchmarks, sign-off |
 
-Total ≈ 14.25 weeks (1 + 1 + 1.75 + 2.75 + 2 + 1.5 + 1.5 + 0.75 + 1.5 + 0.5). That is about 1.25 weeks over the 13-week (3-month) target, shown on purpose: Budget Plan (D-26) adds ~1.25 weeks. Compared with the previous 14.75-week plan:
+Total ≈ 14.25 weeks (1 + 1 + 1.5 + 2.75 + 2 + 1.5 + 1.5 + 0.75 + 1.5 + 0.75). The benchmarks (DEV-031, ~0.25 week) moved from 0.3.0 to 1.0.0 on 2026-10-24 (PO), so the total is unchanged. That is about 1.25 weeks over the 13-week (3-month) target, shown on purpose: Budget Plan (D-26) adds ~1.25 weeks. Compared with the previous 14.75-week plan:
 - 0.3.0 loses 0.25 week: runtime language switching (DEV-026) is removed and the Menu no longer has a promo carousel.
 - 0.8.0 loses 0.25 week: no Bahasa translation, native-speaker review or two-language screenshot matrix.
 - 0.4.0 is unchanged at 2.75 weeks: the Customize sheet and the swap-with-rebalancing (+0.25) are offset by the designs now existing (no interim Upsell/Budget Plan UI, no restyle task, no EN/ID strings) (−0.25).
@@ -218,8 +218,8 @@ All 0.2.0 TCs pass. The SN source is decided (or explicitly accepted as a risk b
 A customer can start an order and browse and customize the full menu with design-fidelity UI, backed by a synced, cached menu that works offline.
 
 ### Scope
-**Included:** Menu/config domain models, Room cache, versioned sync and periodic WorkManager sync, image caching with tone placeholders, Idle, Order type (text-only cards), Menu (categories, slim Plan-by-budget row, grid, quick add, cart dock with count/total only), Item detail, Combo, and the in-memory cart *add* operations (full cart management in 0.4.0), plus the performance baseline.
-**Excluded:** Pricing beyond the line totals needed for the dock, the review screen, payment, the inactivity overlay, and the upsell.
+**Included:** Menu/config domain models, Room cache, versioned sync and periodic WorkManager sync, image caching with tone placeholders, Idle, Order type (text-only cards), Menu (categories, slim Plan-by-budget row, grid, quick add, cart dock with count/total only), Item detail, Combo, and the in-memory cart *add* operations (full cart management in 0.4.0).
+**Excluded:** Pricing beyond the line totals needed for the dock, the review screen, payment, the inactivity overlay, the upsell, and the performance benchmarks (DEV-031 moved to 1.0.0 by the PO on 2026-10-24).
 
 ### TODO checklist
 
@@ -274,8 +274,7 @@ A customer can start an order and browse and customize the full menu with design
   - *Verify:* TC-046–TC-049 (Rp 74.000 and Rp 129.000 samples), TC-176.
 
 **Performance**
-- [ ] **DEV-031** Add a `:benchmark` macrobenchmark module with a baseline profile for startup and the Idle→Menu→Item journey, and JankStats logging in debug (NFR-003).
-  - *Verify:* the benchmark runs on the emulator, and the baseline numbers are recorded in `docs/perf/baseline-0.3.0.md`.
+- [-] **DEV-031** ~~Benchmark module and performance baseline~~ **Moved to 1.0.0 (PO, 2026-10-24).** The task is listed there; the id stays so references remain stable.
 
 ### Acceptance criteria
 - FR-006, FR-007, FR-009, FR-010 and FR-011 acceptance criteria pass with fake data mirroring the design samples.
@@ -287,16 +286,15 @@ A customer can start an order and browse and customize the full menu with design
 - Unit: models, merge rules, combo/item price calculation.
 - Integration: sync/cache.
 - UI: Compose tests per screen + screenshot tests.
-- Benchmark baseline.
 - Manual: visual review vs design at 1080×1920.
-- TCs: TC-020–TC-049 (TC-029–TC-031 and TC-036 are retired), TC-174–TC-176, TC-121, TC-124, TC-125, TC-142, TC-157.
+- TCs: TC-020–TC-049 (TC-029–TC-031 and TC-036 are retired), TC-174–TC-176, TC-121, TC-124, TC-125, TC-157.
 - Regression: 0.1.0 and 0.2.0 suites.
 
 ### Deliverables
-A browsable, customizable menu; sync and offline cache; perf baseline doc.
+A browsable, customizable menu; sync and offline cache.
 
 ### Exit criteria
-All listed TCs pass. The perf baseline is recorded, and any screen > 16 ms P90 frame time on the emulator has a tracked issue. There are no P1/P2 defects.
+All listed TCs pass. There are no P1/P2 defects.
 
 ---
 
@@ -362,13 +360,13 @@ Complete the ordering half of the journey:
   - **Step 2 "Your plan":** one hero plan card with the final total and a badge ("Exact match", "Rp X left", "+Rp X over", "Need Rp X more", "More than enough"); a "Just under" / "Just over" segmented control only when both plans exist; collapsed rows "What's included" (per-person grouping) and "Price details" (breakdown); a "Customize" row; the dock "Add plan to order · Rp X" loads the lines into `Cart`, flags them as a plan and navigates to SCR-10. Back returns to Step 1 with the inputs kept.
   - Edge states in the same layout: budget too low ("Need Rp X more", closest complete plan), "More than enough", and a group over `maxGroupSize` ("Please order in smaller groups", "Set group to 10", dock disabled).
   - The entry is the slim "Plan by budget" row on the Menu's Popular view, hidden when `budgetPlanner.enabled` is false.
-  - *Verify:* TC-167 and TC-169–TC-171 (Compose UI); screenshot tests of `S_BudgetPas_exact`, `S_BudgetPas_tooLow`, `S_BudgetPas_moreThanEnough`, `S_BudgetPas_group` and the two default steps; TC-168 benchmark on the device in 0.8.0.
+  - *Verify:* TC-167 and TC-169–TC-171 (Compose UI); screenshot tests of `S_BudgetPas_exact`, `S_BudgetPas_tooLow`, `S_BudgetPas_moreThanEnough`, `S_BudgetPas_group` and the two default steps; TC-168 benchmark on the device in 1.0.0 (DEV-031).
 - [ ] **DEV-043a** Budget Plan "Customize" bottom sheet (prereq: DEV-043, DEV-042).
   - Header with the live total; "Swap items" (per item, uses the rebalancing `swap`); toggles "Include sides" and "Include desserts"; "Strict" / "Up to +10 %" over-budget control; "Reset to suggested"; "Done". The sheet is closed by default so Step 2 stays simple.
   - *Verify:* TC-170. If time is short these options (not Swap) are the 1.0.1 cut in §3.
 
 ### Acceptance criteria
-FR-012 AC1–AC3, FR-013 AC1–AC3 (AC4 deferred to 0.5.0), FR-014 AC1–AC3, FR-015 AC1–AC3, FR-023 AC1–AC4 and FR-032 AC1–AC5 + AC7 pass. FR-032 AC6 is measured on the emulator here and confirmed on the iMin device in 0.8.0.
+FR-012 AC1–AC3, FR-013 AC1–AC3 (AC4 deferred to 0.5.0), FR-014 AC1–AC3, FR-015 AC1–AC3, FR-023 AC1–AC4 and FR-032 AC1–AC5 + AC7 pass. FR-032 AC6 is measured with the JVM micro-benchmark here (DEV-042) and confirmed with the macrobenchmark on the iMin device in 1.0.0 (DEV-031).
 
 ### Testing requirements
 - Unit: pricing (≥ 90 % coverage on `:core:domain`), cart, session, BudgetPlanner (exact cases + property test).
@@ -566,10 +564,10 @@ Audit and finish the cross-cutting qualities so the app is ready for a real-worl
 - [ ] **DEV-081** Accessibility (NFR-007).
   - TalkBack labels matching the design aria labels, a focus order per screen, role semantics (radio, toggle, button), contrast check of every text/background token pair (fix any < 4.5:1 with the PO), and touch targets ≥ 88 dpx.
   - *Verify:* TC-150, TC-151.
-- [ ] **DEV-082** Performance on the target device (NFR-003, FR-032 AC6).
-  - Run the macrobenchmarks on the iMin device; fix regressions (image sizes, recomposition hot spots, `graphicsLayer` for animated layers); update the baseline profile.
-  - Run the Budget Plan planner benchmark (10-person worst case).
-  - *Verify:* TC-142–TC-144 and TC-168, with results in `docs/perf/0.8.0.md`.
+- [ ] **DEV-082** Performance on the target device (NFR-003).
+  - Profile the customer journey on the iMin device with the Android Studio profiler and the debug frame logging; fix regressions (image sizes, recomposition hot spots, `graphicsLayer` for animated layers).
+  - The macrobenchmarks, the baseline profile and the Budget Plan benchmark are DEV-031 in 1.0.0 (PO, 2026-10-24).
+  - *Verify:* profiler notes in `docs/perf/0.8.0.md`; no visible jank on the scripted J1 journey.
 - [ ] **DEV-083** Motion fidelity audit (NFR-009): screen-by-screen comparison against PRD §11.4 (screen recordings next to the design prototype), and confirm reduce motion collapses everything.
   - *Verify:* TC-153 checklist signed.
 - [ ] **DEV-084** Complete the screenshot test suite (Roborazzi, per testing-plan §1.3) for every screen and state in PRD §7 at 1080×1920, in English and with larger text. The matrix is the 20 screen artboards plus the 33 `S_*` state boards plus the `scenario`-only states listed in §1.
@@ -578,11 +576,11 @@ Audit and finish the cross-cutting qualities so the app is ready for a real-worl
   - *Verify:* TC-116.
 
 ### Acceptance criteria
-NFR-003, NFR-007, NFR-008 and NFR-009 acceptance criteria pass on the target device. There are no hardcoded strings, and Accessibility Scanner shows zero errors.
+NFR-007, NFR-008 and NFR-009 acceptance criteria pass on the target device; NFR-003 is measured with the benchmarks in 1.0.0. There are no hardcoded strings, and Accessibility Scanner shows zero errors.
 
 ### Testing requirements
-- Screenshot regression; accessibility scanner + manual TalkBack J1; on-device benchmarks; PO copy review.
-- TCs: TC-032, TC-116, TC-142–TC-144, TC-150–TC-153, TC-168, TC-180.
+- Screenshot regression; accessibility scanner + manual TalkBack J1; on-device profiling; PO copy review.
+- TCs: TC-032, TC-116, TC-150–TC-153, TC-180.
 - Regression: full automated suite.
 
 ### Deliverables
@@ -646,10 +644,14 @@ The release checklist (testing-plan §9) is complete except for the final sign-o
 Ship the validated MVP to production kiosks.
 
 ### Scope
-**Included:** Final regression on the release build against `prod`, version bump, signed APK, release notes, operational documentation, rollout via MDM.
-**Excluded:** New work. Anything not done moves to the 1.0.x/1.1 backlog (§4).
+**Included:** The performance benchmarks and baseline profile (DEV-031, moved here from 0.3.0 by the PO on 2026-10-24), final regression on the release build against `prod`, version bump, signed APK, release notes, operational documentation, rollout via MDM.
+**Excluded:** Other new work. Anything not done moves to the 1.0.x/1.1 backlog (§4).
 
 ### TODO checklist
+- [ ] **DEV-031** Performance benchmarks (NFR-003, TR-PRF-01/05/19, FR-032 AC6). Moved from 0.3.0 (PO, 2026-10-24); a first version exists in git history (commit `83d313c`).
+  - A `:benchmark` macrobenchmark module: `StartupBenchmark` (cold start ×10), `JourneyBenchmark` (Idle → Order type → Menu → Item → back, `FrameTimingMetric`) and the Budget Plan planner benchmark (10-person worst case).
+  - A baseline profile for startup and that journey, shipped in the release APK through ProfileInstaller, and JankStats frame logging in debug and the benchmark build only.
+  - *Verify:* TC-142–TC-144 and TC-168 on the iMin device, with results in `docs/perf/1.0.0.md`. This runs before DEV-102 so the signed build carries the profile.
 - [ ] **DEV-102** Final regression on the signed `1.0.0` build against `prod`, with one real low-value QRIS and one real card transaction (refunded through the gateway) per the release checklist.
 - [ ] **DEV-100** Set `versionName 1.0.0` and `versionCode 10000`. Produce the signed APK, record its SHA-256 checksum, and tag `v1.0.0` in git. Write release notes in English.
 - [ ] **DEV-101** Ops documentation: `docs/provisioning.md` (final), `docs/runbook.md` (staff troubleshooting: paper, printer offline, terminal offline, network, sync, restart, PIN lockout), and `docs/rollback.md` (MDM rollback to 0.9.x).
@@ -718,7 +720,7 @@ Rolled out to pilot kiosks with no P1/P2 issues in 48 h. The full rollout is app
 | DEV-028 | 0.3.0 | FR-009, FR-010 |
 | DEV-029 | 0.3.0 | FR-010 |
 | DEV-030 | 0.3.0 | FR-011 |
-| DEV-031 | 0.3.0 | NFR-003 |
+| DEV-031 | 1.0.0 | NFR-003, FR-032 |
 | DEV-035 | 0.4.0 | FR-013 |
 | DEV-036 | 0.4.0 | FR-012 |
 | DEV-037 | 0.4.0 | FR-012 |

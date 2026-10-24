@@ -1019,7 +1019,7 @@ Sized for one developer. Features live as packages inside `:app` rather than sep
 | R-3 | SN not readable without the iMin SDK or privileged permission | Medium | Blocks activation | Spike in 0.2.0 on real hardware (DEV-012). Fallback: `Build.getSerial()` as device owner. |
 | R-4 | iMin device OS is older than expected | Low | minSdk issue | minSdk 30 chosen for margin [D-04]. |
 | R-5 | Bluetooth printer variety (non-standard ESC/POS) | Medium | Print failures | Support the ESC/POS baseline. Certify a named list of printers. |
-| R-6 | Animation-heavy UI janks on kiosk SoC | Medium | Poor UX | Macrobenchmark from 0.3.0. Reduce-motion escape hatch. Profile on device in 0.8.0. |
+| R-6 | Animation-heavy UI janks on kiosk SoC | Medium | Poor UX | Profile on device in 0.8.0; macrobenchmarks and the baseline profile in 1.0.0 (DEV-031, moved from 0.3.0 by the PO on 2026-10-24). Reduce-motion escape hatch. |
 | R-7 | Scope (≈20 screens including Budget Plan + 3 hardware integrations) for one developer in about 3 months; the estimate is ~14.75 weeks | High | Date slip | Strict milestone exit criteria. Defer list (§3.2). Weekly burn-down. Budget Plan's Customize sheet (swap with rebalancing) can move to 1.0.1 if the date is fixed. |
 | R-8 | Upsell design not delivered | Closed | — | The design was delivered in 1.1 (`Upsell.dc.html`). |
 | R-9 | Merchants tag menu roles or kid-friendly items poorly, so Budget Plan plans look wrong | Medium | Bad first impression of the differentiator | Dashboard validation (every product needs a role). Kiosk falls back per BR-14. Per-merchant `budgetPlanner.enabled` lets the feature stay off until the data is ready. |
@@ -1170,7 +1170,7 @@ Development tasks: `dev-plan.md`. Test cases: `testing-plan.md`. The full matrix
 | FR-032 | 0.4.0 | DEV-042, DEV-043, DEV-044 | TC-161–TC-168 |
 | NFR-001 | 0.1.0 | DEV-001 | TC-140 |
 | NFR-002 | 0.1.0 | DEV-003, DEV-084 | TC-141 |
-| NFR-003 | 0.3.0, 0.8.0 | DEV-031, DEV-082 | TC-142–TC-144 |
+| NFR-003 | 0.8.0, 1.0.0 | DEV-082, DEV-031 | TC-142–TC-144 |
 | NFR-004 | 0.9.0 | DEV-093 | TC-145 |
 | NFR-005 | 0.2.0, 0.9.0 | DEV-007, DEV-014, DEV-094 | TC-146–TC-148 |
 | NFR-006 | 0.7.0, 0.9.0 | DEV-073, DEV-094 | TC-149 |

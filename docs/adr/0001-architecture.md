@@ -17,7 +17,7 @@
 
 **Token storage — Secure DataStore**: the device token lives in a dedicated DataStore file (`secure.pb`) whose `Serializer` encrypts every write with a Tink `Aead` (AES-256-GCM). The Tink keyset is itself wrapped by a non-exportable Android Keystore key (`AndroidKeysetManager` with an `android-keystore://` master key). This replaces `EncryptedSharedPreferences`: the `androidx.security:security-crypto` library is deprecated, and SharedPreferences does blocking I/O on the main thread. It meets the same NFR-005 requirement.
 
-**Modules**: `:app`, `:core:designsystem`, `:core:domain` (Gradle JVM module, no Android), `:core:data`, `:core:hardware`, `:core:testing`, plus `:benchmark` from 0.3.0. Features are **packages inside `:app`**, not modules. Rules and the dependency graph are in [`architecture.md` §3](../architecture.md#3-modules).
+**Modules**: `:app`, `:core:designsystem`, `:core:domain` (Gradle JVM module, no Android), `:core:data`, `:core:hardware`, `:core:testing`, plus `:benchmark` (planned for 0.3.0, moved to 1.0.0 by the PO on 2026-10-24). Features are **packages inside `:app`**, not modules. Rules and the dependency graph are in [`architecture.md` §3](../architecture.md#3-modules).
 
 ## Alternatives considered
 | Option | Why not |

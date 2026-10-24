@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Document version | 1.4 (2026-10-24) — 0.3.0: quick add needs a choice only without a default (TC-039), sold-out combo options (TC-176), connectivity fake in instrumented tests |
+| Document version | 1.4 (2026-10-24) — 0.3.0: quick add needs a choice only without a default (TC-039), sold-out combo options (TC-176), connectivity fake in instrumented tests; benchmark TCs (TC-142–TC-144, TC-168) move to 1.0.0 |
 | Requirements | [`product-requirement.md`](product-requirement.md) |
 | Development roadmap | [`dev-plan.md`](dev-plan.md) |
 | API contract | [`api/api-spec.md`](api/api-spec.md) |
@@ -414,14 +414,14 @@ Each milestone runs: (a) its new TCs, (b) the full automated regression of all e
 |---|---|---|---|---|---|---|
 | **0.1.0** | Build, modules, design units/tokens, navigation skeleton, network skeleton, fakes | TC-140, TC-141 (skeleton screen), TC-154 (partial), TC-155, TC-156 (fakes compile) + navigation edge walk | — | Build or `verify` failure; scaling wrong | `verify` report; emulator screenshots of placeholders | dev-plan 0.1.0 exit |
 | **0.2.0** | Splash, routing, SN, activation, merchants | TC-001–TC-019, TC-146, TC-179, TC-182–TC-184 | 0.1.0 | Wrong routing; duplicate activation; token in plain text | `verify` report; SN spike notes (ADR-0002) with device photo; J5/J6 recordings | All pass; SN source decided |
-| **0.3.0** | Idle, order type, menu, item, combo, sync/cache, images, perf baseline | TC-020–TC-049 (TC-029–TC-031 and TC-036 retired), TC-174–TC-176, TC-121, TC-124, TC-125, TC-142 (baseline), TC-157 | 0.1–0.2 | Wrong item/combo price; crash in browse; menu not cached | Screenshot diffs vs design; `docs/perf/baseline-0.3.0.md` | All pass; baseline recorded |
+| **0.3.0** | Idle, order type, menu, item, combo, sync/cache, images | TC-020–TC-049 (TC-029–TC-031 and TC-036 retired), TC-174–TC-176, TC-121, TC-124, TC-125, TC-157 | 0.1–0.2 | Wrong item/combo price; crash in browse; menu not cached | Screenshot diffs vs design; `docs/test-reports/0.3.0.md` | All pass |
 | **0.4.0** | Cart, pricing, Budget Plan, review, methods, upsell, inactivity | TC-050–TC-067, TC-101–TC-104, TC-135, TC-139, TC-161–TC-167, TC-169–TC-173, TC-177 | 0.1–0.3 | Any pricing mismatch; overlay during payment; a Budget Plan plan above budget shown as "under" or as an exact match, or a person left without a meal | `docs/pricing-cases.md`; `docs/budget-plan-cases.md`; coverage report (domain ≥ 90 %) | All pass |
 | **0.5.0** | Order creation, QRIS, card (fake), failures, offline gate, recovery, clock skew | TC-068–TC-087 (TC-083 deferred to 0.9.0), TC-122, TC-123, TC-132–TC-134, TC-137, TC-138, TC-154, TC-160, TC-178, TC-181 | 0.1–0.4 | Duplicate order; "not charged" shown on unknown status; paid without PAID | Recordings of J1–J3 with fakes; mock-scenario run log | All pass; gateway/EDC spec status recorded |
 | **0.6.0** | Complete, printing, printer management | TC-088–TC-100, TC-159 (printers subset) | 0.1–0.5 + J1 with print | No print on paid order; print failure blocks Complete | Photos of 58/80 mm receipts and kitchen tickets for each connection type | All pass on real printers |
 | **0.7.0** | PIN, settings, lock task, sound, logging | TC-105–TC-131, TC-136 | 0.1–0.6 + J1–J8 | Lock-task escape; PIN bypass; lockout not persisted | Device videos of escape attempts and reboot; provisioning run log | All pass on iMin device |
-| **0.8.0** | String lint, a11y, motion, performance, larger text, screenshots | TC-032, TC-116, TC-142–TC-144, TC-150–TC-153, TC-168, TC-180 | Full suite | Hardcoded strings on customer screens; perf below NFR-003; a11y errors; a state board without a screenshot test | Perf report; a11y report; PO copy sign-off; motion checklist | Targets met or accepted |
+| **0.8.0** | String lint, a11y, motion, on-device profiling, larger text, screenshots | TC-032, TC-116, TC-150–TC-153, TC-180 | Full suite | Hardcoded strings on customer screens; perf below NFR-003; a11y errors; a state board without a screenshot test | Perf report; a11y report; PO copy sign-off; motion checklist | Targets met or accepted |
 | **0.9.0** | Real backend/gateway/EDC, matrix, soak, security, release build, pilot | TC-083, TC-145, TC-147–TC-149, TC-158, TC-159 + **all MVP TCs re-run on device against staging** | Full suite on device | Any P1/P2; contract mismatch; soak failure | Contract run vs staging; soak report; security checklist; pilot report | Release checklist complete except sign-off |
-| **1.0.0** | Release build against prod | Full regression (automated + manual priority H) on the signed APK; DEV-102 real transactions | Full | Any P1/P2; any P3 on checkout/payment screens | Signed test report; APK checksum; release checklist signed | Rollout approved |
+| **1.0.0** | Performance benchmarks (DEV-031), release build against prod | TC-142–TC-144, TC-168 on the iMin device; full regression (automated + manual priority H) on the signed APK; DEV-102 real transactions | Full | Any P1/P2; any P3 on checkout/payment screens | Signed test report; APK checksum; release checklist signed | Rollout approved |
 
 ---
 
@@ -460,10 +460,10 @@ Each milestone runs: (a) its new TCs, (b) the full automated regression of all e
 | FR-029 | DEV-071, DEV-101 | TC-126–TC-128 | 0.7.0 |
 | FR-030 | DEV-072 | TC-129 | 0.7.0 |
 | FR-031 | DEV-067, DEV-073 | TC-130–TC-131 | 0.7.0 |
-| FR-032 | DEV-042, DEV-043, DEV-043a, DEV-044 | TC-161–TC-171 | 0.4.0 / 0.8.0 |
+| FR-032 | DEV-042, DEV-043, DEV-043a, DEV-044, DEV-031 | TC-161–TC-171 | 0.4.0 / 1.0.0 |
 | NFR-001 | DEV-001 | TC-140 | 0.1.0 |
 | NFR-002 | DEV-003, DEV-084 | TC-141, TC-180 | 0.1.0 / 0.8.0 |
-| NFR-003 | DEV-031, DEV-082 | TC-142–TC-144 | 0.3.0 / 0.8.0 |
+| NFR-003 | DEV-031, DEV-082 | TC-142–TC-144 | 0.8.0 / 1.0.0 |
 | NFR-004 | DEV-093 | TC-145 | 0.9.0 |
 | NFR-005 | DEV-007, DEV-014, DEV-094 | TC-146–TC-148 | 0.2.0 / 0.9.0 |
 | NFR-006 | DEV-073, DEV-094 | TC-149 | 0.7.0 / 0.9.0 |

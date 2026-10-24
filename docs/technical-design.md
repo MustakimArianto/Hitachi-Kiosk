@@ -31,7 +31,7 @@ hitachi-kiosk/
 │   ├── data/                   :core:data     (+ schemas/ for Room)
 │   ├── hardware/               :core:hardware (+ libs/ only if iMin ships an AAR)
 │   └── testing/                :core:testing  (+ src/main/resources/fixtures/)
-├── benchmark/                  :benchmark     (from 0.3.0)
+├── benchmark/                  :benchmark     (from 1.0.0, DEV-031)
 ├── build-logic/                included build: convention plugins
 ├── gradle/libs.versions.toml   versions (technology-stack.md §8)
 ├── scripts/                    check-release-apk.sh, check-openapi.sh, git-hooks/pre-push
@@ -316,7 +316,7 @@ A pure function: `plan(budget, adults, children, menu, config, options): PlanRes
    - Then apply the edge cases: budget below the cheapest plan → "Need Rp X more"; budget at or above the most generous plan → "More than enough"; no plan within the over cap → under plan only.
 5. **Customize rebalance.** A swap fixes the swapped person's main and drink and reruns step 2 over the side and dessert choices only. That is the "sides and desserts rebalance" rule in FR-032.
 
-Verification: AC1–AC11 as unit tests on the sample menu, AC8 as a `kotest-property` test over Rp 50.000–300.000 in Rp 100 steps, and AC6 in `:benchmark` (TC-168). If the DP state count grows beyond the target for a real merchant menu, cap the candidate pairs per person at the 12 cheapest plus the 4 most featured and record that in an ADR.
+Verification: AC1–AC11 as unit tests on the sample menu, AC8 as a `kotest-property` test over Rp 50.000–300.000 in Rp 100 steps, and AC6 in `:benchmark` (TC-168, 1.0.0; a JVM micro-benchmark in 0.4.0 until then). If the DP state count grows beyond the target for a real merchant menu, cap the candidate pairs per person at the 12 cheapest plus the 4 most featured and record that in an ADR.
 
 ### 8.4 `PaymentStateMachine` implementation (FR-017–FR-019)
 The states and transitions are those in architecture §5.2. Implementation notes:

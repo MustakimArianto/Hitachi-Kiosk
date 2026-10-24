@@ -62,7 +62,7 @@ flowchart TD
     data[":core:data"]
     hw[":core:hardware"]
     testing[":core:testing"]
-    bench[":benchmark (0.3.0)"]
+    bench[":benchmark (1.0.0)"]
 
     app --> ds
     app --> domain
