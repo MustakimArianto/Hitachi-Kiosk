@@ -82,42 +82,44 @@ class BudgetPlanner(
         if (request.people > config.maxGroupSize) return PlanResult.GroupTooLarge(config.maxGroupSize)
         if (!isAvailable) return PlanResult.NoPlan
 
+        val found = select(request)
+        val under = found.under
+        val plans =
+            when {
+                under == null -> {
+                    listOf(build(checkNotNull(found.cheapest), PlanKind.TOO_LOW))
+                }
+
+                under.total == request.budget.value -> {
+                    listOf(build(under, PlanKind.EXACT))
+                }
+
+                found.over == null && under.sameAs(checkNotNull(found.top)) -> {
+                    listOf(build(under, PlanKind.MORE_THAN_ENOUGH))
+                }
+
+                else -> {
+                    listOfNotNull(build(under, PlanKind.UNDER), found.over?.let { build(it, PlanKind.OVER) })
+                }
+            }
+        return PlanResult.Plans(plans, kidsMenuUnavailable && request.children > 0)
+    }
+
+    /** Steps 2–4 of the class comment over every number of shared two-person meals. */
+    private fun select(request: PlanRequest): Selection {
         val budget = request.budget.value
         val cap = cap(request)
-        var under: Candidate? = null
-        var over: Candidate? = null
-        var cheapest: Candidate? = null
-        var top: Candidate? = null
+        val found = Selection()
         val maxShared = if (sharedMeals.isEmpty()) 0 else request.adults / 2
         for (shared in 0..maxShared) {
             val slots = slots(request, shared)
             val reach = reach(slots)
             reach[0].forEachSetBit { units ->
                 val subtotal = units * unit
-                val candidate = Candidate(slots, reach, subtotal, totals(subtotal).total.value)
-                if (candidate.total <= budget && candidate.beats(under)) under = candidate
-                if (candidate.total in (budget + 1)..cap && candidate.closerOverThan(over)) over = candidate
-                if (cheapest == null || candidate.total < cheapest!!.total) cheapest = candidate
-                if (candidate.beats(top)) top = candidate
+                found.offer(Candidate(slots, reach, subtotal, totals(subtotal).total.value), budget, cap)
             }
         }
-
-        val bestUnder = under
-        val plans =
-            when {
-                bestUnder == null -> listOf(build(checkNotNull(cheapest), PlanKind.TOO_LOW))
-
-                bestUnder.total == budget -> listOf(build(bestUnder, PlanKind.EXACT))
-
-                over == null &&
-                    bestUnder.sameAs(
-                        checkNotNull(top),
-                    )
-                -> listOf(build(bestUnder, PlanKind.MORE_THAN_ENOUGH))
-
-                else -> listOfNotNull(build(bestUnder, PlanKind.UNDER), over?.let { build(it, PlanKind.OVER) })
-            }
-        return PlanResult.Plans(plans, kidsMenuUnavailable && request.children > 0)
+        return found
     }
 
     /**
@@ -325,6 +327,25 @@ class BudgetPlanner(
             other == null || total < other.total || (total == other.total && subtotal > other.subtotal)
 
         fun sameAs(other: Candidate): Boolean = total == other.total && subtotal == other.subtotal
+    }
+
+    /** The best candidates seen so far: under, over (within the cap), cheapest and most generous (FR-032). */
+    private class Selection {
+        var under: Candidate? = null
+        var over: Candidate? = null
+        var cheapest: Candidate? = null
+        var top: Candidate? = null
+
+        fun offer(
+            candidate: Candidate,
+            budget: Long,
+            cap: Long,
+        ) {
+            if (candidate.total <= budget && candidate.beats(under)) under = candidate
+            if (candidate.total in (budget + 1)..cap && candidate.closerOverThan(over)) over = candidate
+            if (candidate.total < (cheapest?.total ?: Long.MAX_VALUE)) cheapest = candidate
+            if (candidate.beats(top)) top = candidate
+        }
     }
 
     /** One choice to make: whose it is and the options, most preferred first. */

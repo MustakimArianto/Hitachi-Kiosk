@@ -16,7 +16,9 @@ class PricingCasesTest {
 
         assertThat(rows.size).isAtLeast(MIN_CASES)
         rows.forEach { cells ->
-            val (id, _, lines, step) = cells
+            val id = cells[0]
+            val lines = cells[LINES]
+            val step = cells[STEP]
             val subtotal = lines.split("+").sumOf { line -> lineTotal(line.trim()) }
             val expected =
                 Totals(
@@ -46,6 +48,8 @@ class PricingCasesTest {
 
     private companion object {
         const val MIN_CASES = 20
+        const val LINES = 2
+        const val STEP = 3
         const val PROMO_ID = "promo_10k_over_100k"
         const val SUBTOTAL = 4
         const val DISCOUNT = 5

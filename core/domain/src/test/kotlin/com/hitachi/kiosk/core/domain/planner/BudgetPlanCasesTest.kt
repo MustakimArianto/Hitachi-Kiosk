@@ -16,7 +16,10 @@ class BudgetPlanCasesTest {
 
         assertThat(rows.size).isAtLeast(MIN_CASES)
         rows.forEach { cells ->
-            val (name, budget, adults, children) = cells
+            val name = cells[0]
+            val budget = cells[BUDGET]
+            val adults = cells[ADULTS]
+            val children = cells[CHILDREN]
             val options = cells[OPTIONS]
             val request =
                 PlanRequest(
@@ -46,6 +49,9 @@ class BudgetPlanCasesTest {
 
     private companion object {
         const val MIN_CASES = 10
+        const val BUDGET = 1
+        const val ADULTS = 2
+        const val CHILDREN = 3
         const val OPTIONS = 4
         const val HERO = 5
         const val HERO_TOTAL = 6
