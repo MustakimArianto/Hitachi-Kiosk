@@ -1,6 +1,8 @@
 package com.hitachi.kiosk.debug
 
 import com.hitachi.kiosk.core.domain.backend.BackendApi
+import com.hitachi.kiosk.core.domain.map
+import com.hitachi.kiosk.core.domain.model.Conditional
 import com.hitachi.kiosk.core.domain.id.IdempotencyKey
 import com.hitachi.kiosk.core.domain.model.ActivationRequest
 import com.hitachi.kiosk.core.domain.model.CancelOrderReason
@@ -54,12 +56,12 @@ class SwitchableBackendApi(
     override suspend fun config(
         merchantId: String,
         etag: String?,
-    ) = target().config(merchantId, etag)
+    ) = target().config(merchantId, etag).map { it.mapModified(DemoImages::apply) }
 
     override suspend fun menu(
         merchantId: String,
         etag: String?,
-    ) = target().menu(merchantId, etag)
+    ) = target().menu(merchantId, etag).map { it.mapModified(DemoImages::apply) }
 
     override suspend fun createOrder(
         request: OrderRequest,
@@ -106,3 +108,10 @@ class SwitchableBackendApi(
 
     override suspend fun health() = target().health()
 }
+
+/** The same answer, with the new value of a `Modified` one passed through [transform]; a 304 stays a 304. */
+private inline fun <T> Conditional<T>.mapModified(transform: (T) -> T): Conditional<T> =
+    when (this) {
+        is Conditional.Modified -> copy(value = transform(value))
+        Conditional.NotModified -> this
+    }

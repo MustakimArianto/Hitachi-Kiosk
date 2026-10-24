@@ -93,5 +93,6 @@ object DemoImages {
 
     private fun ComboSlotOption.withImage(name: String?) = copy(imageUrl = imageUrl.orDemo(name?.let(::url)))
 
-    private fun String?.orDemo(demo: String?): String? = if (this == null || PLACEHOLDER_HOST in this) demo ?: this else this
+    private fun String?.orDemo(demo: String?): String? =
+        if (this == null || PLACEHOLDER_HOST in this) demo ?: this else this
 }
