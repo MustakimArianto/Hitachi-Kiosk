@@ -1,5 +1,6 @@
 package com.hitachi.kiosk.core.domain.model
 
+import com.hitachi.kiosk.core.domain.id.IdempotencyKey
 import kotlin.time.Instant
 
 /**
@@ -92,4 +93,19 @@ enum class CancelOrderReason { CUSTOMER_BACK, TIMEOUT, PAYMENT_FAILED, APP_RECOV
 data class CancelledOrder(
     val orderId: String,
     val status: OrderStatus,
+)
+
+/**
+ * The order and payment that survive a process death (architecture §5.3, FR-016): written when E7 succeeds and
+ * updated when E9 starts a payment. [paymentId] and [method] are `null` until a payment exists. [idempotencyKey] is
+ * the key that created the order. Nothing here is customer data or a payment secret (NFR-006).
+ */
+data class PendingOrder(
+    val orderId: String,
+    val orderNumber: String,
+    val paymentId: String?,
+    val method: PaymentMethod?,
+    val idempotencyKey: IdempotencyKey,
+    val totals: Totals,
+    val createdAt: Instant,
 )
