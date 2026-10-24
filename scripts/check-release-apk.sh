@@ -53,7 +53,7 @@ allowed = {
     "com.hitachi.kiosk.kiosk.BootReceiver",
     "androidx.profileinstaller.ProfileInstallReceiver",
     "androidx.work.impl.diagnostics.DiagnosticsReceiver",
-    # WorkManager's JobScheduler service for the periodic catalog sync (DEV-023); the system binds it only with
+    # The WorkManager JobScheduler service for the periodic catalog sync (DEV-023); the system binds it only with
     # android.permission.BIND_JOB_SERVICE.
     "androidx.work.impl.background.systemjob.SystemJobService",
 }
