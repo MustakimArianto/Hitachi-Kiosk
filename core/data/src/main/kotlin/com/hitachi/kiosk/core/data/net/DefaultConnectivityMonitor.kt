@@ -4,72 +4,92 @@ import android.content.Context
 import android.net.ConnectivityManager
 import android.net.Network
 import android.net.NetworkCapabilities
+import com.hitachi.kiosk.core.data.api.NetworkErrorSignal
+import com.hitachi.kiosk.core.domain.Outcome
+import com.hitachi.kiosk.core.domain.backend.BackendApi
 import com.hitachi.kiosk.core.domain.device.Connectivity
 import com.hitachi.kiosk.core.domain.device.ConnectivityMonitor
-import com.hitachi.kiosk.core.domain.log.KioskLog
-import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import javax.inject.Inject
-import javax.inject.Singleton
 
 /**
- * Connectivity from the default network's validation state (FR-028, technical-design §7.3): validated → ONLINE,
- * connected but not validated yet → CHECKING, no network → OFFLINE.
+ * Connectivity from the default network's validation state and the E14 health probe (FR-028, TR-NET-11,
+ * technical-design §7.3). ONLINE needs both a validated network and a healthy backend and payment gateway;
+ * [ConnectivityEngine] holds that logic and the probe schedule, and this class only feeds it
+ * `ConnectivityManager.registerDefaultNetworkCallback` readings and the E14 call.
  *
- * This is the 0.3.0 monitor behind the Menu's offline banner. DEV-051 (0.5.0) adds the E14 health probe, which
- * must also pass for ONLINE, and the 1 s debounce. `:app` binds it, with the optional debug override (TD-11).
+ * `:app` builds it, with [scope] the application scope and [backend] the bound [BackendApi] (so a debug build's
+ * fake backend drives the probe too), and binds it through the optional `BindingOverrides` (TD-11).
  */
-@Singleton
-class DefaultConnectivityMonitor
-    @Inject
-    constructor(
-        @ApplicationContext context: Context,
-    ) : ConnectivityMonitor {
-        private val manager = context.getSystemService(ConnectivityManager::class.java)
-        private val state = MutableStateFlow(initial())
+class DefaultConnectivityMonitor(
+    context: Context,
+    backend: BackendApi,
+    networkErrors: NetworkErrorSignal,
+    scope: CoroutineScope,
+) : ConnectivityMonitor {
+    private val manager = context.getSystemService(ConnectivityManager::class.java)
+    private val network = MutableStateFlow(initial())
+    private val engine =
+        ConnectivityEngine(
+            scope = scope,
+            network = network,
+            probe = { backend.canTakePayments() },
+            networkErrors = networkErrors.reports,
+        )
 
-        override val connectivity: StateFlow<Connectivity> = state.asStateFlow()
+    override val connectivity: StateFlow<Connectivity> = engine.connectivity
 
-        private val callback =
-            object : ConnectivityManager.NetworkCallback() {
-                override fun onCapabilitiesChanged(
-                    network: Network,
-                    capabilities: NetworkCapabilities,
-                ) {
-                    update(capabilities.toConnectivity())
-                }
+    private val callback =
+        object : ConnectivityManager.NetworkCallback() {
+            override fun onCapabilitiesChanged(
+                network: Network,
+                capabilities: NetworkCapabilities,
+            ) {
+                this@DefaultConnectivityMonitor.network.value = capabilities.toStatus(network)
+            }
 
-                override fun onLost(network: Network) {
-                    update(Connectivity.OFFLINE)
-                }
-
-                override fun onUnavailable() {
-                    update(Connectivity.OFFLINE)
+            override fun onLost(network: Network) {
+                // A handover can report the old network lost after the new one is the default: ignore that.
+                val current = this@DefaultConnectivityMonitor.network
+                if (current.value.id == null || current.value.id == network.networkHandle) {
+                    current.value = NetworkStatus(NetworkState.NONE)
                 }
             }
 
-        init {
-            // App-lifetime singleton, so the callback is never unregistered.
-            manager.registerDefaultNetworkCallback(callback)
+            override fun onUnavailable() {
+                network.value = NetworkStatus(NetworkState.NONE)
+            }
         }
 
-        private fun initial(): Connectivity =
-            manager.activeNetwork
-                ?.let(manager::getNetworkCapabilities)
-                ?.toConnectivity()
-                ?: Connectivity.OFFLINE
+    init {
+        // App-lifetime singleton, so the callback is never unregistered.
+        manager.registerDefaultNetworkCallback(callback)
+    }
 
-        private fun update(next: Connectivity) {
-            if (state.value != next) KioskLog.i("connectivity_changed", "state" to next)
-            state.value = next
-        }
+    private fun initial(): NetworkStatus {
+        val active = manager.activeNetwork ?: return NetworkStatus(NetworkState.NONE)
+        return manager.getNetworkCapabilities(active)?.toStatus(active) ?: NetworkStatus(NetworkState.NONE)
+    }
 
-        private fun NetworkCapabilities.toConnectivity(): Connectivity =
+    private fun NetworkCapabilities.toStatus(network: Network): NetworkStatus {
+        val state =
             when {
-                hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED) -> Connectivity.ONLINE
-                hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) -> Connectivity.CHECKING
-                else -> Connectivity.OFFLINE
+                hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED) -> NetworkState.VALIDATED
+                hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) -> NetworkState.UNVALIDATED
+                else -> NetworkState.NONE
             }
+        return NetworkStatus(state, network.networkHandle)
+    }
+}
+
+/**
+ * The E14 probe: `true` only when the backend and the payment gateway are both `OK` (api-spec E14). Any failure,
+ * including a network error or an unreadable body, is unhealthy. E14 failures are not reported to
+ * [NetworkErrorSignal], so a failing probe cannot trigger itself.
+ */
+internal suspend fun BackendApi.canTakePayments(): Boolean =
+    when (val result = health()) {
+        is Outcome.Success -> result.value.canTakePayments
+        is Outcome.Failure -> false
     }

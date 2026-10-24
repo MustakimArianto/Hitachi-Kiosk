@@ -5,6 +5,7 @@ import com.hitachi.kiosk.core.data.api.ApiErrorMapper
 import com.hitachi.kiosk.core.data.api.BackendHttp
 import com.hitachi.kiosk.core.data.api.DeviceCredentials
 import com.hitachi.kiosk.core.data.api.InMemoryDeviceCredentialsStore
+import com.hitachi.kiosk.core.data.api.NetworkErrorSignal
 import com.hitachi.kiosk.core.data.api.NetworkTimeouts
 import com.hitachi.kiosk.core.data.api.UnauthorizedHandler
 import com.hitachi.kiosk.core.data.backend.DefaultBackendApi
@@ -30,6 +31,7 @@ internal class BackendHarness(
     server: MockWebServer,
     timeouts: NetworkTimeouts =
         NetworkTimeouts(connect = 5.seconds, read = 5.seconds, write = 5.seconds, call = 10.seconds),
+    networkErrors: NetworkErrorSignal = NetworkErrorSignal(),
 ) {
     val credentials = InMemoryDeviceCredentialsStore().apply { set(TEST_CREDENTIALS) }
     val unauthorizedCalls = AtomicInteger()
@@ -42,7 +44,7 @@ internal class BackendHarness(
             allowCleartext = true,
         )
     private val client = BackendHttp.client(config, credentials, timeouts = timeouts)
-    val errorMapper = ApiErrorMapper(UnauthorizedHandler { unauthorizedCalls.incrementAndGet() })
+    val errorMapper = ApiErrorMapper(UnauthorizedHandler { unauthorizedCalls.incrementAndGet() }, networkErrors)
     val api = DefaultBackendApi(BackendHttp.retrofit(config.baseUrl, client), errorMapper)
 }
 

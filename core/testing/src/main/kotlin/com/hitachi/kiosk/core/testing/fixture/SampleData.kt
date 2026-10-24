@@ -1068,4 +1068,13 @@ object SampleData {
             database = HealthStatus.OK,
             paymentGateway = HealthStatus.OK,
         )
+
+    /** E14 with the backend up and the gateway slow or partly failing: checkout is unavailable (api-spec E14). */
+    val healthGatewayDegraded = health.copy(paymentGateway = HealthStatus.DEGRADED)
+
+    /** E14 with the backend up and the gateway down: checkout is unavailable (api-spec E14). */
+    val healthGatewayDown = health.copy(paymentGateway = HealthStatus.DOWN)
+
+    /** E14 with the backend itself degraded: checkout is unavailable even though the gateway is `OK`. */
+    val healthBackendDegraded = health.copy(status = HealthStatus.DEGRADED, api = HealthStatus.DEGRADED)
 }

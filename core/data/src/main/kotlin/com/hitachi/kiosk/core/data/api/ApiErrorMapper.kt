@@ -20,11 +20,15 @@ import kotlin.coroutines.cancellation.CancellationException
  * Runs one backend call and turns its transport outcome into an [Outcome] (technical-design §5.2, TD-04,
  * TR-NET-07). No exception leaves `:core:data`; coroutine cancellation is rethrown. Logs carry the endpoint ID
  * (`E1`–`E14`), the HTTP status and the error `code`, never a body (NFR-006).
+ *
+ * A [DomainError.Network] from any endpoint except E14 is also reported to [NetworkErrorSignal], which makes the
+ * connectivity monitor re-probe E14 immediately (FR-028, technical-design §7.3).
  */
 class ApiErrorMapper
     @Inject
     constructor(
         private val unauthorizedHandler: UnauthorizedHandler,
+        private val networkErrors: NetworkErrorSignal = NetworkErrorSignal(),
     ) {
         /**
          * Sends [request] and maps a successful response (2xx, or any status for which [isSuccess] is true) with
@@ -58,6 +62,7 @@ class ApiErrorMapper
                     "timeout" to true,
                     "type" to e.javaClass.simpleName,
                 )
+                reportNetworkError(endpoint)
                 Outcome.Failure(DomainError.Network(isTimeout = true))
             } catch (e: IOException) {
                 KioskLog.w(
@@ -66,6 +71,7 @@ class ApiErrorMapper
                     "timeout" to false,
                     "type" to e.javaClass.simpleName,
                 )
+                reportNetworkError(endpoint)
                 Outcome.Failure(DomainError.Network(isTimeout = false))
             } catch (e: Exception) {
                 // SerializationException, IllegalArgumentException from a mapper, or anything unexpected. The exception
@@ -73,6 +79,11 @@ class ApiErrorMapper
                 KioskLog.w("api_unparsable_response", "endpoint" to endpoint, "type" to e.javaClass.simpleName)
                 Outcome.Failure(DomainError.Unknown)
             }
+
+        /** E14 is the probe itself, so its failure must not trigger another probe. */
+        private fun reportNetworkError(endpoint: String) {
+            if (endpoint != HEALTH_ENDPOINT) networkErrors.report()
+        }
 
         private suspend fun httpError(
             endpoint: String,
@@ -155,6 +166,7 @@ class ApiErrorMapper
             }
 
         private companion object {
+            const val HEALTH_ENDPOINT = "E14"
             const val HTTP_UNAUTHORIZED = 401
             const val HTTP_CONFLICT = 409
             const val CODE_PRICE_CHANGED = "PRICE_CHANGED"
