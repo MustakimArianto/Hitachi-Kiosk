@@ -43,7 +43,7 @@ class SwitchableBackendApi(
 
     override suspend fun activate(request: ActivationRequest) = target().activate(request)
 
-    override suspend fun merchants(deviceId: String) = target().merchants(deviceId)
+    override suspend fun merchants(deviceId: String) = target().merchants(deviceId).map(DemoImages::apply)
 
     override suspend fun bind(
         deviceId: String,

@@ -14,6 +14,7 @@ class DemoImagesTest {
         menu.products.mapNotNull { it.imageUrl } +
             menu.combos.mapNotNull { it.imageUrl } +
             (menu.comboSlots.sides + menu.comboSlots.drinks).mapNotNull { it.imageUrl } +
+            menu.modifierGroups.flatMap { it.options }.mapNotNull { it.imageUrl } +
             listOfNotNull(config.logoUrl, config.heroPhotoUrl) +
             config.idlePromoImageUrls.filterNotNull()
 
@@ -32,6 +33,8 @@ class DemoImagesTest {
         assertThat(menu.combos.map { it.imageUrl }).doesNotContain(null)
         assertThat(menu.comboSlots.drinks.map { it.imageUrl }).doesNotContain(null)
         assertThat(config.idlePromoImageUrls).hasSize(3)
+        val meal = menu.modifierGroups.flatMap { it.options }.first { it.id == "opt_make_meal" }
+        assertThat(meal.imageUrl).endsWith("/meal_addon.webp")
     }
 
     @Test

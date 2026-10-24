@@ -3,6 +3,7 @@ package com.hitachi.kiosk.debug
 import com.hitachi.kiosk.core.domain.model.Combo
 import com.hitachi.kiosk.core.domain.model.ComboSlotOption
 import com.hitachi.kiosk.core.domain.model.Menu
+import com.hitachi.kiosk.core.domain.model.Merchant
 import com.hitachi.kiosk.core.domain.model.MerchantConfig
 import com.hitachi.kiosk.core.domain.model.Product
 
@@ -62,13 +63,24 @@ object DemoImages {
             "cd_water" to "water",
         )
 
-    private val idlePromos = listOf("double_burger", "wings_six", "caramel_sundae")
+    private val modifierOptions = mapOf("opt_make_meal" to "meal_addon")
+
+    private val idlePromos = listOf("idle_burger", "idle_wings", "idle_sundae")
 
     /** The menu with a photo on every product, combo and combo option the demo set covers. */
     fun apply(menu: Menu): Menu =
         menu.copy(
             products = menu.products.map { it.withImage(products[it.id]) },
             combos = menu.combos.map { it.withImage(combos[it.id]) },
+            modifierGroups =
+                menu.modifierGroups.map { group ->
+                    group.copy(
+                        options =
+                            group.options.map {
+                                it.copy(imageUrl = it.imageUrl.orDemo(modifierOptions[it.id]?.let(::url)))
+                            },
+                    )
+                },
             comboSlots =
                 menu.comboSlots.copy(
                     sides = menu.comboSlots.sides.map { it.withImage(slotOptions[it.id]) },
@@ -87,11 +99,23 @@ object DemoImages {
                     .mapIndexed { index, existing -> existing.orDemo(url(idlePromos[index % idlePromos.size])) },
         )
 
+    /** The merchant list with the logo and cover photo on the merchants that only have the `cdn.example` placeholder. */
+    fun apply(merchants: List<Merchant>): List<Merchant> =
+        merchants.map {
+            it.copy(
+                logoUrl = it.logoUrl.orPlaceholderDemo(url("logo")),
+                photoUrl = it.photoUrl.orPlaceholderDemo(url("bbq_bacon_burger")),
+            )
+        }
+
     private fun Product.withImage(name: String?) = copy(imageUrl = imageUrl.orDemo(name?.let(::url)))
 
     private fun Combo.withImage(name: String?) = copy(imageUrl = imageUrl.orDemo(name?.let(::url)))
 
     private fun ComboSlotOption.withImage(name: String?) = copy(imageUrl = imageUrl.orDemo(name?.let(::url)))
+
+    private fun String?.orPlaceholderDemo(demo: String): String? =
+        if (this != null && PLACEHOLDER_HOST in this) demo else this
 
     private fun String?.orDemo(demo: String?): String? =
         if (this == null || PLACEHOLDER_HOST in this) demo ?: this else this
