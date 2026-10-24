@@ -2,7 +2,6 @@ package com.hitachi.kiosk.feature.item
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -36,7 +35,6 @@ import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
-import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
@@ -153,7 +151,6 @@ private const val RING_OUT_MILLIS = 800
 private const val RING_OUT_SCALE = 0.8f
 private const val RING_START_ALPHA = 0.8f
 private const val CHECK_IN_MILLIS = 460
-private val CheckPop = CubicBezierEasing(0.3f, 1.4f, 0.5f, 1f)
 
 /** The flying thumbnail: from (380, 1700), 180 dpx, to +560 / −1640 at 15 %, fading over the last 20 %. */
 private const val FLY_LEFT_PX = 380
@@ -163,9 +160,6 @@ private const val FLY_DX_PX = 560
 private const val FLY_DY_PX = -1640
 private const val FLY_END_SCALE = 0.15f
 private const val FLY_FADE_START = 0.8f
-
-/** The disabled "−" and CTA on the dark dock, `#3A3632`: `bg` at 15 % over `ink`. */
-private const val DOCK_CONTROL_ALPHA = 0.15f
 
 /** "+" fades to 40 % at the maximum quantity. */
 private const val AT_MAX_ALPHA = 0.4f
@@ -179,12 +173,6 @@ private const val FADE_SOLID_AT = 0.55f
 
 private const val TITLE_LETTER_EM = -0.03f
 private const val PRICE_LETTER_EM = -0.02f
-
-@Composable
-private fun dockControlColor(): Color =
-    KioskTheme.colors.bg
-        .copy(alpha = DOCK_CONTROL_ALPHA)
-        .compositeOver(KioskTheme.colors.ink)
 
 /**
  * SCR-08 Item detail (`ItemDetail.dc.html`, `S_ItemDetail_*`, FR-010, DEV-029). Draws [state] exactly: the photo hero,
@@ -558,14 +546,14 @@ private fun QuantityStepper(
         modifier =
             Modifier
                 .height(136.dpx)
-                .background(colors.dockTileBorder, RoundedCornerShape(36.dpx))
+                .background(colors.dockTrack, RoundedCornerShape(36.dpx))
                 .padding(12.dpx)
                 .semantics { contentDescription = description },
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(4.dpx),
     ) {
         val decreaseBg by animateColorAsState(
-            targetValue = if (state.canDecrease) colors.bg else dockControlColor(),
+            targetValue = if (state.canDecrease) colors.bg else KioskTheme.colors.dockControl,
             animationSpec = motionSpec(tween(STEPPER_COLOR_MILLIS)),
             label = "decrease-bg",
         )
@@ -653,7 +641,7 @@ private fun AddButton(
     val colors = KioskTheme.colors
     val enabled = state.cta == ItemCta.Add
     val background by animateColorAsState(
-        targetValue = if (enabled) colors.accent else dockControlColor(),
+        targetValue = if (enabled) colors.accent else KioskTheme.colors.dockControl,
         animationSpec = motionSpec(tween(STEPPER_COLOR_MILLIS)),
         label = "add-bg",
     )
@@ -743,7 +731,7 @@ private fun AddedDock(onEvent: (ItemDetailEvent) -> Unit) {
 private fun AddedCheck(modifier: Modifier = Modifier) {
     val colors = KioskTheme.colors
     val ring = animateOnEnter(tween(RING_OUT_MILLIS, easing = KioskEasing.Press))
-    val check = animateOnEnter(tween(CHECK_IN_MILLIS, easing = CheckPop))
+    val check = animateOnEnter(tween(CHECK_IN_MILLIS, easing = KioskEasing.Pop))
     val description = stringResource(R.string.item_added)
     Box(
         modifier =
@@ -801,8 +789,15 @@ private fun DockButton(
                 .pressScale(scale)
                 .height(136.dpx)
                 .clip(shape)
-                .then(if (filled) Modifier.background(colors.bg) else Modifier.border(2.dpx, dockControlColor(), shape))
-                .clickable(
+                .then(
+                    if (filled) {
+                        Modifier.background(
+                            colors.bg,
+                        )
+                    } else {
+                        Modifier.border(2.dpx, KioskTheme.colors.dockControl, shape)
+                    },
+                ).clickable(
                     interactionSource = interactionSource,
                     indication = null,
                     role = Role.Button,

@@ -106,6 +106,18 @@ object KioskPalette {
     /** `warningText`: text on the offline banner. */
     val WarningText = Color(0xFF4A3A08)
 
+    /** `alert`: the pulsing staff-corner dot when a fault exists (`S_Idle_issues`, FR-031). */
+    val Alert = Color(0xFFD6402B)
+
+    /** `dockControl`: disabled controls and outlines on the dark dock (Item "−", disabled CTA, "Keep ordering"). */
+    val DockControl = Color(0xFF3A3632)
+
+    /** `dockTrack`: the quantity stepper track on the dark dock (`ItemDetail.dc.html`). */
+    val DockTrack = Color(0xFF2A2724)
+
+    /** `dockSubtle`: secondary text on the dark "Plan by budget" row (`Menu.dc.html`). */
+    val DockSubtle = Color(0xFFCFC8BE)
+
     /** The floating elevation's shadow color, `rgba(23,21,19,.10)` (PRD §11.1). */
     val FloatingShadow = Ink.copy(alpha = 0.10f)
 

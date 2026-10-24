@@ -1,7 +1,6 @@
 package com.hitachi.kiosk.feature.combo
 
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -36,7 +35,6 @@ import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.dropShadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.shadow.Shadow
 import androidx.compose.ui.platform.testTag
@@ -142,9 +140,6 @@ private const val CART_BUMP_MILLIS = 460
 /** Sold-out side and drink cards are drawn at 45 % (`S_Combo_soldOut`). */
 private const val SOLD_OUT_ALPHA = 0.45f
 
-/** The disabled dock button, `#3A3632`: `bg` at 15 % over `ink`. */
-private const val DOCK_CONTROL_ALPHA = 0.15f
-
 /** The fade above the dock: transparent to `bg` at 55 %. */
 private const val FADE_HEIGHT_PX = 320
 private const val FADE_SOLID_AT = 0.55f
@@ -156,15 +151,6 @@ private const val TOTAL_EM = -0.018f
 private const val NAME_LINE_EM = 1.15f
 private const val START_SCALE = 0.4f
 private const val START_ROTATION = -45f
-
-/** The overshooting pop of the radio dot and the Added check (`.3, 1.4, .5, 1`). */
-private val Pop = CubicBezierEasing(0.3f, 1.4f, 0.5f, 1f)
-
-@Composable
-private fun dockControlColor(): Color =
-    KioskTheme.colors.bg
-        .copy(alpha = DOCK_CONTROL_ALPHA)
-        .compositeOver(KioskTheme.colors.ink)
 
 /**
  * SCR-07 Combo (`Combo.dc.html`, `S_Combo_*`, FR-011, DEV-030). Draws [state] exactly: header pills, the title, the
@@ -385,7 +371,7 @@ private fun ComboCard(
             contentAlignment = Alignment.Center,
         ) {
             if (combo.selected) {
-                val pop = animateOnEnter(tween(Combo.RADIO_DOT_MILLIS, easing = Pop))
+                val pop = animateOnEnter(tween(Combo.RADIO_DOT_MILLIS, easing = KioskEasing.Pop))
                 Box(
                     Modifier
                         .size(26.dpx)
@@ -799,7 +785,7 @@ private fun AddComboButton(
             when (cta) {
                 ComboCta.ADD -> colors.accent
                 ComboCta.ADDED -> colors.bg
-                else -> dockControlColor()
+                else -> KioskTheme.colors.dockControl
             },
         animationSpec = motionSpec(tween(BUTTON_COLOR_MILLIS, easing = KioskEasing.Emphasized)),
         label = "add-combo-bg",
@@ -835,7 +821,7 @@ private fun AddComboButton(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         if (cta == ComboCta.ADDED) {
-            val pop = animateOnEnter(tween(CHECK_IN_MILLIS, easing = Pop))
+            val pop = animateOnEnter(tween(CHECK_IN_MILLIS, easing = KioskEasing.Pop))
             KioskIcon(
                 icon = KioskIcons.Check,
                 tint = colors.accent,

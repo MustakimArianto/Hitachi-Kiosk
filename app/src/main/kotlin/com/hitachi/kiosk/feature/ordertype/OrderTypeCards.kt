@@ -289,30 +289,3 @@ private fun CheckBadge(modifier: Modifier = Modifier) {
         }
     }
 }
-
-/** The 24 × 24 viewBox of the design's icons. */
-private const val ICON_VIEWPORT = 24f
-
-/**
- * The info icon of the single-option note: a circle (stroke 2) with an "i" (stroke 2.2), tinted by `KioskIcon`. Its
- * default size is the viewBox only; the note sizes it to 36 dpx.
- */
-internal val InfoIcon: ImageVector =
-    ImageVector
-        .Builder(
-            name = "Info",
-            defaultWidth = Dp(ICON_VIEWPORT),
-            defaultHeight = Dp(ICON_VIEWPORT),
-            viewportWidth = ICON_VIEWPORT,
-            viewportHeight = ICON_VIEWPORT,
-        ).addPath(
-            pathData = addPathNodes("M12 3a9 9 0 1 0 0 18a9 9 0 1 0 0-18z"),
-            stroke = SolidColor(Color.Black),
-            strokeLineWidth = 2f,
-        ).addPath(
-            pathData = addPathNodes("M12 11v5M12 8h.01"),
-            stroke = SolidColor(Color.Black),
-            strokeLineWidth = 2.2f,
-            strokeLineCap = StrokeCap.Round,
-            strokeLineJoin = StrokeJoin.Round,
-        ).build()

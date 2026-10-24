@@ -412,8 +412,7 @@ private fun tapLoop(): State<Float> =
 @Composable
 private fun IssueDot(modifier: Modifier = Modifier) {
     val colors = KioskTheme.colors
-    // Stand-in until the design system has the alert red (#D6402B) of `S_Idle_issues`.
-    val alert = colors.accent
+    val alert = colors.alert
     val label = stringResource(R.string.idle_issue_dot)
     val pulse = alertPulse()
     val spread = ALERT_PULSE_PX.dpx

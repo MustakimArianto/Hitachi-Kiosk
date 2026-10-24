@@ -54,6 +54,10 @@ class KioskTokensTest {
                 "warningTrack" to c.warningTrack,
                 "warningAccent" to c.warningAccent,
                 "warningText" to c.warningText,
+                "alert" to c.alert,
+                "dockControl" to c.dockControl,
+                "dockTrack" to c.dockTrack,
+                "dockSubtle" to c.dockSubtle,
             ).mapValues { it.value.hex() }
 
         assertThat(actual).containsExactlyEntriesIn(
@@ -87,6 +91,10 @@ class KioskTokensTest {
                 "warningTrack" to "#E2C877",
                 "warningAccent" to "#8A6A12",
                 "warningText" to "#4A3A08",
+                "alert" to "#D6402B",
+                "dockControl" to "#3A3632",
+                "dockTrack" to "#2A2724",
+                "dockSubtle" to "#CFC8BE",
             ),
         )
     }
@@ -125,6 +133,10 @@ class KioskTokensTest {
                 c.warningTrack,
                 c.warningAccent,
                 c.warningText,
+                c.alert,
+                c.dockControl,
+                c.dockTrack,
+                c.dockSubtle,
                 KioskPalette.PhotoToneFallback,
             )
 

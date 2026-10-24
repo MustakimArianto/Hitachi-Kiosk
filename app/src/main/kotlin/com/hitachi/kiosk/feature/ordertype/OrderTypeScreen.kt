@@ -30,6 +30,7 @@ import androidx.compose.ui.unit.em
 import com.hitachi.kiosk.R
 import com.hitachi.kiosk.core.designsystem.component.BrandLockup
 import com.hitachi.kiosk.core.designsystem.component.KioskIcon
+import com.hitachi.kiosk.core.designsystem.component.KioskIcons
 import com.hitachi.kiosk.core.designsystem.component.KioskText
 import com.hitachi.kiosk.core.designsystem.motion.KioskEasing
 import com.hitachi.kiosk.core.designsystem.motion.KioskMotion.Common
@@ -238,7 +239,7 @@ private fun UnavailableNote(unavailable: OrderType) {
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(16.dpx),
     ) {
-        KioskIcon(icon = InfoIcon, tint = colors.muted, modifier = Modifier.size(36.dpx))
+        KioskIcon(icon = KioskIcons.Info, tint = colors.muted, modifier = Modifier.size(36.dpx))
         KioskText(
             text =
                 stringResource(

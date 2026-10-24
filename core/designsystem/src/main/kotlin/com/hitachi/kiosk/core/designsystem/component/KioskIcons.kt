@@ -102,27 +102,45 @@ object KioskIcons {
 
     /** "⌄" of collapsible rows and "More sides", stroke 2.2. */
     val ChevronDown: ImageVector = lineIcon("ChevronDown", "M6 9l6 6 6-6", strokeWidth = 2.2f)
+
+    /** "ⓘ" of notes (Order type single option): a circle at stroke 2 with an "i" at stroke 2.2. */
+    val Info: ImageVector =
+        lineIcon(
+            "Info",
+            "M12 3a9 9 0 1 0 0 18a9 9 0 1 0 0-18z" to 2f,
+            "M12 11v5M12 8h.01" to 2.2f,
+        )
 }
 
 private fun lineIcon(
     name: String,
     pathData: String,
     strokeWidth: Float,
+): ImageVector = lineIcon(name, pathData to strokeWidth)
+
+/** An icon of several stroked paths, each with its own stroke width. */
+private fun lineIcon(
+    name: String,
+    vararg paths: Pair<String, Float>,
 ): ImageVector =
-    ImageVector
-        .Builder(
-            name = name,
-            defaultWidth = VIEWPORT.dp,
-            defaultHeight = VIEWPORT.dp,
-            viewportWidth = VIEWPORT,
-            viewportHeight = VIEWPORT,
-        ).addPath(
-            pathData = addPathNodes(pathData),
-            stroke = SolidColor(Color.Black),
-            strokeLineWidth = strokeWidth,
-            strokeLineCap = StrokeCap.Round,
-            strokeLineJoin = StrokeJoin.Round,
-        ).build()
+    paths
+        .fold(
+            ImageVector.Builder(
+                name = name,
+                defaultWidth = VIEWPORT.dp,
+                defaultHeight = VIEWPORT.dp,
+                viewportWidth = VIEWPORT,
+                viewportHeight = VIEWPORT,
+            ),
+        ) { builder, (pathData, strokeWidth) ->
+            builder.addPath(
+                pathData = addPathNodes(pathData),
+                stroke = SolidColor(Color.Black),
+                strokeLineWidth = strokeWidth,
+                strokeLineCap = StrokeCap.Round,
+                strokeLineJoin = StrokeJoin.Round,
+            )
+        }.build()
 
 /**
  * Draws one of [KioskIcons] in [tint]. Icons are decorative (`aria-hidden` in the design): the control around them

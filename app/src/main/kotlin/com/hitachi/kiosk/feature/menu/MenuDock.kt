@@ -176,7 +176,7 @@ private fun DockThumbnails(thumbnails: List<DockThumbnailUi>) {
     Row(modifier = Modifier.padding(end = overlap)) {
         thumbnails.forEach { thumbnail ->
             key(thumbnail.lineId) {
-                val pop = animateEntrance(THUMB_IN_MILLIS, easing = KioskEasing.Spring)
+                val pop = animateEntrance(THUMB_IN_MILLIS, easing = KioskEasing.Pop)
                 Box(
                     modifier =
                         Modifier
@@ -255,9 +255,9 @@ private fun rememberBump(
                 keyframes {
                     durationMillis = KioskMotion.Menu.DOCK_BUMP_MILLIS
                     this.delayMillis = delayMillis
-                    1f at 0 using KioskEasing.Spring
+                    1f at 0 using KioskEasing.Pop
                     BUMP_SCALE at (KioskMotion.Menu.DOCK_BUMP_MILLIS * BUMP_PEAK_FRACTION).roundToInt() using
-                        KioskEasing.Spring
+                        KioskEasing.Pop
                 },
         )
     }

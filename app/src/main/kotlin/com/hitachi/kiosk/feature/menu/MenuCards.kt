@@ -258,7 +258,7 @@ private fun AddButton(
 private fun AddedCheck() {
     val colors = KioskTheme.colors
     val ring = animateEntrance(RING_MILLIS, easing = KioskEasing.Press)
-    val check = animateEntrance(CHECK_IN_MILLIS, easing = KioskEasing.Spring)
+    val check = animateEntrance(CHECK_IN_MILLIS, easing = KioskEasing.Pop)
     Box(
         modifier =
             Modifier
@@ -375,7 +375,7 @@ internal fun BudgetPlanRow(
             KioskText(
                 text = stringResource(R.string.menu_budget_body),
                 style = KioskTheme.typography.meta.copy(fontWeight = FontWeight.W400),
-                color = colors.dockMuted,
+                color = colors.dockSubtle,
                 maxLines = 1,
             )
         }

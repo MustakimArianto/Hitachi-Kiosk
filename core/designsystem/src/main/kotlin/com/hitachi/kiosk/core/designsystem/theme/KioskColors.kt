@@ -41,6 +41,10 @@ data class KioskColors(
     val warningTrack: Color = KioskPalette.WarningTrack,
     val warningAccent: Color = KioskPalette.WarningAccent,
     val warningText: Color = KioskPalette.WarningText,
+    val alert: Color = KioskPalette.Alert,
+    val dockControl: Color = KioskPalette.DockControl,
+    val dockTrack: Color = KioskPalette.DockTrack,
+    val dockSubtle: Color = KioskPalette.DockSubtle,
 )
 
 /** The [KioskColors] of the current [KioskTheme] (DEV-004). */

@@ -26,6 +26,9 @@ object KioskEasing {
     /** `(.55, 0, .75, .2)`: accelerating fly-to-cart. */
     val Fly: Easing = CubicBezierEasing(0.55f, 0f, 0.75f, 0.2f)
 
+    /** `(.3, 1.4, .5, 1)`: bouncy pops (check marks, cart badge bumps, dock thumbnails). */
+    val Pop: Easing = CubicBezierEasing(0.3f, 1.4f, 0.5f, 1f)
+
     /** CSS `ease`, `(.25, .1, .25, 1)`: header and caption fades. */
     val Ease: Easing = CubicBezierEasing(0.25f, 0.1f, 0.25f, 1f)
 
