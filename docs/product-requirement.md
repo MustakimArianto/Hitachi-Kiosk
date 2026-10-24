@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | Product | Hitachi Kiosk (Android self-ordering kiosk app) |
-| Document version | 1.8 (2026-10-24), see the [revision history](#revision-history) |
+| Document version | 1.9 (2026-10-25), see the [revision history](#revision-history) |
 | Target release | `1.0.0` |
 | Companion documents | [`technical-requirement.md`](technical-requirement.md), [`technical-design.md`](technical-design.md), [`technology-stack.md`](technology-stack.md), [`architecture.md`](architecture.md), [`dev-plan.md`](dev-plan.md), [`testing-plan.md`](testing-plan.md) |
 | Design source of truth | [`ui-design/`](ui-design/) — the final light design "Linen & Paprika": 20 screen artboards, 33 state boards (`S_<Screen>_<scenario>`), the `Photo` component, `canvas.json` and `README.md`. It is mirrored from https://claude.ai/artifact/Lv6W9bttmG8fH4ho4CkWMg |
@@ -20,6 +20,7 @@
 | 1.6 | 2026-10-23 | 0.3.0 decisions (PO): a product needs a choice ("Choose ›", no quick add) only when a required group has **no default** option, so s1 and d1 quick-add with their defaults (FR-009, A-08); OQ-08 closed, sold-out products stay hidden (A-09); A-29 is kept strictly, so Item detail shows "No longer available" from the catalog the order started with (FR-010); a combo side or drink can be sold out (new optional E6 field `available`, FR-011); the offline banner is driven by the validated network until the E14 probe of 0.5.0 (FR-028). Banner and toast colours added to §11.1. |
 | 1.7 | 2026-10-24 | 0.4.0 decisions: the PO decided that the first "View order" on the Menu in every order goes through SCR-09 when "Suggest add-ons" is on, with the "Nothing more to suggest" state when nothing is left (FR-014, TC-172); A-43 (a plan is added to the cart whole, next to what is already there; SCR-19 opens empty) and A-44 (children's drinks, combo `serves`, shared extras) record how the planner reads FR-032; SCR-09's strip and "Continue" both show the cart subtotal as drawn; design colours used by the 0.4.0 screens added to §11.1. |
 | 1.8 | 2026-10-24 | 0.5.0 decisions and clarifications: D-32 (a payment that is still `PENDING` after a process death is cancelled, not resumed, because the QR string is not stored; `PROCESSING` is polled for up to 60 s first; the PO delegated the choice); A-45 (Checkout copy and behaviour the design has no board for, to be confirmed by the PO); FR-016 says the order total returned by the backend must equal the total shown, and how the process-death recovery decides; FR-017 cancels a payment whose amount differs from the order total and names where the QR life comes from before the 0.7.0 settings; FR-019 bounds "Confirming payment" at 60 s; FR-028 defines the unvalidated-network grace and the E14 test; OQ-03 and R-1 status at the 0.5.0 exit (the gateway and EDC specs had not arrived). |
+| 1.9 | 2026-10-25 | 0.6.0 rework (PO): printing is built **UI and logic only against the fakes**, the three real printer drivers and the physical print checks move to 0.9.0 [D-34]; Upsell is no longer a blocking screen but a smart suggestion strip on Your order, which supersedes the 1.7 ruling that the first "View order" always goes through SCR-09 [D-33, FR-014, SCR-09 retired]; Budget Plan gets plainer, easier steps (FR-032: findable entry, defaults, both plans visible, a swap picker, no silent failures); A-46 to A-48 and OQ-15 to OQ-18 record what is still to confirm. The design files are not updated yet, so every new screen waits for its boards and the PO's sign-off (DEV-104). |
 
 ## 0. How to read this document
 
@@ -85,7 +86,7 @@ Let any restaurant on the Hitachi Kiosk platform put an attractive, fast self-or
 5. Menu browsing: categories, Popular, the "Plan by budget" entry row, product grid, quick add.
 6. Item detail customization (meal upgrade, ingredient levels, extras, quantity).
 7. Combos (combo choice, side, drink, size).
-8. Upsell ("Suggest add-ons") step before payment; the screen is designed (SCR-09) [D-16].
+8. Upsell ("Suggest add-ons"): a smart suggestion strip on Your order (SCR-10) [D-16, D-33]. The old SCR-09 screen is retired.
 9. Cart / order review with quantity edit and removal.
 10. Pricing engine: subtotal, promo, PB1 tax, rounding, all configured in the backend [D-19].
 11. Order submission to the backend; the backend assigns the order number [D-21].
@@ -134,7 +135,7 @@ All screens are 1080 × 1920 dpx portrait, background `#FAF8F5`, font Schibsted 
 | SCR-06 | `Menu.dc.html` | Menu | Browse categories and quick-add products | FR-009 |
 | SCR-07 | `Combo.dc.html` | Combos | Configure a combo meal | FR-011 |
 | SCR-08 | `ItemDetail.dc.html` | Item | Customize a product | FR-010 |
-| SCR-09 | `Upsell.dc.html` | Upsell ("Anything on the side?") | Suggest add-ons before payment | FR-014 |
+| SCR-09 | `Upsell.dc.html` | Upsell ("Anything on the side?") | **Retired in 1.9** [D-33]: replaced by the "Goes well with your order" strip on SCR-10. The artboard stays in the design files as history until the new boards are made. | FR-014 |
 | SCR-10 | `Payment.dc.html` | Your order | Review cart, see totals, choose payment method | FR-012, FR-013, FR-015 |
 | SCR-11 | `Checkout.dc.html` | Checkout (waiting / processing / failed) | Pay by QRIS or card | FR-016…FR-019 |
 | SCR-12 | `Complete.dc.html` | Transaction complete | Order number, print confirmation, auto-return | FR-020, FR-021 |
@@ -162,7 +163,7 @@ All screens are 1080 × 1920 dpx portrait, background `#FAF8F5`, font Schibsted 
 | C7 | Login header pill "Version 1.0"; Settings footer "Hitachi Kiosk 1.0.0" | Shows the real `versionName`. |
 | C8 | Menu header pill reads "Dine in · Change" with no language tag | Shows the selected order type ("Dine in" or "Takeaway"), followed by "Change". |
 | C9 | Idle timeout "cancels the order" with no warning | A warning overlay comes first [D-15]. |
-| C10 | "Suggest add-ons" toggle and the Upsell screen | In 1.0, built to `Upsell.dc.html` [D-16]. |
+| C10 | "Suggest add-ons" toggle and the Upsell screen | In 1.0 the toggle stays, but the suggestions are a strip on Your order, not a screen [D-16, D-33]. `Upsell.dc.html` is superseded by the new Your order boards. |
 | C11 | Photo slots carry placeholder captions such as "Promo photo 1 · 1080 × 1920" and "Photo" | Design-only labels. Release builds show real images or the plain tone (NFR-013). |
 | C12 | Checkout still contains the prototype Approve/Decline bar and an unused instruction-step array in its script | The bar is debug-only (C6). The step list is not part of the design and is not built [D-30]. |
 
@@ -191,7 +192,7 @@ SCR-06 Menu ─┬─(product card)──► SCR-08 Item ──(Keep ordering)�
              ├─(Meals pill / combo promo)──► SCR-07 Combo ──(Menu)──► SCR-06
              ├─(Change order type)──► SCR-05 (cart kept)
              ├─(Cancel)──► SCR-04 (cart cleared)
-             └─(View order)──► [SCR-09 Upsell, if enabled and not yet shown] ──► SCR-10 Your order
+             └─(View order)──► SCR-10 Your order (with the suggestion strip when "Suggest add-ons" is on)
 SCR-07/SCR-08 ──(My order / View order)──► SCR-10
 SCR-10 ──(Add more)──► SCR-06
 SCR-10 ──(Pay Rp …)──► SCR-11 Checkout
@@ -205,8 +206,8 @@ Any customer screen ──(inactivity)──► SCR-13 overlay ──(no respons
 2. Order type: customer taps "Dine in". The card fills with the accent color, a check pops, and after 950 ms the app navigates to Menu [V].
 3. Menu: customer taps "+" on "Crispy Chicken (2 pc)". A thumbnail flies to the cart dock, the button turns into a check for 1.4 s, and the dock count and total roll [V].
 4. Customer taps "Choose ›" on "Smoky Double Burger" (it has a required size). On the Item screen they confirm the size, switch on "Make it a meal", expand "Customize" to set Smoked cheddar to Extra, expand "Add extras" to add Fried egg, set qty 2, and tap "Add to order". The dock shows "Keep ordering" / "View order" [V].
-5. If upsell is enabled, the upsell step appears (FR-014). The customer adds or skips.
-6. Your order: the customer reviews lines, changes a quantity, and sees Subtotal, the Promo line when eligible, PB1 10 %, and Total. QRIS is pre-selected. They tap "Pay Rp X". The dark summary shows the Total with a "Details" toggle for the full breakdown.
+5. Your order: if "Suggest add-ons" is on, a strip "Goes well with your order" shows up to 3 items that the order is missing (FR-014). The customer taps "+" to add one, or ignores the strip; there is no extra screen or tap.
+6. The customer reviews lines, changes a quantity, and sees Subtotal, the Promo line when eligible, PB1 10 %, and Total. QRIS is pre-selected. They tap "Pay Rp X". The dark summary shows the Total with a "Details" toggle for the full breakdown.
 7. Checkout: the app creates the order and the QRIS payment ("Creating your payment…" while it waits). It shows the QR code with a "Code expires in m:ss" ring. The customer scans and pays in their e-wallet.
 8. The gateway confirms and the screen shows "Confirming payment" → Complete: "Payment successful", "Thank you!", order number, and dine-in instructions. The receipt and kitchen ticket print.
 9. After 20 s, or a tap on "Done", the kiosk returns to Idle with the cart cleared.
@@ -236,11 +237,11 @@ On Idle, staff press and hold the bottom-right 160 × 160 dpx corner for 2 s. Th
 The kiosk loses connectivity while a customer is on the Menu. Browsing continues from the cache. Tapping "Pay" (or arriving on Your order) shows an "Ordering is paused — reconnecting" state, with the Pay button disabled. Connectivity returns and the button re-enables automatically (FR-028).
 
 ### 5.10 Journey J9 — Family plans by budget (Budget Plan)
-1. A family of 2 adults and 1 child picks Dine in, then taps the slim dark "Plan by budget" row at the top of the Menu.
-2. SCR-19 Step 1, "Feed the whole table": they tap the Rp 150k chip, set Adults 2 and Children 1, and tap "See plans".
-3. Step 2, "Two plans for you": the hero card shows the best fit, "Just under budget · Rp 149.600 · Rp 400 left". A "Just under | Just over" control switches it to "Just over budget · Rp 150.700 · +Rp 700 over". They expand "What's included" to see meals per person (the child's meal comes from kid-friendly items) and "Price details" for the final breakdown including PB1.
-4. They tap "Customize", swap one adult's drink, and the sheet re-balances sides and desserts so the plan stays as close to the budget as possible. They tap "Done".
-5. They tap "Add plan to order · Rp X". The cart is filled and they land on Your order (SCR-10) with every line editable, then continue as J1 step 6.
+1. A family of 2 adults and 1 child picks Dine in, then taps the "Plan by budget" pill in the Menu header (or the row at the top of Popular).
+2. SCR-19 Step 1, "Feed the whole table": Adults already shows 2. They tap the Rp 150k chip (the caption shows "About Rp 50.000 per person"), set Children 1, and tap "See plans".
+3. Step 2, "Two plans for you": two cards are visible, "Within your budget · Rp 149.600 · Rp 400 left" (selected) and "A little extra · Rp 150.700 · +Rp 700". "What's included" is already open and shows one meal per person (the child's meal comes from kid-friendly items); "Price details" has the final breakdown including PB1.
+4. They tap an adult's drink, pick another one from the list (it shows the price change and the new total), and the plan re-balances sides and desserts so it stays as close to the budget as possible.
+5. They tap "Add plan to order · Rp X". The cart is filled and they land on Your order (SCR-10) with every line editable and an "Edit plan" action on the plan tag, then continue as J1 step 6.
 6. Exact-price variant: 1 adult and 1 child with a Rp 99.000 budget get a single hero card titled "A perfect fit", badge "Exact match", "Perfect fit! Rp 99.000 · Rp 0 left". No over/under pair is shown.
 
 ---
@@ -365,7 +366,7 @@ Priority: **MVP** = required for 1.0.0. **Post-1.0** = specified for later, not 
   - **Header:** brand lockup, a pill reading "Dine in · Change" (or "Takeaway · Change"), and "Cancel", which returns to Idle and clears the cart.
   - **Greeting:** time-of-day greeting ("Good morning/afternoon/evening" [A-07]) and the title "What are you having?".
   - **Category pills:** a horizontal scroll that includes "Popular" (featured list) and the backend categories. A "Meals" pill with an ↗ icon links to the Combo screen. The active pill is dark (#171513). Changing category scrolls the grid to the top and replays the heading and card entrance animations.
-  - **"Plan by budget" row (only on Popular):** a slim 128 dpx dark row with a people icon, "Plan by budget", "Set a budget and group size — we plan the meal" and an arrow button. It opens SCR-19 and shows only when merchant config `budgetPlanner.enabled` is true (FR-032). The promo carousel from earlier designs is removed from the Menu in 1.0 [D-30].
+  - **"Plan by budget" entry:** a slim 128 dpx dark row at the top of Popular with a people icon, "Eating with a group?", "Tell us your budget and we pick the meal" and an arrow button, **plus a compact "Plan by budget" pill in the Menu header so it is reachable on every category tab** [D-35, design pending]. Both open SCR-19 and show only when merchant config `budgetPlanner.enabled` is true (FR-032). The promo carousel from earlier designs is removed from the Menu in 1.0 [D-30].
   - **Grid:** 2 columns. Each card shows the photo, an optional badge ("New", "Best seller" in accent; "Spicy", "Share", "Local" in ink), name, price and a round add button. Calories are shown on the Item screen, not on the grid. Tapping the card opens SCR-08. The round "+" button quick-adds one unit with default options. Products that need a choice show a "Choose ›" pill instead of "+" and open SCR-08.
   - **Quick add:** the "+" turns into an accent check with a ring burst for 1.4 s. The thumbnail flies to the cart dock (760 ms). The dock count bumps and the total rolls.
   - **Cart dock:** up to 3 most-recent thumbnails, "N items", total, and "View order →". A linen fade above the dock stops grid cards from sitting under it.
@@ -459,15 +460,24 @@ Priority: **MVP** = required for 1.0.0. **Post-1.0** = specified for later, not 
   - AC4: The backend-validated total equals the kiosk total in 100 % of contract tests. A mismatch follows FR-016's mismatch handling.
 
 ### FR-014 Upsell ("Suggest add-ons") — MVP
-- **Description:** Before payment, offer sides and desserts [V toggle text: "Offer sides and desserts before payment"] [D-16].
-- **Behavior [V, `Upsell.dc.html`]:** When enabled (FR-026), the first "View order" tap on the Menu in an order shows SCR-09, whatever the cart holds (PO, 2026-10-24). The eyebrow reads "Before you pay", the title "Anything on the side?" and the subtitle "A side or something sweet goes well with your order." A strip shows the current cart ("Your order", item count and the cart subtotal, as on the Menu dock). A 2 × 2 grid lists up to 4 suggestions from the backend `upsell` list (default: Sides and Desserts categories), each with photo, name, note, price and a quick-add button. The dock holds "No thanks" and "Continue · Rp X" (→ SCR-10), where X is the same cart subtotal; promo, tax and rounding first appear on SCR-10. It is shown at most once per order.
-- **Empty state [V, `S_Upsell_noSuggestions`]:** with nothing left to suggest (every candidate is already in the cart or unavailable), SCR-09 is titled "You're all set" / "Nothing else to suggest with this order." and its panel reads "Nothing more to suggest" / "Your order already has everything it needs. Review it and pay when you're ready.", with a single "Review order" button (→ SCR-10). The screen is not skipped, so the offer stays once per order (PO, 2026-10-24).
-- **Rules:** Suggestions exclude items already in the cart and items that need a choice (they are added with their default options). The list is fixed when SCR-09 opens, so a card just added stays on screen.
+- **Description:** On Your order (SCR-10), suggest what is missing from this order, with no extra screen and no extra tap [V toggle text: "Offer sides and desserts before payment"] [D-16, D-33]. It replaces the SCR-09 screen of 1.0 drafts and supersedes the 1.7 ruling that the first "View order" always opens SCR-09.
+- **Behavior [design pending, DEV-104]:** When enabled (FR-026), a horizontal strip titled "Goes well with your order" is the last element of the order list on SCR-10, above the summary panel. It holds up to **3** suggestion cards, each with photo, name, price and a "+" button. A card is added with the item's default options.
+  - **One card per gap**, in this priority: a **drink** if the order has a main but no drink and no meal; a **side** if it has a main but no side and no meal; a **dessert** if it has none. A "meal" is a combo line, or a product line whose "Make it a meal" option is on (the second case needs OQ-17). The first three gaps that apply fill the strip.
+  - **Within a gap** the order is merchant `plannerWeight` (higher first), then featured, then menu order.
+  - **Candidates** come from the backend `upsell` list (E5, default Sides and Desserts) plus the Drinks category when the merchant adds it. Items already in the order, unavailable items and items that need a choice are excluded.
+  - **Undo:** after a "+" the card shows a "− 1 +" stepper, so a mistaken tap is undone on the spot. At quantity 0 it returns to "+".
+  - **Promo link (P2):** when the order is under a promo threshold, an item whose price closes the gap is preferred and its card says "Adds Rp X off" (the existing `promoHint`).
+  - **Budget Plan orders:** when the order came from a Budget Plan, only items that fit the remaining budget are shown, and the strip is hidden when none fits. A suggestion never pushes a budget customer over the budget they set.
+  - **No empty-state screen.** When nothing is suggestable, or the toggle is off, the strip is not drawn.
+  - It works on every path (Menu, Item, Combo, Budget Plan), because all of them end on SCR-10. It is not limited to once per order: the strip follows the order as it changes.
+- **Rules:** Sides, drinks and desserts are plain add-ons and are never suggested as a combo. The suggestions are chosen in the domain layer (`:core:domain`), not in the screen.
 - **Acceptance criteria:**
-  - AC1: With the toggle off, SCR-09 is never shown.
-  - AC2: With it on, it shows once per order and never again after "No thanks".
-  - AC3: Quick-added suggestions appear in the cart with default options, and the "Continue" total updates.
-  - AC4: With no suggestions the "Nothing more to suggest" state appears and never blocks payment.
+  - AC1: With the toggle off, the strip is never shown.
+  - AC2: With it on and an order of one main, the first card is a drink; with a combo only, the strip offers a dessert and never a side or drink.
+  - AC3: A tapped suggestion appears in the order with default options and the total updates; "−" at quantity 1 removes it.
+  - AC4: With nothing to suggest, SCR-10 shows no strip and never blocks payment.
+  - AC5: An order that came from a Budget Plan with Rp 400 left shows no suggestion priced above Rp 400.
+  - AC6: Opening Your order from the Item, Combo or Budget Plan screen shows the same strip as opening it from the Menu.
 
 ### FR-015 Payment method selection — MVP
 - **Behavior [V]:**
@@ -604,7 +614,7 @@ Priority: **MVP** = required for 1.0.0. **Post-1.0** = specified for later, not 
   - AC4: Out-of-paper is surfaced in Settings and on Complete.
 
 ### FR-022 Printer management — MVP
-- **Description:** Staff choose and configure printers [D-17, D-18].
+- **Description:** Staff choose and configure printers [D-17, D-18]. **Build order [D-34]:** 0.6.0 builds the screen, the printer list, roles, status, toggles and the print logic against the `PrinterDriver` fakes. The three real drivers (built-in iMin SDK, USB, Bluetooth) and the discovery lists that need them are built in 0.9.0 with real printers. Until then a release build shows "No printers found" in the add flow.
 - **Behavior:** SCR-15 shows:
   - **Printers:** configured printers, each with connection type (Built-in / USB / Bluetooth), name, status, and role toggles Receipt and Kitchen.
   - **Add printer:** built-in is auto-detected via the iMin SDK. USB lists attached devices and requests USB permission. Bluetooth lists **paired** printers [A-21].
@@ -747,11 +757,11 @@ Priority: **MVP** = required for 1.0.0. **Post-1.0** = specified for later, not 
 ### FR-032 Budget Plan group meal planner — MVP
 - **Description:** The customer enters a budget and the number of adults and children. The kiosk recommends a complete meal plan whose **final** total lands exactly on the budget when possible, otherwise closest under it, with a closest-over alternative [D-26]. The UI starts simple (budget and people) and offers advanced options only on demand.
 - **Rationale:** Self-order kiosks usually push upsell. Planning a fair meal for a whole group within a stated budget is rare, fits Indonesian family and group dining, and is the launch differentiator.
-- **Entry:** a slim dark "Plan by budget" row at the top of the Popular view of the Menu (SCR-06), shown when merchant config `budgetPlanner.enabled` is true. It opens SCR-19 (`BudgetPas.dc.html`).
+- **Entry:** a slim dark row at the top of the Popular view of the Menu (SCR-06) and a compact "Plan by budget" pill in the Menu header (so it shows on every category tab), shown when merchant config `budgetPlanner.enabled` is true. The empty Your order state also offers it. The copy is "Eating with a group?" / "Tell us your budget and we pick the meal" [D-35, design pending]. It opens SCR-19 (`BudgetPas.dc.html`).
 - **Step 1 — "Your table"** (eyebrow "Budget Plan · Step 1 of 2", title "Feed the whole table", subtitle "Set a budget and who's eating. We'll build complete meals that fit."):
-  - Budget card: "Your budget", the amount in large type, the caption "Final total, tax included · exact to the nearest Rp 100", chips from config `quickBudgets` (default Rp 50k / 100k / 150k / 200k) and an "Other" chip that opens a number pad ("Enter your budget", "Exact to the nearest Rp 100. Plans match your final total, tax included.", "Use this budget"). The amount is a multiple of Rp 100.
-  - People card: Adults 1–10 ("12+ years") and Children 0–10 ("Under 12") with 96 dpx steppers. Adults + children ≤ config `maxGroupSize` (default 10).
-  - Dock: "{n} people · budget" with the amount, and "See plans" (→ Step 2). Disabled when the budget is empty or Rp 0.
+  - Budget card: "Your budget", the amount in large type, the caption "Final total, tax included · exact to the nearest Rp 100" and, once a budget and the group are set, a second caption "About Rp X per person" (integer division, rounded down to Rp 100) [A-46]. Chips come from config `quickBudgets` (default Rp 50k / 100k / 150k / 200k), and an "Other" chip opens a number pad ("Enter your budget", "Exact to the nearest Rp 100. Plans match your final total, tax included.", "Use this budget"). The amount is a multiple of Rp 100. The number pad opens showing the current amount, shows thousand separators while typing, and shows "Minimum Rp 1.000" under the amount while the entry is lower, so "Use this budget" is never silently ignored. The budget starts empty (no chip is preselected, so no price is suggested) [OQ-16].
+  - People card: Adults 1–10 ("12+ years") and Children 0–10 ("Under 12") with 96 dpx steppers. **Adults start at 2 and children at 0** [A-43, A-46]. Adults + children ≤ config `maxGroupSize` (default 10).
+  - Dock: "{n} people · budget" with the amount, and "See plans" (→ Step 2). Disabled when the budget is empty or Rp 0; the dock then says "Choose a budget to continue" instead of showing a silent disabled button.
   - Group above `maxGroupSize`: a card "Group too large" / "Please order in smaller groups" / "Budget Plan plans up to 10 people at a time. Split your table into smaller groups and build one plan for each." with "Set group to 10". The dock button reads "Reduce group" and is disabled.
 - **Step 2 — "Your plan"** (eyebrow "Budget Plan · Step 2 of 2"). The title is "Two plans for you" when both an under and an over plan exist, "A perfect fit" for an exact match, and "Your plan" otherwise.
   - **Hero plan card** with a tag, title, the final total, a delta badge and "{n} people · {k} items · tax included":
@@ -764,14 +774,17 @@ Priority: **MVP** = required for 1.0.0. **Post-1.0** = specified for later, not 
     | Budget below the cheapest plan | "Need Rp X more" / "Closest complete plan" | "Rp X more needed" |
     | Budget ≥ most generous plan | "More than enough" / "Everyone eats well" | "Your budget covers more than enough" |
 
-  - A segmented control "Just under | Just over" switches the hero card. It shows only when both plans exist, and never for an exact match.
-  - Collapsed rows: "What's included · N items" (items grouped per person — "Adult 1", "Adult 2", "Child 1 · Main · kid-friendly" — plus shared items) and "Price details · Rp X" (Subtotal, Promo, PB1, Rounding, Total).
-  - **"Customize"** (row "Swap items · sides · tolerance") opens the bottom sheet "Customize your plan", whose header shows the live total. It holds: the toggles "Include sides" and "Include desserts"; the control "Strict | Up to +10 %" under "Allow a plan slightly above your budget"; the plan's items, each with "Swap"; "Reset to suggested"; and "Done". The sheet notes "Sides and desserts rebalance automatically to land as close to your budget as possible." Strict shows "Strict budget: only plans at or under your budget are shown."
-  - Dock: "{n} people · {k} items · {badge}", the total, and "Add plan to order" (it becomes "Added to order"). "Back" returns to Step 1, and from Step 1 to the Menu.
+  - **Both plans are visible** when both exist: two selectable cards, "Within your budget · Rp 149.600 · Rp 400 left" (selected by default) and "A little extra · Rp 150.700 · +Rp 700", replacing the "Just under | Just over" control. Never shown for an exact match [D-35, design pending].
+  - **"What's included · N items" is open by default** and shows one meal per person with its contents — "Adult 1 · Cheeseburger Combo: fries, cola", "Child 1 · Main · kid-friendly" — plus shared items; the customer does not need to know whether a meal is a combo or a main plus a drink. "Price details · Rp X" (Subtotal, Promo, PB1, Rounding, Total, and "Combo savings Rp X" when combos are used) stays collapsed.
+  - **Options on Step 2:** the chips "Add sides" and "Add desserts" and one switch "Allow a little over budget" (off means only plans at or under the budget; on allows the over plan, capped at `overCapPercent`), instead of the "Strict | Up to +10 %" control and the Customize sheet's toggles [D-35, design pending]. "Reset to suggested" stays.
+  - **Swap picker:** tapping an item opens a list of alternatives in the same role, mixed in one list (a main plus a drink, or a one-person combo, sorted by price). Each row shows the price change and the new total ("+Rp 2.000 · total Rp 151.600"); picking one re-balances the shared sides and desserts as in "Customize behavior" below. A shared two-person combo can be swapped for another two-person combo or for two separate meals. The notes (too low, generous, kids' menu) are recomputed after every swap. The Customize sheet remains only as the place for "Reset to suggested" if the design keeps it [P2, R-7].
+  - Dock: "{n} people · {k} items · {badge}", the total, and "Add plan to order" (it becomes "Added to order", then Your order opens after about 0.6 s with a "Plan added" confirmation). "Back" returns to Step 1, and from Step 1 to the Menu.
+  - **If the plan does not fit the cart** (BR-05: 20 per line, 30 lines), nothing is added and a message "Your order has too many items to add this plan" with a "Review order" button shows [A-43].
+  - **Edit plan:** the plan tag row on Your order has an "Edit plan" action that reopens Step 2 with the saved budget and group and replaces the plan's lines [P2, A-40]. Editing a plan line by hand still clears the tag.
 - **Plan rules (BR-13 – BR-15):**
   - Every adult gets exactly 1 main + 1 drink. A combo (main + side + drink) counts as one adult's main and drink. A combo with `serves` = 2 covers two adults.
   - Every child gets exactly 1 main with `kidFriendly = true` + 1 drink. If the merchant has no kid-friendly main, the cheapest available main is used and the plan notes "Kids' menu not available" [D-28].
-  - Sides and desserts are added only while they bring the total closer to the target, at most one per person per plan.
+  - Sides and desserts are added only while they bring the total closer to the target, at most one per person per plan. A person whose meal is a combo already has a side, so for sides the allowance is people minus combo diners; desserts are unaffected [OQ-15].
   - A plan never contains more than one main per person.
   - Products with `servesAdults` > 1 (e.g. Family Bucket) are not used as plan mains in 1.0. Group sharing comes from combos with `serves` > 1.
   - Sold-out items (`available = false`) are excluded.
@@ -785,7 +798,7 @@ Priority: **MVP** = required for 1.0.0. **Post-1.0** = specified for later, not 
   4. Featured items.
 - **Edge cases:**
   - Budget below the cheapest complete plan → show that cheapest plan as "Need Rp X more" with "This is the lowest-priced complete meal for your group. Raise the budget or adjust the group."
-  - Budget ≥ the most generous allowed plan → show that plan as "More than enough" with "This is our most generous plan for your group, and it still fits."
+  - Budget ≥ the most generous allowed plan → show that plan as "More than enough" with "Our menu tops out at Rp X for your group, which is under your budget." (the hero badge says "Rp X under your budget", not that the budget was matched).
   - No plan within the over cap → only the under plan is shown, with "No plan fits within 10 % over your budget, so only the under-budget plan is shown."
   - A menu sync during the order does not change plans until the order ends (FR-028).
 - **Performance:** both plans, including the exact-match search and a Customize re-balance, are computed on-device in ≤ 100 ms on the target iMin device for the design sample menu (23 products + 4 combos) and the maximum group of 10.
@@ -798,9 +811,14 @@ Priority: **MVP** = required for 1.0.0. **Post-1.0** = specified for later, not 
   - AC6: Plan computation ≤ 100 ms on the target device (benchmark).
   - AC7: With `budgetPlanner.enabled = false` the Menu shows no "Plan by budget" row.
   - AC8: Whenever an exact-total plan exists for the budget and group, the planner returns it (property test over the sample menu, budgets Rp 50.000–Rp 300.000 in Rp 100 steps).
-  - AC9: After a swap in Customize, the plan total is either exact, or the nearest achievable total on the plan's side of the budget, and never beyond the over cap.
-  - AC10: "Strict" hides the over plan and the "Just under | Just over" control. "Up to +10 %" restores them when an over plan exists.
+  - AC9: After a swap, the plan total is either exact, or the nearest achievable total on the plan's side of the budget, and never beyond the over cap.
+  - AC10: With "Allow a little over budget" off, the over plan and the two-plan cards are hidden (one plan shows). Turning it on shows them again when an over plan exists.
   - AC11: A group of 11 or more shows "Please order in smaller groups", no plans, and a disabled dock button.
+  - AC12: Step 1 opens with 2 adults, 0 children and no budget; "See plans" is disabled and the dock says "Choose a budget to continue". With a budget of Rp 150.000 and 3 people the caption reads "About Rp 50.000 per person".
+  - AC13: When both plans exist, Step 2 shows both as visible cards, with the within-budget plan selected. "What's included" is open.
+  - AC14: The swap picker lists alternatives with the price change and the new total, mixes combos and main-plus-drink pairs, and never offers one that breaks the budget or the cap; the notes follow the swap.
+  - AC15: A plan that would break the cart limits shows the message with "Review order" and leaves the cart unchanged.
+  - AC16: The Menu header pill opens SCR-19 from every category tab.
 - **Screens/flows:** SCR-06, SCR-19, SCR-10; J9.
 
 ---
@@ -817,12 +835,11 @@ Priority: **MVP** = required for 1.0.0. **Post-1.0** = specified for later, not 
 | SCR-06 Menu | Tone placeholders per image | "Nothing here right now" + "See popular items" [V] | Quick-add feedback | "Maximum 20 per item" toast; required-option items show "Choose ›" | Amber banner "Ordering is paused — reconnecting…"; browse OK; add and View order disabled |
 | SCR-07 Combo | — | — | "Added" state | Required side/drink missing → disabled CTA ("Pick side & drink"); sold-out options | Browse OK |
 | SCR-08 Item | — | — | "Added" state | Required size missing → disabled CTA ("Choose a size to continue"); sold out → "No longer available"; "Maximum 20 per item" | Browse OK |
-| SCR-09 Upsell | — | "Nothing more to suggest" fallback | → SCR-10 | — | Browse OK |
-| SCR-10 Your order | — | "Your tray is empty" / "Back to menu" [V] | — | PRICE_CHANGED banner + "Review"; ITEM_UNAVAILABLE "No longer available" + "Remove"; no methods "No payment methods right now"; promo nudge banner | Banner, Pay disabled ("Pay unavailable while offline") |
+| SCR-10 Your order | — | "Your tray is empty" / "Back to menu" and "Plan by budget" [V, D-35] | Suggestion strip: "+" becomes "− 1 +", the strip hides when nothing is suggestable [D-33] | PRICE_CHANGED banner + "Review"; ITEM_UNAVAILABLE "No longer available" + "Remove"; no methods "No payment methods right now"; promo nudge banner | Banner, Pay disabled ("Pay unavailable while offline") |
 | SCR-11 Checkout | "Creating your payment…" before the QR or terminal prompt [A-34, V] | — | Processing → Complete | Failed variants: QR code expired, Payment cancelled, Card declined, Terminal not responding (FR-019) | "Ordering is paused" failure, "Reconnecting…"; checking status "Checking your payment…" |
 | SCR-12 Complete | — | — | Ticket (dine-in or takeaway copy) | "Receipt couldn't print" card | Unaffected (already paid) |
 | SCR-13 Still there? | — | — | Continue → previous screen | Countdown ends → Idle; "Start over" → Idle | Same |
-| SCR-19 Budget Plan | Computing (≤ 100 ms, no spinner) | Budget empty: "See plans" disabled | Exact / under / over hero card | "Need Rp X more" plan; "More than enough"; group too large "Please order in smaller groups" | Works from cache; checkout gated by FR-028 |
+| SCR-19 Budget Plan | Computing (≤ 100 ms, no spinner) | Budget empty: "See plans" disabled, dock "Choose a budget to continue"; plan too big for the cart: "Your order has too many items to add this plan" + "Review order" | Exact / under / over hero card | "Need Rp X more" plan; "More than enough"; group too large "Please order in smaller groups" | Works from cache; checkout gated by FR-028 |
 | SCR-14–18, 20 Settings | Action busy labels [V] | No printers: "Add a printer" | Done labels [V]; "PIN updated" | Inline error per row; "PINs didn’t match" | Offline badges; PIN change blocked ("Requires an internet connection") |
 
 ### 7.1 Interaction primitives [V]
@@ -1017,10 +1034,10 @@ Sized for one developer. Features live as packages inside `:app` rather than sep
 | DEP-1 | Backend implementing §10 | Mock from 0.1.0. Real by 0.9.0 | PO: builds the mock and the backend from `api/api-spec.md` (2026-10-23). Contract changes are requested from the PO [D-06] |
 | DEP-2 | Company payment gateway API + sandbox (QRIS, card) | Spec by 0.5.0. Sandbox by 0.9.0 | Company gateway team [D-12]. **Not received at the 0.5.0 exit** (R-1) |
 | DEP-3 | EDC terminal model, transport and protocol | Spec by 0.5.0 | Company / bank [D-13, OQ-03]. **Not received at the 0.5.0 exit** (R-1) |
-| DEP-4 | Target iMin device (≥ 1 unit) and SDK (printer, SN) | 0.2.0 (SN), 0.6.0 (printer) | Hitachi [OQ-01] |
+| DEP-4 | Target iMin device (≥ 1 unit) and SDK (printer, SN) | 0.2.0 (SN), 0.9.0 (printer; moved from 0.6.0 [D-34]) | Hitachi [OQ-01] |
 | DEP-5 | Upsell screen design | Delivered in design 1.1 (`Upsell.dc.html`) | Product owner [OQ-05, closed] |
 | DEP-6 | Real menu content + images for one pilot merchant | 0.9.0 | Merchant |
-| DEP-7 | USB and Bluetooth ESC/POS test printers (58 and 80 mm) | 0.6.0 | Hitachi |
+| DEP-7 | USB and Bluetooth ESC/POS test printers (58 and 80 mm) | 0.9.0 (moved from 0.6.0 [D-34]) | Hitachi |
 | DEP-8 | Menu items tagged with `role` and `kidFriendly` (dashboard field + merchant data) | Mock from 0.4.0; real by 0.9.0 | Backend team + merchant |
 
 ### 13.2 Constraints
@@ -1035,7 +1052,7 @@ Sized for one developer. Features live as packages inside `:app` rather than sep
 | R-2 | Backend not live by 0.9.0 | Medium | Blocks 1.0.0 | Contract-first OpenAPI in 0.1.0, contract tests the backend can run, weekly sync. |
 | R-3 | SN not readable without the iMin SDK or privileged permission | Medium | Blocks activation | Spike in 0.2.0 on real hardware (DEV-012). Fallback: `Build.getSerial()` as device owner. |
 | R-4 | iMin device OS is older than expected | Low | minSdk issue | minSdk 30 chosen for margin [D-04]. |
-| R-5 | Bluetooth printer variety (non-standard ESC/POS) | Medium | Print failures | Support the ESC/POS baseline. Certify a named list of printers. |
+| R-5 | Bluetooth printer variety (non-standard ESC/POS) | Medium | Print failures | Support the ESC/POS baseline. Certify a named list of printers. In 1.0 development the printers are built against fakes until 0.9.0 [D-34], so this risk is only tested then. |
 | R-6 | Animation-heavy UI janks on kiosk SoC | Medium | Poor UX | Profile on device in 0.8.0; macrobenchmarks and the baseline profile in 1.0.0 (DEV-031, moved from 0.3.0 by the PO on 2026-10-24). Reduce-motion escape hatch. |
 | R-7 | Scope (≈20 screens including Budget Plan + 3 hardware integrations) for one developer in about 3 months; the estimate is ~14.75 weeks | High | Date slip | Strict milestone exit criteria. Defer list (§3.2). Weekly burn-down. Budget Plan's Customize sheet (swap with rebalancing) can move to 1.0.1 if the date is fixed. |
 | R-8 | Upsell design not delivered | Closed | — | The design was delivered in 1.1 (`Upsell.dc.html`). |
@@ -1064,7 +1081,7 @@ Sized for one developer. Features live as packages inside `:app` rather than sep
 | D-13a | The gateway API/SDK is not documented yet. |
 | D-14 | Login sends the device SN to the backend, which matches it to a device registered in the dashboard. |
 | D-15 | Inactivity: warn ("Still there?") first, then cancel. |
-| D-16 | Upsell is included in 1.0.0. The screen is now designed (`Upsell.dc.html`). |
+| D-16 | Upsell is included in 1.0.0. The screen is now designed (`Upsell.dc.html`). Its form changed in 1.9: see D-33. |
 | D-17 | Kitchen ticket kept, printed on kiosk-connected printers. |
 | D-18 | Printer selection: built-in (iMin SDK), USB and Bluetooth. Each printer can be assigned Receipt and/or Kitchen. |
 | D-19 | Tax, rounding and promos are configured in the backend. The kiosk computes totals and the backend re-validates. |
@@ -1081,6 +1098,9 @@ Sized for one developer. Features live as packages inside `:app` rather than sep
 | D-30 | Design simplifications in the final "Linen & Paprika" design: the Menu promo carousel is removed, Order type has no photos, Checkout has no scan-line animation, no instruction steps and no "Step 3 of 3" indicator, and Budget Plan starts simple (budget and people) with advanced options behind "Customize". Budget Plan also gains an exact-match result. (Product owner, design review, 2026-10-22.) |
 | D-31 | No CI service in 1.0. Every check a CI job would run is in one local Gradle task, `./gradlew verify`, which must pass before merging to `main` and at each milestone exit. Instrumented tests run on local emulators at the same points. CI can be added later by running the same task. (Product owner, 2026-10-22.) |
 | D-32 | After a process death, a payment that is still `PENDING` is cancelled (payment, then order) and not resumed, because the QR string is deliberately not stored and Checkout cannot be redrawn. `PROCESSING` is polled for up to 60 s before it is treated the same way, because money may be in flight. A paid order always reaches Complete. (The PO left the choice to the lead: "you decide what is best", 2026-10-24. The PO is asked to confirm it, `todo.md`.) |
+| D-33 | Upsell is a smart suggestion strip on Your order (SCR-10), not a screen. The PO chose this on 2026-10-25 because the blocking screen cost an extra tap for everyone who declined, offered items that ignored the order, and was skipped by Item, Combo and Budget Plan orders. It **supersedes the PO ruling of 2026-10-24 (1.7)** that the first "View order" always opens SCR-09, even with nothing to suggest. SCR-09 is retired (FR-014). |
+| D-34 | The PO has no real printers to test with. In 0.6.0 the printing subsystem (encoder, manager, renderers, orchestration, Complete, Printer settings) is built and tested against the fakes only. The three real drivers, ADR-0004, the physical print checks (TC-096–TC-099, TC-159) and `docs/printers.md` move to 0.9.0, next to the device matrix. Release builds have an `UnavailablePrinterDriver`, like `UnavailableCardTerminal`. |
+| D-35 | The ordering improvements of 0.6.0 follow the rule "fewer decisions, plain words": Budget Plan is findable from every Menu tab, starts with 2 adults, shows both plans, and swaps through a picker with the price change; the keypad and the full-cart case never fail silently; the inactivity timer and its zones stay as they are (FR-023). |
 
 ## 15. Assumptions (unconfirmed)
 
@@ -1131,6 +1151,9 @@ Sized for one developer. Features live as packages inside `:app` rather than sep
 | A-43 | "Add plan to order" adds the plan's lines to any lines already in the cart (it never removes what the customer chose). The plan lands whole or not at all: if it would break the 20-per-line or 30-line limit (BR-05), nothing is added and the event is logged (the design has no copy for it). SCR-19 opens with no budget, 1 adult and 0 children. | Budget Plan (FR-032, AC5 is checked with an empty cart). |
 | A-44 | Children's drinks come from kid-friendly drinks (any drink when none is tagged). A combo with `serves` other than 1 or 2 is not used in a plan in 1.0, like products with `servesAdults` > 1. Shared sides and desserts are not tied to a person, so they need no kid-friendly tag. | Budget Plan (FR-032). |
 | A-45 | Checkout copy and behaviour the design has no board for, built in 0.5.0: a card payment cancelled on the terminal shows "Payment cancelled" / "The payment was cancelled on the terminal. Try again or choose another method." (the design text is QR-only); "Your order is saved" shows only on the "Ordering is paused" failure; a failure of order creation (E7) shows as "Payment didn't go through" with "Can't reach the restaurant system. Please try again." and no "not charged" note; the QR life follows the QRIS config default until the 0.7.0 Payment settings. | Copy only. |
+| A-46 | "About Rp X per person" on Budget Plan Step 1 is the budget divided by the number of people, rounded down to Rp 100. Adults start at 2 and children at 0. Both are comfort defaults that the PO may change after the review (DEV-113). | Budget Plan (FR-032). |
+| A-47 | The recovered-paid receipt: an order that a process-death recovery finds paid has no order lines, so its receipt prints the order number, totals and payment details only (0.5.0 known limit). | Printing (FR-021, DEV-057). |
+| A-48 | A "Make it a meal" product line counts as a meal in the Upsell gap check only when the API marks its modifier group as the meal upgrade (OQ-17). Until then only combo lines count. | Upsell (FR-014). |
 
 ## 16. Open questions
 
@@ -1150,6 +1173,10 @@ Sized for one developer. Features live as packages inside `:app` rather than sep
 | OQ-12 | Should brightness control system brightness? | FR-026 | 0.7.0 |
 | OQ-13 | **Closed (1.1):** Change-PIN UI — delivered as `ChangePin.dc.html` (SCR-20). | — | — |
 | OQ-14 | **Closed (1.1):** Budget Plan screen (SCR-19) and Menu entry row — delivered as `BudgetPas.dc.html` and the "Plan by budget" row. | — | — |
+| OQ-15 | Budget Plan extras: one side or dessert per person (up to 10) as written, or capped at min(people, 4) as in the design prototype? Recommended: apply the combo rule in FR-032 (a combo diner already has a side) and cap at 4 as designed. | FR-032 | 0.6.0 (DEV-104) |
+| OQ-16 | Should Budget Plan Step 1 preselect a budget chip as a price anchor? Recommended: no, keep it empty and show the per-person caption. | FR-032 | 0.6.0 (DEV-104) |
+| OQ-17 | API: add an optional `purpose` (for example `MEAL_UPGRADE`) to modifier groups so the app knows which group is "Make it a meal" (TD-15 renders it from its shape, and that shape also matches other groups). Needed for the meal-aware gap check and the "Make it a meal" strip card (DEV-114). | FR-014, E6 | 0.6.0 (P2) |
+| OQ-18 | API: add an optional `source` (`menu`, `upsell`, `plan`) to E7 order lines so the owner can measure attach rate and plan use from orders, with no analytics SDK (D-23). | FR-014, FR-032, E7 | After 1.0.0 |
 
 ## 17. Requirement traceability
 
@@ -1170,7 +1197,7 @@ Development tasks: `dev-plan.md`. Test cases: `testing-plan.md`. The full matrix
 | FR-011 | 0.3.0 | DEV-030 | TC-046–TC-049 |
 | FR-012 | 0.4.0 | DEV-036, DEV-037, DEV-041 | TC-050–TC-054 |
 | FR-013 | 0.4.0 | DEV-035, DEV-038, DEV-046, DEV-097 | TC-055–TC-061 (+TC-071) |
-| FR-014 | 0.4.0 | DEV-039 | TC-062–TC-064 |
+| FR-014 | 0.4.0, 0.6.0 | DEV-039 (replaced), DEV-105, DEV-106, DEV-114 | TC-062–TC-064 and TC-172 (retired), TC-194–TC-197, TC-205 |
 | FR-015 | 0.4.0 | DEV-038 | TC-065–TC-067 |
 | FR-016 | 0.5.0 | DEV-045, DEV-046, DEV-052 | TC-068–TC-073, TC-185, TC-186, TC-189, TC-191, TC-192 |
 | FR-017 | 0.5.0, 0.9.0 | DEV-047, DEV-048, DEV-090 | TC-074–TC-079, TC-189 |
@@ -1178,7 +1205,7 @@ Development tasks: `dev-plan.md`. Test cases: `testing-plan.md`. The full matrix
 | FR-019 | 0.5.0 | DEV-050 | TC-084–TC-087, TC-178, TC-185, TC-187, TC-188 |
 | FR-020 | 0.6.0 | DEV-059, DEV-060 | TC-088–TC-090 |
 | FR-021 | 0.6.0 | DEV-057, DEV-058, DEV-059 | TC-091–TC-095 |
-| FR-022 | 0.6.0 | DEV-055, DEV-056, DEV-061 | TC-096–TC-100 |
+| FR-022 | 0.6.0, 0.9.0 | DEV-055, DEV-061 (0.6.0, fakes); DEV-056 (0.9.0) | TC-099, TC-100 (0.6.0); TC-096–TC-098 (0.9.0) |
 | FR-023 | 0.4.0 | DEV-040, DEV-041 | TC-101–TC-104 |
 | FR-024 | 0.7.0 | DEV-065, DEV-066, DEV-067 | TC-105–TC-109 |
 | FR-025 | 0.7.0 | DEV-068 | TC-110–TC-112 |
@@ -1188,7 +1215,7 @@ Development tasks: `dev-plan.md`. Test cases: `testing-plan.md`. The full matrix
 | FR-029 | 0.7.0 | DEV-071, DEV-101 | TC-126–TC-128 |
 | FR-030 | 0.7.0 | DEV-072 | TC-129 |
 | FR-031 | 0.7.0 | DEV-067, DEV-073 | TC-130–TC-131 |
-| FR-032 | 0.4.0 | DEV-042, DEV-043, DEV-044 | TC-161–TC-168 |
+| FR-032 | 0.4.0, 0.6.0 | DEV-042, DEV-043, DEV-044, DEV-107–DEV-112 | TC-161–TC-168, TC-198–TC-204 |
 | NFR-001 | 0.1.0 | DEV-001 | TC-140 |
 | NFR-002 | 0.1.0 | DEV-003, DEV-084 | TC-141 |
 | NFR-003 | 0.8.0, 1.0.0 | DEV-082, DEV-031 | TC-142–TC-144 |

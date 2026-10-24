@@ -218,7 +218,7 @@ Rows verified by a benchmark TC (TC-142, TC-143, TC-144, TC-168) are measured on
 
 | Item | Affects | Resolution |
 |---|---|---|
-| OQ-01 iMin model, Android version, SN and printer SDK | TR-PLT-04, TR-INT-07, TR-INT-08, all TR-PRF targets | ADR-0002 (0.2.0), ADR-0004 (0.6.0) |
+| OQ-01 iMin model, Android version, SN and printer SDK | TR-PLT-04, TR-INT-07, TR-INT-08, all TR-PRF targets | ADR-0002 (0.2.0), ADR-0004 (0.9.0; the printing subsystem is built against fakes in 0.6.0, D-34) |
 | OQ-03 EDC transport and result path | TR-INT-05 | ADR-0003 is not written: the specs had not arrived at the 0.5.0 exit (R-1). It is the first step of DEV-091 (0.9.0) |
 | A-36 Pinning acceptable to infra | TR-SEC-03 | Confirm in DEV-094 |
 | The `Build.getSerial()` fallback (A-02) needs `READ_PHONE_STATE`, which is not in PRD §12.3 | TR-INT-07, TR-SEC-09 | ADR-0002 (DEV-012, Proposed; the on-device spike decides). Drop the fallback if a system property gives the label SN, or have the PO add the permission. Until then the permission is declared in the debug manifest only. |

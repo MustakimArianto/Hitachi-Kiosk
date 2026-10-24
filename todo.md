@@ -6,7 +6,7 @@ Open items from milestones 0.2.0–0.5.0 that were not done when the milestone w
 
 These belong to the 0.4.0 exit criteria and manual testing requirements ([dev-plan 0.4.0](docs/dev-plan.md)). They need the PO, so they were not done when 0.4.0 was implemented. The PO decides whether they run now or join the after-1.0.0 list.
 
-- [ ] **Review of the built Upsell and Budget Plan screens** against `Upsell.dc.html` and `BudgetPas.dc.html` (exit criterion). The goldens `Upsell*.png`, `S_Upsell_noSuggestions.png`, `BudgetPas_*.png` and `S_BudgetPas_*.png` in `app/src/test/screenshots/` are the starting point; the deviations are listed in `docs/test-reports/0.4.0.md`.
+- [ ] **Review of the built Upsell and Budget Plan screens** against `Upsell.dc.html` and `BudgetPas.dc.html` (exit criterion). *2026-10-25: the Upsell screen is replaced by the Your order strip in 0.6.0 [D-33], so review the Budget Plan screens and the strip together at DEV-113 and drop the Upsell screen part.* The goldens `Upsell*.png`, `S_Upsell_noSuggestions.png`, `BudgetPas_*.png` and `S_BudgetPas_*.png` in `app/src/test/screenshots/` are the starting point; the deviations are listed in `docs/test-reports/0.4.0.md`.
 - [ ] **Pricing spot check**: 20 carts from the design samples in a spreadsheet against the app (manual testing requirement; `docs/pricing-cases.md` is the automated part).
 - [ ] **Plan sanity review**: 10 budget and group combinations on SCR-19 (manual testing requirement; `docs/budget-plan-cases.md` is the automated part).
 
@@ -41,6 +41,15 @@ These belong to the 0.5.0 exit criteria and risks ([dev-plan 0.5.0](docs/dev-pla
 ## For 0.6.0 (the Complete screen)
 
 - [ ] **Take over the payment hand-off.** The 0.5.0 Checkout calls `PaymentStateMachine.acknowledgePaid()` as it leaves for the Complete placeholder. The 0.6.0 Complete screen should take the paid details first and acknowledge itself, and it should take an order that a recovery found paid from `PendingOrderRecoveryCoordinator.recoveredPaid` (`consumeRecoveredPaid()`; totals and payment details, no order lines). Consider clearing the pending order only after Complete is shown, so a kill in between still leaves a receipt (a known limit, technical-design §8.6).
+
+## For 0.6.0 (the rework of 2026-10-25: printing with fakes, Upsell strip, Budget Plan UX)
+
+- [ ] **Sync the updated design files into `docs/ui-design/`** and add the new boards (DEV-104). The files in the repo were last changed on 2026-10-22, and the published canvas (link in `docs/ui-design/README.md`) is in another organization that the dev session could not open. Needed boards: the Your order strip and its states, Budget Plan Step 1 and Step 2 changes, the swap picker, the cart-limit message, the Menu header pill, and the printer boards. The PO signs them off before DEV-106–DEV-112 start.
+- [ ] **Decide OQ-15** (Budget Plan extras cap: the combo side rule and the design's cap of 4) and **OQ-16** (no preselected budget chip). Recommended answers are in the PRD.
+- [ ] **Decide OQ-17** with the backend: an optional `purpose` on modifier groups that marks "Make it a meal". Without it, DEV-114 and the "Make it a meal" strip card do not ship, and the gap check only recognises combo lines. **OQ-18** (an optional `source` on E7 order lines to measure attach rate without analytics) can wait until after 1.0.0.
+- [ ] **Confirm A-47**: the receipt for an order that a recovery found paid has no order lines (0.5.0 known limit). The alternative is storing the lines, which changes the 0.5.0 recovery rules.
+- [ ] **Printing on real printers moved to 0.9.0 (D-34, DEV-056):** the iMin, USB and Bluetooth drivers, ADR-0004 (Proposed until then), TC-096–TC-098 and the real runs of TC-091, TC-093, TC-095 and TC-159, the photographed output, and `docs/printers.md`. They need DEP-4 and DEP-7.
+- [ ] **P2 tasks of 0.6.0 that did not ship** go to 1.0.1 (the swap picker DEV-109, "Edit plan" DEV-111, the "Make it a meal" card DEV-114, the promo caption). List them here when 0.6.0 closes.
 
 ## Evidence
 

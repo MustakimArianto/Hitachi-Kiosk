@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Document version | 1.6 (2026-10-24) — 0.5.0: TC-185–TC-193 cover the stale payment state, the pending-payment guard, the terminal cancel, the bounded Processing, the amount guards, the unvalidated-network grace, the recovery start and rules, and the Room migration; TC-073 stays partly manual; the 0.5.0 manual checks are listed as not run in `test-reports/0.5.0.md`. 1.5: 0.4.0: the pricing and Budget Plan case tables are checked by tests (TC-060, TC-161–TC-165); Upsell shows once per order with the no-suggestions fallback (TC-172, PO); TC-104's staff-settings timeout runs with the PIN gate in 0.7.0. 1.4: 0.3.0 changes; benchmark TCs move to 1.0.0 |
+| Document version | 1.7 (2026-10-25) — 0.6.0 rework: printing is tested with fakes only, so TC-096–TC-098 and the real-printer part of TC-091, TC-093, TC-095 and TC-159 move to 0.9.0 [D-34]; Upsell is a strip on Your order, so TC-062–TC-064 and TC-172 are retired and TC-194–TC-197 and TC-205 replace them [D-33]; TC-198–TC-204 cover the Budget Plan improvements [D-35]; 1.6: 0.5.0: TC-185–TC-193 cover the stale payment state, the pending-payment guard, the terminal cancel, the bounded Processing, the amount guards, the unvalidated-network grace, the recovery start and rules, and the Room migration; TC-073 stays partly manual; the 0.5.0 manual checks are listed as not run in `test-reports/0.5.0.md`. 1.5: 0.4.0: the pricing and Budget Plan case tables are checked by tests (TC-060, TC-161–TC-165); Upsell shows once per order with the no-suggestions fallback (TC-172, PO); TC-104's staff-settings timeout runs with the PIN gate in 0.7.0. 1.4: 0.3.0 changes; benchmark TCs move to 1.0.0 |
 | Requirements | [`product-requirement.md`](product-requirement.md) |
 | Development roadmap | [`dev-plan.md`](dev-plan.md) |
 | API contract | [`api/api-spec.md`](api/api-spec.md) |
@@ -77,7 +77,7 @@ Every external dependency has a scriptable fake (dev-plan DEV-005). The debug-on
 | Emulator "Kiosk-34" | 34 | 1080×1920, 240 dpi | Instrumented suite | 0.1.0 |
 | Emulator "Kiosk-35/36/37" | 35, 36, 37 (37 = `targetSdk`, TR-PLT-04) | 1080×1920, 160 dpi | Compatibility, latest target | 0.3.0 |
 | **iMin target kiosk** (model per OQ-01) | device (≈ 34+) | device native | Hardware, performance, soak, pilot: **authoritative** | 0.2.0 (SN spike) |
-| Printers | — | — | iMin built-in; 2 USB ESC/POS (58 mm + 80 mm); 2 Bluetooth ESC/POS | 0.6.0 |
+| Printers | — | — | iMin built-in; 2 USB ESC/POS (58 mm + 80 mm); 2 Bluetooth ESC/POS | 0.9.0 (0.6.0 uses `FakePrinterDriver` only [D-34]) |
 | EDC terminal | — | — | Model per OQ-03 | 0.9.0 |
 
 0.1.0 ran its instrumented suite on a Pixel 10 AVD (API 37, 1080 × 2424, letterboxed) because no API 30/34 image was installed; `scripts/create-avds.sh` creates Kiosk-30 and Kiosk-34. JVM screenshot tests run on Robolectric SDK 36 (technical-design §16).
@@ -101,7 +101,7 @@ Every defect records: build, device, steps, expected/actual, evidence (screensho
 
 ## 4. Test case conventions
 
-- IDs `TC-001…TC-193` are stable. New cases append after TC-193 and are never renumbered. A retired case keeps its row, marked *Retired*, so references stay valid.
+- IDs `TC-001…TC-205` are stable. New cases append after TC-205 and are never renumbered. A retired case keeps its row, marked *Retired*, so references stay valid.
 - **Type:** U = unit, I = integration, C = contract, UI = Compose UI test, S = screenshot, E2E, M = manual, D = manual on the iMin device/hardware, B = benchmark.
 - **Pri:** H / M / L (test priority, distinct from defect severity).
 - **Auto:** Y = automated (`verify` or the local instrumented suite); P = partly automated; N = manual.
@@ -194,9 +194,9 @@ Every defect records: build, device, steps, expected/actual, evidence (screensho
 | TC-059 | FR-013 | IDR formatting | 0, 8.000, 1.234.567 | Format | "Rp 0", "Rp 8.000", "Rp 1.234.567" | U | H | Y |
 | TC-060 | FR-013 | Pricing table | `docs/pricing-cases.md` (≥ 20 carts) | Run parametrised test | All expected values match | U | H | Y |
 | TC-061 | FR-013 | Properties | Random carts | Property test (1,000 runs, kotest-property) | Total ≥ 0; integer only; total ≥ subtotal − discount; with a rounding step > 0, total is a multiple of the step and 0 ≤ rounding < step; tax follows the half-up rule. (The total is not monotonic in quantity: crossing the promo threshold can lower it.) | U | M | Y |
-| TC-062 | FR-014 | Upsell off | Toggle off | View order | SCR-10 directly | UI | M | Y |
-| TC-063 | FR-014 | Upsell once per order | Toggle on, cart without sides/desserts | View order → No thanks → Add more → View order | Upsell (2 × 2 suggestions, "No thanks", "Continue · Rp X") shown the first time only | UI | H | Y |
-| TC-064 | FR-014 | Upsell quick add | Toggle on | Add "Caramel Sundae" from upsell, Continue | Sundae line in cart with defaults; items already in cart not suggested | UI | M | Y |
+| TC-062 | FR-014 | *Retired in 0.6.0 (SCR-09 replaced by the strip, D-33; see TC-194).* Upsell off | Toggle off | View order | SCR-10 directly | UI | M | Y |
+| TC-063 | FR-014 | *Retired in 0.6.0 (SCR-09 replaced by the strip, D-33; see TC-195, TC-196).* Upsell once per order | Toggle on, cart without sides/desserts | View order → No thanks → Add more → View order | Upsell (2 × 2 suggestions, "No thanks", "Continue · Rp X") shown the first time only | UI | H | Y |
+| TC-064 | FR-014 | *Retired in 0.6.0 (see TC-196).* Upsell quick add | Toggle on | Add "Caramel Sundae" from upsell, Continue | Sundae line in cart with defaults; items already in cart not suggested | UI | M | Y |
 | TC-065 | FR-015 | Methods shown | Card disabled in settings | Open SCR-10 | Only the QRIS tile (the Card tile is hidden); never an "At counter" tile | UI | H | Y |
 | TC-066 | FR-015 | Pay label | Any cart | Change qty | Pay label always equals the formatted total | UI | H | Y |
 | TC-067 | FR-015 | No method available | All methods unavailable (config) | Open SCR-10 | "No payment methods right now" / "Please ask a team member for help." and Pay disabled (`S_Payment_noMethods`) | UI | M | Y |
@@ -213,11 +213,30 @@ Test data: the tagged sample menu from `api-spec.md` §4 (kid-friendly mains b1,
 | TC-164 | FR-032 | Large budget and over cap | (a) 1 adult, budget Rp 1.000.000; (b) any case where the nearest over plan is > cap | Run planner | (a) never more than 1 main per person; badge "More than enough" (`S_BudgetPas_moreThanEnough`); (b) the Just over option is hidden | U | M | Y |
 | TC-165 | FR-032 | Children's meals | (a) sample menu; (b) menu with no `kidFriendly` main | 1 adult + 2 children, budget Rp 120.000 | (a) both children get only b1, c3 or r2; (b) children get the cheapest main and the kid-menu fallback note defined in PRD FR-032 (the design boards do not show it) | U | H | Y |
 | TC-166 | FR-032 | Group limits and inputs | `maxGroupSize` 10 | Set 8 adults + 3 children; set adults 0; clear budget | 11 people → "Please order in smaller groups" with "Set group to 10", no plans, dock disabled (`S_BudgetPas_group`); adults minimum 1; empty budget → "See plans" disabled | UI | M | Y |
-| TC-167 | FR-032 | Use plan, swap, toggle | Mock default; then `budgetPlanner.enabled=false` | Open via the Menu "Plan by budget" row; Step 1 → "See plans"; pick the under plan; open Customize and swap one drink; "Add plan to order"; then disable in config and reopen Menu | Cart lines and totals on SCR-10 equal the plan and show the "Budget Plan plan" tag; the swap rebalances to the nearest valid under plan (TC-170); with the toggle off, no entry row | UI | H | Y |
+| TC-167 | FR-032 | Use plan, swap, toggle | Mock default; then `budgetPlanner.enabled=false` | Open via the Menu "Plan by budget" row; Step 1 → "See plans"; pick the under plan; open Customize and swap one drink; "Add plan to order"; then disable in config and reopen Menu | Cart lines and totals on SCR-10 equal the plan and show the "Budget Plan plan" tag; the swap rebalances to the nearest valid under plan (TC-170); with the toggle off, no entry row *0.6.0: the Customize sheet, the Strict control and the collapsed rows are replaced by the Step 2 options, the swap picker and the open rows (DEV-107–DEV-109, TC-198–TC-200); this row stays valid for the planner behaviour and is re-recorded against the new boards.* | UI | H | Y |
 | TC-168 | FR-032 | Performance | iMin device; 10 adults, sample menu, budget Rp 600.000 | Benchmark 50 runs | P95 ≤ 100 ms | B | M | Y |
 | TC-169 | FR-032 | Exact-match hero card | 1 adult + 1 child, budget Rp 99.000 | Open SCR-19, Step 1 → "See plans" | One hero card with the "Exact match" badge and "Perfect fit! Rp 99.000 · Rp 0 left"; no Just under / Just over control; dock "Add plan to order · Rp 99.000" (`S_BudgetPas_exact`) | UI/S | H | Y |
-| TC-170 | FR-032 | Customize sheet and rebalancing swap | 2 adults + 1 child, budget Rp 150.000 | On Step 2 open Customize; swap the main of Adult 1; toggle Include desserts off; set Strict; tap Reset to suggested; Done | Sheet header shows the live total; after a swap the shared sides/desserts are re-picked so the total is the exact budget if one exists, else the nearest total ≤ budget (a swap never produces a plan above budget in Strict); toggles remove all sides/desserts of that kind; Strict hides Just over; Reset restores the original plan; Done closes the sheet | U/UI | H | Y |
-| TC-171 | FR-032 | Two-step flow and inputs | Sample menu | Step 1: tap chip Rp 100k, then "Other" and type 123456; adults 2, children 1; "See plans"; Back | Amount shows to the nearest Rp 100 ("Final total, tax included · exact to the nearest Rp 100"); Step 2 title "Your plan"; "What's included" and "Price details" are collapsed by default; Back returns to Step 1 with the budget and people kept | UI | M | Y |
+| TC-170 | FR-032 | Customize sheet and rebalancing swap | 2 adults + 1 child, budget Rp 150.000 | On Step 2 open Customize; swap the main of Adult 1; toggle Include desserts off; set Strict; tap Reset to suggested; Done | Sheet header shows the live total; after a swap the shared sides/desserts are re-picked so the total is the exact budget if one exists, else the nearest total ≤ budget (a swap never produces a plan above budget in Strict); toggles remove all sides/desserts of that kind; Strict hides Just over; Reset restores the original plan; Done closes the sheet *0.6.0: the Customize sheet, the Strict control and the collapsed rows are replaced by the Step 2 options, the swap picker and the open rows (DEV-107–DEV-109, TC-198–TC-200); this row stays valid for the planner behaviour and is re-recorded against the new boards.* | U/UI | H | Y |
+| TC-171 | FR-032 | Two-step flow and inputs | Sample menu | Step 1: tap chip Rp 100k, then "Other" and type 123456; adults 2, children 1; "See plans"; Back | Amount shows to the nearest Rp 100 ("Final total, tax included · exact to the nearest Rp 100"); Step 2 title "Your plan"; "What's included" and "Price details" are collapsed by default; Back returns to Step 1 with the budget and people kept *0.6.0: the Customize sheet, the Strict control and the collapsed rows are replaced by the Step 2 options, the swap picker and the open rows (DEV-107–DEV-109, TC-198–TC-200); this row stays valid for the planner behaviour and is re-recorded against the new boards.* | UI | M | Y |
+
+### 5.4c Ordering UX of 0.6.0: Upsell strip and Budget Plan improvements (FR-014, FR-032)
+
+Decisions: D-33 (the strip replaces SCR-09), D-35 (Budget Plan, fewer decisions). Boards: from DEV-104. **P2** rows apply only when their P2 task is built.
+
+| ID | Req | Scenario | Preconditions / data | Steps | Expected | Type | Pri | Auto |
+|---|---|---|---|---|---|---|---|---|
+| TC-194 | FR-014 | Strip shown, toggle | Toggle on, then off; order with one main | Open Your order from the Menu; disable "Suggest add-ons" in settings; reopen | With the toggle on, "Goes well with your order" shows up to 3 cards and the first is a drink; with it off there is no strip, and there is no extra screen or tap in either case | UI | H | Y |
+| TC-195 | FR-014 | Gap rules and exclusions | Sample menu | Carts: (a) a main only; (b) a main and a drink; (c) a combo only; (d) a main, side, drink and dessert; (e) a main and a sold-out candidate | (a) drink, side, dessert; (b) side, dessert; (c) dessert only (a combo covers side and drink); (d) nothing, no strip; inside a gap the order is `plannerWeight`, featured, menu order; in-cart, sold-out and needs-a-choice items are never suggested | U | H | Y |
+| TC-196 | FR-014 | Add and undo | Strip visible | Tap "+" on a drink card; tap "−" to 0; tap "+" twice | The line appears with default options and the total updates; the card shows "− 1 +" and returns to "+" at 0; the strip re-ranks from the order | UI | H | Y |
+| TC-197 | FR-014 | Budget-limited, every path, never blocking | An order from a Budget Plan with Rp 400 left; orders opened from Menu, Item and Combo | Open Your order from each | No suggestion costs more than Rp 400, and the strip is hidden when none fits (AC5); the same strip appears from every path (AC6); Pay is never blocked (AC4) | UI/U | H | Y |
+| TC-198 | FR-032 | Step 1 defaults, caption, keypad | Sample menu | Open SCR-19; choose Rp 150k with 3 people; open "Other" and type 500; reopen "Other" | Opens with 2 adults, 0 children and no budget, "See plans" disabled and the dock "Choose a budget to continue"; caption "About Rp 50.000 per person"; the keypad shows thousand separators, "Minimum Rp 1.000" for 500 and a disabled "Use this budget"; reopening shows the current amount (AC12) | UI/S | H | Y |
+| TC-199 | FR-032 | Step 2 cards and options | 2 adults + 1 child, Rp 150.000 | "See plans"; select the second card; use the chips and the "Allow a little over budget" switch; use a budget that gives "More than enough" | Two visible cards (Rp 149.600 selected, Rp 150.700); "What's included" open with one meal per person; the switch off shows one plan (AC10); the chips remove sides or desserts; the "More than enough" copy reads "Our menu tops out at Rp X for your group…" (AC13) | UI/S | H | Y |
+| TC-200 | FR-032 | Swap picker (P2) | 2 adults + 1 child, Rp 150.000, combos on the menu | Tap Adult 1's drink and pick an alternative; tap Adult 1's meal | Alternatives show the price change and the new total, mix combos and main-plus-drink pairs, and none breaks the budget or the cap; the plan total and notes update (AC14) | U/UI | M | Y |
+| TC-201 | FR-032 | Plan does not fit the cart | A cart with 29 lines | Add a plan of 3 lines | "Your order has too many items to add this plan" with "Review order"; the cart is unchanged (AC15) | UI | M | Y |
+| TC-202 | FR-032 | Entry on every tab | `budgetPlanner.enabled` true, then false | On the Menu open Drinks and Desserts and tap the header pill; open the empty Your order | The pill shows on every tab and opens SCR-19; the empty Your order offers the entry; with the flag off neither shows (AC7, AC16) | UI | H | Y |
+| TC-203 | FR-032 | Edit plan (P2) | A plan in the cart | On Your order tap "Edit plan"; change the budget and add; separately edit a plan line by hand | Step 2 reopens with the saved budget and group; the plan lines are replaced and other lines stay; after a hand edit the tag is gone (A-40) | UI/U | M | Y |
+| TC-204 | FR-032 | Combo diners and sides (needs OQ-15) | Menu with combos | 2 adults with a budget that selects a combo for both | A combo diner has no extra side (sides allowance is people minus combo diners); desserts are unaffected; the golden cases in `docs/budget-plan-cases.md` still pass | U | M | Y |
+| TC-205 | FR-014 | "Make it a meal" card (P2, needs OQ-17) | A main with the meal option off; the API flags the group | Tap the "Make it a meal" strip card | The line's option turns on and its price rises by the option's `priceDelta`; the line then counts as a meal (no side or drink suggested) | UI/U | M | Y |
 
 ### 5.5 Order submission and payment (FR-016 – FR-019)
 
@@ -259,16 +278,16 @@ Test data: the tagged sample menu from `api-spec.md` §4 (kid-friendly mains b1,
 | TC-088 | FR-020 | Complete content | Paid order A247, QRIS, Dine in | Arrive | "Payment successful", "Thank you!", "Rp {total} paid with QRIS" (the design sample shows Rp 173.000 with Rp 500 rounding), "A247" with "A" in accent, dine-in copy "Take your receipt and watch the screen. We'll call your number when your tray is ready." | UI/S | H | Y |
 | TC-089 | FR-020 | Auto return / Done | — | Wait; separately tap Done | Idle at 20 ± 1 s; Done immediate; session cleared | UI | H | Y |
 | TC-090 | FR-020 | Takeaway copy | Takeaway order (`S_Complete_takeaway`) | Arrive | "Pick up at the counter when your number is called." [A-18] | UI | L | Y |
-| TC-091 | FR-021 | Receipt + kitchen ticket | Two printers with roles | Complete a paid order | One receipt and one kitchen ticket within 5 s | D | H | N |
+| TC-091 | FR-021 | Receipt + kitchen ticket | Two printers with roles (`FakePrinterDriver` in 0.6.0, real printers in 0.9.0 [D-34]) | Complete a paid order | One receipt and one kitchen ticket within 5 s | I/D | H | P |
 | TC-092 | FR-021 | Kitchen ticket content | Fake printer capture | Paid order | Large number, type, time, lines + options + qty, **no prices** (golden text) | U | H | Y |
-| TC-093 | FR-021 | Receipt layouts | 58 mm and 80 mm | Render | Matches golden files; no truncated amounts; footer text; logo when enabled | U/D | H | P |
+| TC-093 | FR-021 | Receipt layouts (golden text in 0.6.0; printed samples in 0.9.0) | 58 mm and 80 mm | Render | Matches golden files; no truncated amounts; footer text; logo when enabled | U/D | H | P |
 | TC-094 | FR-021 | Toggles off | Customer receipt off | Paid order | No receipt printed; kitchen ticket still printed | I | M | Y |
-| TC-095 | FR-021 | Print failure | Printer unplugged / out of paper | Paid order | Complete still shown with the card "Receipt couldn't print — Please show this screen at the counter." (`S_Complete_printFailed`); status "Offline"/"Out of paper" in settings; order remains paid | I/D | H | P |
-| TC-096 | FR-022 | Built-in printer | iMin device | Add built-in, test page, feed | Detected; prints; paper % shown | D | H | N |
-| TC-097 | FR-022 | USB printer | USB ESC/POS printer | Add USB (grant permission), test page | Prints; status online | D | H | N |
-| TC-098 | FR-022 | Bluetooth printer + permission | Paired BT printer | Add BT; deny permission once, then grant | Denial → rationale + "Grant"; after grant prints | D | H | N |
-| TC-099 | FR-022 | Role reassignment | Printers P1 (Receipt), P2 | Assign Receipt to P2 | P1 loses Receipt; P2 has it; persists after restart | U/UI | H | Y |
-| TC-100 | FR-022 | Printer settings screen | — | Open SCR-15 | Meter red below 15 %; Test page "Printing…" → "Printed"; footer input saved; width/density persisted | UI/S | M | Y |
+| TC-095 | FR-021 | Print failure (fake offline and out-of-paper in 0.6.0; a real unplugged printer in 0.9.0) | Printer unplugged / out of paper | Paid order | Complete still shown with the card "Receipt couldn't print — Please show this screen at the counter." (`S_Complete_printFailed`); status "Offline"/"Out of paper" in settings; order remains paid | I/D | H | P |
+| TC-096 | FR-022 | *Moved to 0.9.0 (DEV-056, D-34).* Built-in printer | iMin device | Add built-in, test page, feed | Detected; prints; paper % shown | D | H | N |
+| TC-097 | FR-022 | *Moved to 0.9.0 (DEV-056, D-34).* USB printer | USB ESC/POS printer | Add USB (grant permission), test page | Prints; status online | D | H | N |
+| TC-098 | FR-022 | *Moved to 0.9.0 (DEV-056, D-34).* Bluetooth printer + permission | Paired BT printer | Add BT; deny permission once, then grant | Denial → rationale + "Grant"; after grant prints | D | H | N |
+| TC-099 | FR-022 | Role reassignment (fakes) | Printers P1 (Receipt), P2 | Assign Receipt to P2 | P1 loses Receipt; P2 has it; persists after restart | U/UI | H | Y |
+| TC-100 | FR-022 | Printer settings screen (against `FakePrinterManager`; one screenshot per printer board) | — | Open SCR-15 | Meter red below 15 %; Test page "Printing…" → "Printed"; footer input saved; width/density persisted | UI/S | M | Y |
 
 ### 5.7 Inactivity (FR-023)
 
@@ -348,7 +367,7 @@ Test data: the tagged sample menu from `api-spec.md` §4 (kid-friendly mains b1,
 | TC-156 | NFR-012 | Fakes complete | — | Run J1–J8 on emulator with fakes only | All pass without network | E2E | M | Y |
 | TC-157 | NFR-013 | Image placeholders & cache | Broken image URL; cache 200 MB cap | Load menu; fill cache | Tone placeholder on failure; cache never > 200 MB | I | M | Y |
 | TC-158 | NFR-014 | Upgrade install | Previous milestone APK installed + activated | Install new signed APK over it | Activation, binding, printers, settings preserved; `versionCode` per scheme | D | H | N |
-| TC-159 | NFR-016 | Compatibility matrix | §2.3 matrix | Run regression subset per target | Pass on all targets; printer list certified | D/UI | H | P |
+| TC-159 | NFR-016 | Compatibility matrix | §2.3 matrix | Run regression subset per target | Pass on all targets; printer list certified (printers: 0.9.0) | D/UI | H | P |
 | TC-160 | NFR-017 | Clock skew | Device clock +10 min | Start QRIS payment | Countdown still correct (server-based) | UI | H | Y |
 | TC-193 | NFR-014, FR-016 | Room migration 1 → 2 | Exported schemas `1.json` and `2.json` | Migrate a version-1 database that holds catalog rows; open the migrated file with the real database; store a pending order and reopen | `pending_order` exists and is empty, the catalog rows are kept (no new download), the migrated file passes Room's schema check, the pending order survives reopening, and `1 → 2` is the only registered migration (no destructive fallback) | I | H | Y |
 
@@ -358,7 +377,7 @@ Each case below uses the state board named in the Scenario column as its visual 
 
 | ID | Req | Scenario | Preconditions / data | Steps | Expected | Type | Pri | Auto |
 |---|---|---|---|---|---|---|---|---|
-| TC-172 | FR-014 | Upsell with nothing to suggest (`S_Upsell_noSuggestions`) | Cart already holds a side, a drink and a dessert; toggle on | View order | "Nothing more to suggest" with "Your order already has everything it needs…" and one "Review order" button → SCR-10 | UI/S | M | Y |
+| TC-172 | FR-014 | *Retired in 0.6.0 (the strip is simply hidden; see TC-194, TC-197).* Upsell with nothing to suggest (`S_Upsell_noSuggestions`) | Cart already holds a side, a drink and a dessert; toggle on | View order | "Nothing more to suggest" with "Your order already has everything it needs…" and one "Review order" button → SCR-10 | UI/S | M | Y |
 | TC-173 | FR-013, FR-015 | Summary panel Details | Design sample cart | Open SCR-10; tap "Details"; tap again | Collapsed: Total and the two method tiles (QRIS, Card) only. Expanded: Subtotal, Promo, PB1, Rounding lines and the order list shrinks to fit; Pay label equals the total in both states | UI | M | Y |
 | TC-174 | FR-007 | Order type is text and logo only (`S_OrderType_singleOption`) | (a) Both types on; (b) Takeaway off | Open SCR-05 | (a) Brand mark, "Welcome to Urban Grill", "Where are you eating today?", two full-width cards with an icon, title and description; no photo and no language control anywhere. (b) One card and the note "Takeaway isn't offered at this restaurant right now." | UI/S | H | Y |
 | TC-175 | FR-009, FR-028 | Menu states (`S_Menu_emptyCategory`, `S_Menu_offline`) | (a) Category with every item sold out; (b) airplane mode; (c) sold-out items; (d) item at 20 | (a) Open it; (b) go offline; (c) open the category; (d) tap + | (a) "Nothing here right now" and "See popular items" returns to Popular; (b) banner "Ordering is paused — reconnecting…", add buttons and "View order" disabled; (c) sold-out items are not shown; (d) toast "Maximum 20 per item", quantity stays 20 | UI/S | H | Y |
@@ -403,7 +422,7 @@ For every screen, a side-by-side review of the screenshot test reference against
 TC-142–TC-145. Memory via `dumpsys meminfo` at hours 1, 24, 48 and 72 of the soak. Battery is not applicable (mains-powered kiosk). Thermal is observed instead (NFR-015).
 
 ### 6.11 Hardware
-SN (TC-005/006), printers (TC-091–TC-100), EDC (TC-083), lock task and boot (TC-126–TC-128). Evidence is photos of printouts and screen recordings.
+SN (TC-005/006), printers (TC-091–TC-100, the real-printer runs in 0.9.0 [D-34]), EDC (TC-083), lock task and boot (TC-126–TC-128). Evidence is photos of printouts and screen recordings.
 
 ### 6.12 Security and privacy checklist (TC-146–TC-149)
 - [ ] Token in encrypted storage; never logged.
@@ -427,10 +446,10 @@ Each milestone runs: (a) its new TCs, (b) the full automated regression of all e
 | **0.3.0** | Idle, order type, menu, item, combo, sync/cache, images | TC-020–TC-049 (TC-029–TC-031 and TC-036 retired), TC-174–TC-176, TC-121, TC-124, TC-125, TC-157 | 0.1–0.2 | Wrong item/combo price; crash in browse; menu not cached | Screenshot diffs vs design; `docs/test-reports/0.3.0.md` | All pass |
 | **0.4.0** | Cart, pricing, Budget Plan, review, methods, upsell, inactivity | TC-050–TC-067, TC-101–TC-104, TC-135, TC-139, TC-161–TC-167, TC-169–TC-173, TC-177 | 0.1–0.3 | Any pricing mismatch; overlay during payment; a Budget Plan plan above budget shown as "under" or as an exact match, or a person left without a meal | `docs/pricing-cases.md`; `docs/budget-plan-cases.md`; coverage report (domain ≥ 90 %) | All pass |
 | **0.5.0** | Order creation, QRIS, card (fake), failures, offline gate, recovery, clock skew | TC-068–TC-087 (TC-083 deferred to 0.9.0), TC-122, TC-123, TC-132–TC-134, TC-137, TC-138, TC-154, TC-160, TC-178, TC-181, TC-185–TC-193 | 0.1–0.4 | Duplicate order; "not charged" shown on unknown status; paid without PAID | Recordings of J1–J3 with fakes; mock-scenario run log | All pass; gateway/EDC spec status recorded |
-| **0.6.0** | Complete, printing, printer management | TC-088–TC-100, TC-159 (printers subset) | 0.1–0.5 + J1 with print | No print on paid order; print failure blocks Complete | Photos of 58/80 mm receipts and kitchen tickets for each connection type | All pass on real printers |
+| **0.6.0** | Complete, printing and printer management (fakes), Upsell strip, Budget Plan improvements | TC-088–TC-095, TC-099, TC-100, TC-194–TC-205 (P2 rows only if built) | 0.1–0.5 + J1 with fake print capture | No print on paid order; print failure blocks Complete; the strip blocks Pay | Screenshots of each printer board, the strip and the Budget Plan steps; PO sign-off of the boards and review | All pass with fakes; real printers in 0.9.0 |
 | **0.7.0** | PIN, settings, lock task, sound, logging | TC-105–TC-131, TC-136 | 0.1–0.6 + J1–J8 | Lock-task escape; PIN bypass; lockout not persisted | Device videos of escape attempts and reboot; provisioning run log | All pass on iMin device |
 | **0.8.0** | String lint, a11y, motion, on-device profiling, larger text, screenshots | TC-032, TC-116, TC-150–TC-153, TC-180 | Full suite | Hardcoded strings on customer screens; perf below NFR-003; a11y errors; a state board without a screenshot test | Perf report; a11y report; PO copy sign-off; motion checklist | Targets met or accepted |
-| **0.9.0** | Real backend/gateway/EDC, matrix, soak, security, release build, pilot | TC-083, TC-145, TC-147–TC-149, TC-158, TC-159 + **all MVP TCs re-run on device against staging** | Full suite on device | Any P1/P2; contract mismatch; soak failure | Contract run vs staging; soak report; security checklist; pilot report | Release checklist complete except sign-off |
+| **0.9.0** | Real backend/gateway/EDC, matrix, soak, security, release build, pilot | TC-083, TC-096–TC-098, TC-145, TC-147–TC-149, TC-158, TC-159 + **all MVP TCs re-run on device against staging** | Full suite on device | Any P1/P2; contract mismatch; soak failure | Contract run vs staging; soak report; security checklist; pilot report | Release checklist complete except sign-off |
 | **1.0.0** | Performance benchmarks (DEV-031), release build against prod | TC-142–TC-144, TC-168 on the iMin device; full regression (automated + manual priority H) on the signed APK; DEV-102 real transactions | Full | Any P1/P2; any P3 on checkout/payment screens | Signed test report; APK checksum; release checklist signed | Rollout approved |
 
 ---
@@ -452,7 +471,7 @@ Each milestone runs: (a) its new TCs, (b) the full automated regression of all e
 | FR-011 | DEV-030 | TC-046–TC-049, TC-176 | 0.3.0 |
 | FR-012 | DEV-036, DEV-037, DEV-037a, DEV-041 | TC-050–TC-054, TC-177 | 0.4.0 |
 | FR-013 | DEV-035, DEV-038, DEV-046, DEV-097 | TC-055–TC-061, TC-173 (+TC-071) | 0.4.0 / 0.5.0 / 0.9.0 |
-| FR-014 | DEV-039 | TC-062–TC-064, TC-172 | 0.4.0 |
+| FR-014 | DEV-039 (replaced), DEV-105, DEV-106, DEV-114 | TC-194–TC-197, TC-205 (TC-062–TC-064, TC-172 retired) | 0.4.0 / 0.6.0 |
 | FR-015 | DEV-037a, DEV-038 | TC-065–TC-067, TC-173, TC-177 | 0.4.0 |
 | FR-016 | DEV-045, DEV-046, DEV-052 | TC-068–TC-073, TC-185, TC-186, TC-189, TC-191, TC-192 | 0.5.0 |
 | FR-017 | DEV-047, DEV-048, DEV-090 | TC-074–TC-079, TC-189 | 0.5.0 / 0.9.0 |
@@ -460,7 +479,7 @@ Each milestone runs: (a) its new TCs, (b) the full automated regression of all e
 | FR-019 | DEV-050 | TC-084–TC-087, TC-178, TC-185, TC-187, TC-188 | 0.5.0 |
 | FR-020 | DEV-059, DEV-060 | TC-088–TC-090 | 0.6.0 |
 | FR-021 | DEV-057, DEV-058, DEV-059 | TC-091–TC-095 | 0.6.0 |
-| FR-022 | DEV-055, DEV-056, DEV-061 | TC-096–TC-100 | 0.6.0 |
+| FR-022 | DEV-055, DEV-061, DEV-056 | TC-099, TC-100 (0.6.0, fakes); TC-096–TC-098 (0.9.0) | 0.6.0 / 0.9.0 |
 | FR-023 | DEV-040, DEV-041 | TC-101–TC-104 | 0.4.0 |
 | FR-024 | DEV-065, DEV-066, DEV-067 | TC-105–TC-109 | 0.7.0 |
 | FR-025 | DEV-068 | TC-110–TC-112 | 0.7.0 |
@@ -470,7 +489,7 @@ Each milestone runs: (a) its new TCs, (b) the full automated regression of all e
 | FR-029 | DEV-071, DEV-101 | TC-126–TC-128 | 0.7.0 |
 | FR-030 | DEV-072 | TC-129 | 0.7.0 |
 | FR-031 | DEV-067, DEV-073 | TC-130–TC-131 | 0.7.0 |
-| FR-032 | DEV-042, DEV-043, DEV-043a, DEV-044, DEV-031 | TC-161–TC-171 | 0.4.0 / 1.0.0 |
+| FR-032 | DEV-042, DEV-043, DEV-043a, DEV-044, DEV-031, DEV-107–DEV-112 | TC-161–TC-171, TC-198–TC-204 | 0.4.0 / 0.6.0 / 1.0.0 |
 | NFR-001 | DEV-001 | TC-140 | 0.1.0 |
 | NFR-002 | DEV-003, DEV-084 | TC-141, TC-180 | 0.1.0 / 0.8.0 |
 | NFR-003 | DEV-031, DEV-082 | TC-142–TC-144 | 0.8.0 / 1.0.0 |
@@ -486,7 +505,7 @@ Each milestone runs: (a) its new TCs, (b) the full automated regression of all e
 | NFR-013 | DEV-023 | TC-157 | 0.3.0 |
 | NFR-014 | DEV-001, DEV-095, DEV-100 | TC-158, TC-193 | 0.5.0 / 0.9.0 / 1.0.0 |
 | NFR-015 | DEV-093 | TC-145 | 0.9.0 |
-| NFR-016 | DEV-056, DEV-092 | TC-159 | 0.6.0 / 0.9.0 |
+| NFR-016 | DEV-056, DEV-092 | TC-159 | 0.9.0 |
 | NFR-017 | DEV-047 | TC-160 | 0.5.0 |
 
 Journeys J1–J8 are covered by TC-132–TC-137 plus TC-008/TC-009 (J5/J6). Every MVP FR and every NFR has at least one DEV task and at least one TC. FR-008 is no longer part of 1.0, so its three cases are retired rather than deleted.
