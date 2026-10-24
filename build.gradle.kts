@@ -34,6 +34,13 @@ dependencyAnalysis {
         }
         bundle("navigation") { include("androidx\\.navigation:.*") }
         bundle("datastore") { include("androidx\\.datastore:.*") }
+        bundle("room") {
+            include("androidx\\.room:.*")
+            include("androidx\\.sqlite:.*")
+        }
+        bundle("work") { include("androidx\\.work:.*") }
+        bundle("hilt-work") { include("androidx\\.hilt:hilt-(work|common)") }
+        bundle("coil") { include("io\\.coil-kt\\.coil3:.*") }
         bundle("kotlinx-serialization") { include("org\\.jetbrains\\.kotlinx:kotlinx-serialization-.*") }
         bundle("kotlinx-coroutines") { include("org\\.jetbrains\\.kotlinx:kotlinx-coroutines-.*") }
         bundle("okhttp") {

@@ -33,7 +33,8 @@ dependencies {
     // Catalog cache (DEV-021) and the periodic sync worker (DEV-023).
     implementation(libs.androidx.room.runtime)
     ksp(libs.androidx.room.compiler)
-    implementation(libs.androidx.work.runtime.ktx)
+    // CatalogSyncWorker extends CoroutineWorker, so WorkManager is part of this module's ABI.
+    api(libs.androidx.work.runtime.ktx)
     implementation(libs.androidx.hilt.work)
     ksp(libs.androidx.hilt.compiler)
 
