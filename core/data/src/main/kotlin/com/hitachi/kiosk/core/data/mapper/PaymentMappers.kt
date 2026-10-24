@@ -14,13 +14,20 @@ import com.hitachi.kiosk.core.domain.model.PaymentStatus
 import com.hitachi.kiosk.core.domain.model.PaymentUpdate
 import com.hitachi.kiosk.core.domain.model.StartedPayment
 import com.hitachi.kiosk.core.domain.model.TerminalResult
+import java.time.ZonedDateTime
+import java.time.format.DateTimeFormatter
+import java.time.format.DateTimeParseException
+import kotlin.time.Instant
 
 // Payment statuses and methods are required: an unknown one fails the call (DomainError.Unknown) instead of being
 // guessed, so the payment state machine keeps polling and never shows "paid" or "not charged" on a guess (A-15,
 // FR-019).
 
-/** E9 → [StartedPayment]. A QRIS answer needs `qrString` and `expiresAt`, a card answer `terminalRef`. */
-internal fun StartedPaymentDto.toDomain(): StartedPayment {
+/**
+ * E9 → [StartedPayment]. A QRIS answer needs `qrString` and `expiresAt`, a card answer `terminalRef`. [serverTime] is
+ * the response `Date` header (technical-design §5.4); only the QR countdown uses it.
+ */
+internal fun StartedPaymentDto.toDomain(serverTime: Instant? = null): StartedPayment {
     val status = requiredEnum<PaymentStatus>(status, "payment.status")
     return when (requiredEnum<PaymentMethod>(method, "payment.method")) {
         PaymentMethod.QRIS -> {
@@ -31,6 +38,7 @@ internal fun StartedPaymentDto.toDomain(): StartedPayment {
                 qrString = requireNotNull(qrString) { "QRIS payment without qrString" },
                 expiresAt = requireNotNull(expiresAt) { "QRIS payment without expiresAt" }.toInstant(),
                 createdAt = createdAt.toInstant(),
+                serverTime = serverTime,
             )
         }
 
@@ -89,3 +97,16 @@ internal fun TerminalResult.toDto(): TerminalResultDto =
         maskedPan = maskedPan,
         rawResponseCode = rawResponseCode,
     )
+
+/**
+ * A `Date` response header (RFC 1123, whole seconds) as an instant, or `null` when it is missing or malformed. The
+ * kiosk measures the backend clock offset with it for the QR countdown (NFR-017, technical-design §5.4).
+ */
+internal fun String?.httpDateToInstantOrNull(): Instant? =
+    this?.let {
+        try {
+            Instant.fromEpochSeconds(ZonedDateTime.parse(it, DateTimeFormatter.RFC_1123_DATE_TIME).toEpochSecond())
+        } catch (_: DateTimeParseException) {
+            null
+        }
+    }

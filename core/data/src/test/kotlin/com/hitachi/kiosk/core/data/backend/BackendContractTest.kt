@@ -21,6 +21,7 @@ import mockwebserver3.MockResponse
 import mockwebserver3.junit4.MockWebServerRule
 import org.junit.Rule
 import org.junit.Test
+import kotlin.time.Instant
 
 /**
  * Every E1–E14 example of api-spec.md, served by MockWebServer, maps to the same domain objects as [SampleData];
@@ -147,6 +148,31 @@ class BackendContractTest {
             val request = server.takeRequestNow()
             assertThat(request.url.encodedPath).isEqualTo("/v1/orders/ord_7Hq2k9/cancel")
             assertThat(request.jsonBody()).isEqualTo(fixtureJson("e8_request"))
+        }
+
+    @Test
+    fun `E9 QRIS start keeps the Date header as the server time (NFR-017, TD 5_4)`() =
+        runTest {
+            server.enqueue(fixtureResponse("e9_response_qris", 201, "Date" to "Thu, 22 Oct 2026 07:15:31 GMT"))
+
+            val result = gateway.start(SampleData.ORDER_ID, PaymentMethod.QRIS, qrExpirySeconds = 300, key = key)
+
+            assertThat(result)
+                .isEqualTo(
+                    Outcome.Success(
+                        SampleData.qrisPayment.copy(serverTime = Instant.parse("2026-10-22T07:15:31Z")),
+                    ),
+                )
+        }
+
+    @Test
+    fun `E9 QRIS start without a usable Date header has no server time`() =
+        runTest {
+            server.enqueue(fixtureResponse("e9_response_qris", 201, "Date" to "not a date"))
+
+            val result = gateway.start(SampleData.ORDER_ID, PaymentMethod.QRIS, qrExpirySeconds = 300, key = key)
+
+            assertThat((result as Outcome.Success).value).isEqualTo(SampleData.qrisPayment)
         }
 
     @Test
