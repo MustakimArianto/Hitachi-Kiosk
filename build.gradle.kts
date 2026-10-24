@@ -1,6 +1,8 @@
 plugins {
     alias(libs.plugins.android.application) apply false
     alias(libs.plugins.android.library) apply false
+    alias(libs.plugins.android.test) apply false
+    alias(libs.plugins.baselineprofile) apply false
     alias(libs.plugins.kotlin.jvm) apply false
     alias(libs.plugins.kotlin.compose) apply false
     alias(libs.plugins.kotlin.serialization) apply false
@@ -47,6 +49,8 @@ dependencyAnalysis {
             includeDependency("com.squareup.okhttp3:okhttp")
             includeDependency("com.squareup.okio:okio")
         }
+        // benchmark-macro-junit4 brings the Macrobenchmark API (benchmark-macro) that :benchmark calls.
+        bundle("benchmark") { include("androidx\\.benchmark:.*") }
         bundle("roborazzi") { include("io\\.github\\.takahirom\\.roborazzi:.*") }
         bundle("robolectric") { include("org\\.robolectric:.*") }
         bundle("androidx-test") {

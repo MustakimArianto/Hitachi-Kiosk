@@ -12,6 +12,7 @@ import com.hitachi.kiosk.core.designsystem.theme.KioskPalette
 import com.hitachi.kiosk.core.designsystem.theme.KioskTheme
 import com.hitachi.kiosk.devtools.DeveloperMenu
 import com.hitachi.kiosk.devtools.DeveloperMenuTapCounter
+import com.hitachi.kiosk.devtools.FrameDiagnostics
 import com.hitachi.kiosk.navigation.BrandingViewModel
 import com.hitachi.kiosk.navigation.KioskRoot
 import com.hitachi.kiosk.ui.rememberSystemReduceMotion
@@ -28,6 +29,10 @@ class MainActivity : ComponentActivity() {
     @Inject
     lateinit var developerMenu: Optional<DeveloperMenu>
 
+    /** JankStats in debug and benchmark builds; empty in release (TC-143). */
+    @Inject
+    lateinit var frameDiagnostics: Optional<FrameDiagnostics>
+
     private val developerTaps = DeveloperMenuTapCounter()
     private val branding: BrandingViewModel by viewModels()
 
@@ -41,6 +46,7 @@ class MainActivity : ComponentActivity() {
                 KioskRoot(onBrandMarkClick = ::onBrandMarkClick)
             }
         }
+        frameDiagnostics.ifPresent { it.track(this) }
     }
 
     private fun onBrandMarkClick() {
