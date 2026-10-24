@@ -173,6 +173,19 @@ class UnknownValuesMapperTest {
     }
 
     @Test
+    fun `a budget planner without quick budgets offers the FR-032 chips`() {
+        val json =
+            Fixtures.read("e5_response").replace(
+                """"quickBudgets": [50000, 100000, 150000, 200000]""",
+                """"quickBudgets": []""",
+            )
+
+        val planner = KioskJson.decodeFromString<MerchantConfigDto>(json).toDomain().budgetPlanner
+
+        assertThat(planner.quickBudgets).isEqualTo(BudgetPlannerConfig.DEFAULT_QUICK_BUDGETS)
+    }
+
+    @Test
     fun `an unknown merchant status cannot be bound`() {
         val merchant = MerchantDto(id = "m", name = "n", status = "paused").toDomain()
 

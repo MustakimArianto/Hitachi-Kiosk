@@ -79,10 +79,15 @@ data class UpsellConfig(
     val maxSuggestions: Int,
 )
 
-/** Budget Plan settings (FR-032). Defaults follow api-spec E5. */
+/** Budget Plan settings (FR-032). Defaults follow api-spec E5 and PRD FR-032 (D-27). */
 data class BudgetPlannerConfig(
     val enabled: Boolean,
     val overCapPercent: Int = 10,
     val maxGroupSize: Int = 10,
-    val quickBudgets: List<Rupiah> = emptyList(),
-)
+    val quickBudgets: List<Rupiah> = DEFAULT_QUICK_BUDGETS,
+) {
+    companion object {
+        /** The Step 1 chips when config sends none: Rp 50k / 100k / 150k / 200k (FR-032). */
+        val DEFAULT_QUICK_BUDGETS: List<Rupiah> = listOf(50_000L, 100_000L, 150_000L, 200_000L).map(::Rupiah)
+    }
+}

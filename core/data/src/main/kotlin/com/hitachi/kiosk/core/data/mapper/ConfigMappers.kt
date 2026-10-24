@@ -97,6 +97,6 @@ private fun BudgetPlannerDto.toDomain(): BudgetPlannerConfig {
         enabled = enabled,
         overCapPercent = overCapPercent ?: defaults.overCapPercent,
         maxGroupSize = maxGroupSize ?: defaults.maxGroupSize,
-        quickBudgets = quickBudgets.map { it.toRupiah() },
+        quickBudgets = quickBudgets.map { it.toRupiah() }.ifEmpty { defaults.quickBudgets },
     )
 }
