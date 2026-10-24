@@ -1,12 +1,12 @@
 package com.hitachi.kiosk.debug
 
 import com.hitachi.kiosk.core.domain.backend.BackendApi
-import com.hitachi.kiosk.core.domain.map
-import com.hitachi.kiosk.core.domain.model.Conditional
 import com.hitachi.kiosk.core.domain.id.IdempotencyKey
+import com.hitachi.kiosk.core.domain.map
 import com.hitachi.kiosk.core.domain.model.ActivationRequest
 import com.hitachi.kiosk.core.domain.model.CancelOrderReason
 import com.hitachi.kiosk.core.domain.model.CancelPaymentReason
+import com.hitachi.kiosk.core.domain.model.Conditional
 import com.hitachi.kiosk.core.domain.model.OrderRequest
 import com.hitachi.kiosk.core.domain.model.PaymentMethod
 import com.hitachi.kiosk.core.domain.model.TerminalResult

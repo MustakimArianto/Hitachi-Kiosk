@@ -36,7 +36,10 @@ class DemoImagesTest {
 
     @Test
     fun `a real backend url is kept`() {
-        val real = SampleData.menu.products.first().copy(imageUrl = "https://cdn.merchant.test/a.jpg")
+        val real =
+            SampleData.menu.products
+                .first()
+                .copy(imageUrl = "https://cdn.merchant.test/a.jpg")
         val result = DemoImages.apply(SampleData.menu.copy(products = listOf(real)))
         assertThat(result.products.single().imageUrl).isEqualTo("https://cdn.merchant.test/a.jpg")
     }

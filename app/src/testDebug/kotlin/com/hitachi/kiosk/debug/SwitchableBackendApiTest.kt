@@ -3,8 +3,8 @@ package com.hitachi.kiosk.debug
 import com.google.common.truth.Truth.assertThat
 import com.hitachi.kiosk.core.domain.Outcome
 import com.hitachi.kiosk.core.domain.error.DomainError
-import com.hitachi.kiosk.core.domain.model.Conditional
 import com.hitachi.kiosk.core.domain.id.IdempotencyKey
+import com.hitachi.kiosk.core.domain.model.Conditional
 import com.hitachi.kiosk.core.testing.fake.FakeBackendApi
 import com.hitachi.kiosk.core.testing.fake.FakeScenario
 import com.hitachi.kiosk.core.testing.fake.TestClock
@@ -64,7 +64,11 @@ class SwitchableBackendApiTest {
             val menu = (api.menu(SampleData.MERCHANT_ID, null) as Outcome.Success).value as Conditional.Modified
             val config = (api.config(SampleData.MERCHANT_ID, null) as Outcome.Success).value as Conditional.Modified
 
-            assertThat(menu.value.products.first { it.id == "s1" }.imageUrl).endsWith("/fries.webp")
+            assertThat(
+                menu.value.products
+                    .first { it.id == "s1" }
+                    .imageUrl,
+            ).endsWith("/fries.webp")
             assertThat(config.value.logoUrl).endsWith("/logo.webp")
         }
 }
