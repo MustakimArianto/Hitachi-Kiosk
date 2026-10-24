@@ -12,6 +12,7 @@ import com.hitachi.kiosk.core.domain.model.OrderType
 import com.hitachi.kiosk.core.domain.model.PaymentFailureReason
 import com.hitachi.kiosk.core.domain.model.PaymentMethod
 import com.hitachi.kiosk.core.domain.model.PaymentStatus
+import com.hitachi.kiosk.core.domain.model.Rupiah
 import com.hitachi.kiosk.core.domain.model.StartedPayment
 import com.hitachi.kiosk.core.domain.model.product
 import com.hitachi.kiosk.core.domain.order.DefaultOrderSessionHolder
@@ -20,6 +21,8 @@ import com.hitachi.kiosk.core.domain.order.OrderSession
 import com.hitachi.kiosk.core.domain.order.SubmitOrder
 import com.hitachi.kiosk.core.domain.payment.PaymentStateMachine
 import com.hitachi.kiosk.core.domain.payment.PaymentUiState
+import com.hitachi.kiosk.core.domain.pricing.PricingEngine
+import com.hitachi.kiosk.core.domain.pricing.PricingRules
 import com.hitachi.kiosk.core.testing.fake.FakeActivationRepository
 import com.hitachi.kiosk.core.testing.fake.FakeCardTerminal
 import com.hitachi.kiosk.core.testing.fake.FakeCatalogRepository
@@ -71,7 +74,7 @@ class CheckoutViewModelTest {
         val settings = FakeSettingsRepository()
         val orders = FakeOrderRepository()
         val ids = FakeIdGenerator()
-        val gateway = FakePaymentGateway()
+        val gateway = FakePaymentGateway(orderTotal = { orders.pendingTotal })
         val terminal = FakeCardTerminal(resultDelay = 2.seconds)
         val connectivity = FakeConnectivityMonitor()
         val activation = FakeActivationRepository(SampleData.boundState)
@@ -136,8 +139,17 @@ class CheckoutViewModelTest {
         /** A QRIS E9 answer created now by the backend, valid for [life]. */
         fun qris(life: Duration = 300.seconds): StartedPayment.Qris {
             val now = clock.now()
-            return SampleData.qrisPayment.copy(createdAt = now, expiresAt = now + life, serverTime = now)
+            return SampleData.qrisPayment.copy(
+                amount = cartTotal,
+                createdAt = now,
+                expiresAt = now + life,
+                serverTime = now,
+            )
         }
+
+        /** What Pay sends as the total of the cart on Your order, which the backend order must repeat (TR-INT-04). */
+        val cartTotal: Rupiah
+            get() = PricingEngine.price(session.state.value.cart.lines, PricingRules.of(SampleData.config)).total
 
         fun status(
             status: PaymentStatus,
@@ -185,7 +197,7 @@ class CheckoutViewModelTest {
             val stage = vm.stage as CheckoutStage.WaitingForQr
             assertThat(stage.remainingSeconds).isEqualTo(300)
             assertThat(stage.totalSeconds).isEqualTo(300)
-            assertThat(vm.ui.amount).isEqualTo("Rp 172.700")
+            assertThat(vm.ui.amount).isEqualTo("Rp 41.800")
             assertThat(vm.ui.brandName).isEqualTo("Urban Grill")
             assertThat(vm.ui.kioskName).isEqualTo("Kiosk 3")
             assertThat(vm.ui.methods).containsExactly(PaymentMethod.QRIS, PaymentMethod.CARD).inOrder()
@@ -211,7 +223,7 @@ class CheckoutViewModelTest {
                     .single()
                     .method,
             ).isEqualTo(PaymentMethod.CARD)
-            assertThat(vm.ui.amount).isEqualTo("Rp 172.700")
+            assertThat(vm.ui.amount).isEqualTo("Rp 41.800")
         }
 
     @Test
@@ -391,6 +403,32 @@ class CheckoutViewModelTest {
             assertThat(h.session.state.value.phase).isEqualTo(OrderPhase.REVIEWING)
             assertThat(h.session.state.value.cart.lines).hasSize(1)
             assertThat(h.session.state.value.submission).isNull()
+        }
+
+    @Test
+    fun `a stale failure of an order that ended elsewhere does not block the next order (FR-016)`() =
+        checkoutTest {
+            val h = harness(this)
+            h.gateway.startQris.succeed(h.qris())
+            h.gateway.status.enqueue(Outcome.Success(h.status(PaymentStatus.EXPIRED)))
+            h.viewModel()
+            h.pass(3.seconds)
+            assertThat(h.machine.state.value).isInstanceOf(PaymentUiState.Failed::class.java)
+
+            // The order ends (a 401 wipe) and a new one reaches Your order before anything reset the machine.
+            h.holder.endOrder()
+            h.orders.clearPending()
+            h.holder.chooseOrderType(OrderType.DINE_IN, "menu-118", "cfg-42").also {
+                it.startBuilding()
+                val custom = ProductCustomization.defaults(checkNotNull(SampleData.menu.product("c1")), SampleData.menu)
+                it.add(custom.toCartItem(), 1, custom.unitPrice, custom.choices())
+                it.startReviewing()
+            }
+            val next = h.viewModel()
+            h.pass(1.seconds)
+
+            assertThat(h.orders.requests).hasSize(2)
+            assertThat(next.stage).isInstanceOf(CheckoutStage.WaitingForQr::class.java)
         }
 
     @Test

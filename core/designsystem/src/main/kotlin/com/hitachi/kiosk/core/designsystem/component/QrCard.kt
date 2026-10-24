@@ -152,7 +152,8 @@ private fun QrCardPreview() {
         QrCard(
             title = "QRIS",
             caption = "Urban Grill · Kiosk 3",
-            expiryText = "Code expires in ${formatCountdown(300)}",
+            // The sentence is a string resource of the app (`checkout_qr_expires_in`); the preview shows the time only.
+            expiryText = formatCountdown(300),
             remainingSeconds = 300,
             totalSeconds = 300,
         ) {

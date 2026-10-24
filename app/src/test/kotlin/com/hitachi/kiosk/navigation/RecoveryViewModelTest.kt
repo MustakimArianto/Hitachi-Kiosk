@@ -50,7 +50,6 @@ class RecoveryViewModelTest {
                     backgroundScope,
                 )
             val viewModel = RecoveryViewModel(coordinator)
-            coordinator.start()
             runCurrent()
             assertThat(viewModel.completeRequested.value).isFalse()
 

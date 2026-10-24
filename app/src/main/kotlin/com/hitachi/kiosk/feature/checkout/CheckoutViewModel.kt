@@ -189,9 +189,34 @@ class CheckoutViewModel
 
         // Entry ---------------------------------------------------------------------------------------------------
 
-        /** Submits the order and starts the payment once, unless the machine is already past Idle (TC-138). */
+        /**
+         * Submits the order and starts the payment once, unless the machine is already past Idle (TC-138). A machine
+         * that still shows the Failed or Paid state of an earlier order, while the session is a new order on Your
+         * order, is stale (the earlier order ended without going through the machine, for example a 401 wipe): it is
+         * reset first, so the new order is not stuck behind it.
+         */
         private fun begin() {
-            if (machine.state.value != PaymentUiState.Idle) return
+            val shown = machine.state.value
+            if (shown == PaymentUiState.Idle) {
+                enter()
+            } else if (shown.isStaleFor(
+                    sessions.current.value
+                        ?.state
+                        ?.value,
+                )
+            ) {
+                viewModelScope.launch {
+                    KioskLog.w("checkout_stale_payment_state", "state" to shown::class.simpleName)
+                    if (shown is PaymentUiState.Paid) machine.acknowledgePaid() else machine.reset()
+                    enter()
+                }
+            }
+        }
+
+        private fun PaymentUiState.isStaleFor(order: OrderState?): Boolean =
+            order?.phase == OrderPhase.REVIEWING && (this is PaymentUiState.Failed || this is PaymentUiState.Paid)
+
+        private fun enter() {
             val session = sessions.current.value
             when {
                 session == null -> {
