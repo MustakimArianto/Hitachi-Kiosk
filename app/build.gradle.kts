@@ -47,6 +47,8 @@ dependencies {
     // WorkManager with Hilt workers for the periodic catalog sync (DEV-023).
     implementation(libs.androidx.work.runtime.ktx)
     implementation(libs.androidx.hilt.work)
+    // Renders the QRIS qrString on Checkout; TC-079 decodes the rendered bitmap with the same library (DEV-048).
+    implementation(libs.zxing.core)
     runtimeOnly(libs.androidx.profileinstaller)
 
     // Debug-only Developer options (DEV-009): fakes and their switching never ship in release.
