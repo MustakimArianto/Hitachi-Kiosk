@@ -89,4 +89,15 @@ class PaymentUiStateTest {
 
             assertThat(h.state).isEqualTo(PaymentUiState.Failed(PaymentMethod.QRIS, FailureReason.GENERIC, false))
         }
+
+    @Test
+    fun `an unexpected exception fails generically instead of crashing the application scope`() =
+        runTest {
+            val h = PaymentHarness(this)
+            h.recordPaymentFailure = IllegalStateException("database is locked")
+
+            h.start()
+
+            assertThat(h.state).isEqualTo(PaymentUiState.Failed(PaymentMethod.QRIS, FailureReason.GENERIC, false))
+        }
 }

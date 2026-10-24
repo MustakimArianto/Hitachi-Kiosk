@@ -69,6 +69,9 @@ internal class PaymentHarness(
     /** The order of the calls that change something outside the machine, for example `terminal.cancel`, `E11`, `E8`. */
     val log = mutableListOf<String>()
 
+    /** Makes the next `recordPayment` throw, as a failing database would. */
+    var recordPaymentFailure: Throwable? = null
+
     val machine =
         PaymentStateMachine(
             scope = testScope.backgroundScope,
@@ -170,6 +173,15 @@ internal class PaymentHarness(
             override suspend fun clearPending() {
                 log += "clearPending"
                 orders.clearPending()
+            }
+
+            override suspend fun recordPayment(
+                orderId: String,
+                paymentId: String,
+                method: PaymentMethod,
+            ) {
+                recordPaymentFailure?.let { throw it }
+                orders.recordPayment(orderId, paymentId, method)
             }
         }
 

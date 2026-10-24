@@ -104,7 +104,7 @@ class PaymentStateMachine(
             }
         if (accepted) {
             log("payment_state", PaymentUiState.Creating(method))
-            job = scope.launch { runAttempt(attempt, previous = null) }
+            job = scope.launch { runGuarded(attempt, previous = null) }
         }
         return accepted
     }
@@ -168,7 +168,7 @@ class PaymentStateMachine(
             scope.launch {
                 old?.cancelAndJoin()
                 finish(PaymentUiState.Creating(method))
-                runAttempt(next, previous)
+                runGuarded(next, previous)
             }
         return true
     }
@@ -248,6 +248,22 @@ class PaymentStateMachine(
     }
 
     // One attempt ---------------------------------------------------------------------------------------------------
+
+    /** An unexpected exception ends in a failure screen, never in a crash of the application scope. */
+    @Suppress("TooGenericExceptionCaught")
+    private suspend fun runGuarded(
+        attempt: PaymentAttempt,
+        previous: PaymentAttempt?,
+    ) {
+        try {
+            runAttempt(attempt, previous)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            KioskLog.e("payment_unexpected_error", "type" to e.javaClass.simpleName, error = e)
+            fail(attempt, FailureReason.GENERIC, notCharged = false)
+        }
+    }
 
     private suspend fun runAttempt(
         attempt: PaymentAttempt,
