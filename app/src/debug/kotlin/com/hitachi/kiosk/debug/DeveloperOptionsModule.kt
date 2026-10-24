@@ -4,9 +4,11 @@ import android.content.Intent
 import com.hitachi.kiosk.BuildConfig
 import com.hitachi.kiosk.core.data.api.NetworkInterceptors
 import com.hitachi.kiosk.core.domain.backend.BackendApi
+import com.hitachi.kiosk.core.domain.device.CardTerminal
 import com.hitachi.kiosk.core.domain.device.ConnectivityMonitor
 import com.hitachi.kiosk.core.domain.device.DeviceIdentityProvider
 import com.hitachi.kiosk.core.domain.time.Clock
+import com.hitachi.kiosk.core.testing.fake.FakeCardTerminal
 import com.hitachi.kiosk.devtools.BindingOverrides
 import com.hitachi.kiosk.devtools.DeveloperMenu
 import dagger.Module
@@ -42,6 +44,10 @@ object DeveloperOptionsModule {
 
             // Testers go offline with airplane mode, so debug builds keep the real monitor.
             override fun connectivityMonitor(real: ConnectivityMonitor): ConnectivityMonitor = real
+
+            // No EDC adapter exists before 0.9.0 (ADR-0003), so debug builds drive the fake terminal. The UI wave
+            // replaces it with a SwitchableCardTerminal and a Developer options switch.
+            override fun cardTerminal(real: CardTerminal): CardTerminal = FakeCardTerminal()
         }
 
     @Provides
