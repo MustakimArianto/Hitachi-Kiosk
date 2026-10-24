@@ -25,36 +25,37 @@ class PlaceholderScreenScreenshotTest {
 
     @Test
     @Config(qualifiers = "w1080dp-h1920dp-mdpi")
-    fun `menu placeholder at 160 dpi`() = capture("placeholder_menu_1080x1920_160dpi")
+    fun `your order placeholder at 160 dpi`() = capture("placeholder_your_order_1080x1920_160dpi")
 
     @Test
     @Config(qualifiers = "w720dp-h1280dp-hdpi")
-    fun `menu placeholder at 240 dpi`() = capture("placeholder_menu_1080x1920_240dpi")
+    fun `your order placeholder at 240 dpi`() = capture("placeholder_your_order_1080x1920_240dpi")
 
     @Test
     @Config(qualifiers = "w540dp-h960dp-xhdpi")
-    fun `menu placeholder at 320 dpi`() = capture("placeholder_menu_1080x1920_320dpi")
+    fun `your order placeholder at 320 dpi`() = capture("placeholder_your_order_1080x1920_320dpi")
 
     @Test
     @Config(qualifiers = "w600dp-h960dp-xhdpi")
-    fun `menu placeholder fills a 1200 x 1920 screen`() = capture("placeholder_menu_1200x1920")
+    fun `your order placeholder fills a 1200 x 1920 screen`() = capture("placeholder_your_order_1200x1920")
 
     @Test
     @Config(qualifiers = "w540dp-h1170dp-xhdpi")
-    fun `menu placeholder is letterboxed on a 1080 x 2340 screen`() = capture("placeholder_menu_1080x2340_letterbox")
+    fun `your order placeholder is letterboxed on a 1080 x 2340 screen`() =
+        capture("placeholder_your_order_1080x2340_letterbox")
 
     private fun capture(name: String) {
         compose.setContent {
             KioskTheme {
                 DesignFrame {
                     PlaceholderScreen(
-                        screenId = "SCR-06",
-                        title = R.string.screen_menu,
+                        screenId = "SCR-10",
+                        title = R.string.screen_your_order,
                         actions =
                             listOf(
-                                PlaceholderAction(R.string.nav_product_card) {},
-                                PlaceholderAction(R.string.nav_plan_by_budget) {},
-                                PlaceholderAction(R.string.nav_view_order) {},
+                                PlaceholderAction(R.string.nav_add_more) {},
+                                PlaceholderAction(R.string.nav_pay) {},
+                                PlaceholderAction(R.string.nav_simulate_inactivity) {},
                             ),
                     )
                 }

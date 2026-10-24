@@ -5,8 +5,6 @@
     <!-- Navigation skeleton (DEV-010a). Each screen is a placeholder until its milestone builds it. -->
     <string name="placeholder_caption">Placeholder screen</string>
     <string name="placeholder_developer_mark">Brand mark</string>
-
-    <string name="screen_menu">Menu</string>
     <string name="screen_upsell">Anything on the side?</string>
     <string name="screen_your_order">Your order</string>
     <string name="screen_checkout">Checkout</string>
@@ -25,16 +23,6 @@
     <string name="budget_plan_step_plan">Your plan</string>
 
     <!-- Edges of PRD §5.1 -->
-    <string name="nav_product_card">Product card</string>
-    <string name="nav_plan_by_budget">Plan by budget</string>
-    <string name="nav_meals">Meals</string>
-    <string name="nav_change_order_type">Change order type</string>
-    <string name="nav_cancel_order">Cancel</string>
-    <string name="nav_view_order_with_upsell">View order (Upsell not shown yet)</string>
-    <string name="nav_view_order">View order</string>
-    <string name="nav_keep_ordering">Keep ordering</string>
-    <string name="nav_back_to_menu">Menu</string>
-    <string name="nav_my_order">My order</string>
     <string name="nav_see_plans">See plans</string>
     <string name="nav_back">Back</string>
     <string name="nav_add_plan">Add plan to order</string>

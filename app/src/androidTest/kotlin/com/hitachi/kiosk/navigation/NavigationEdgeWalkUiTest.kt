@@ -4,6 +4,7 @@ import androidx.annotation.StringRes
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasAnyDescendant
 import androidx.compose.ui.test.hasScrollAction
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
 import androidx.compose.ui.test.longClick
@@ -18,9 +19,19 @@ import com.hitachi.kiosk.R
 import com.hitachi.kiosk.core.domain.model.OrderType
 import com.hitachi.kiosk.core.domain.repository.ActivationRepository
 import com.hitachi.kiosk.core.domain.repository.MerchantRepository
+import com.hitachi.kiosk.feature.combo.COMBO_BACK_TAG
+import com.hitachi.kiosk.feature.combo.COMBO_CART_TAG
 import com.hitachi.kiosk.feature.idle.IDLE_STAFF_CORNER_TAG
 import com.hitachi.kiosk.feature.idle.IDLE_TAP_TAG
 import com.hitachi.kiosk.feature.idle.STAFF_HOLD_MILLIS
+import com.hitachi.kiosk.feature.item.ITEM_BACK_TAG
+import com.hitachi.kiosk.feature.item.ITEM_CART_TAG
+import com.hitachi.kiosk.feature.menu.MENU_BUDGET_PLAN_TAG
+import com.hitachi.kiosk.feature.menu.MENU_CANCEL_TAG
+import com.hitachi.kiosk.feature.menu.MENU_CHANGE_TAG
+import com.hitachi.kiosk.feature.menu.MENU_MEALS_PILL_TAG
+import com.hitachi.kiosk.feature.menu.MENU_VIEW_ORDER_TAG
+import com.hitachi.kiosk.feature.menu.menuChooseTag
 import com.hitachi.kiosk.feature.ordertype.orderTypeCardTag
 import com.hitachi.kiosk.testing.KioskState
 import com.hitachi.kiosk.testing.awaitScreen
@@ -36,8 +47,10 @@ import javax.inject.Inject
 
 /**
  * DEV-010a: walks every edge of the PRD §5.1 navigation map from Idle on. Each `go` taps one edge and checks the
- * screen it lands on. The kiosk starts bound, so the real Splash routes to Idle; the setup edges (Splash, Sign in,
- * Choose a restaurant) are walked by [com.hitachi.kiosk.feature.SetupJourneysUiTest].
+ * screen it lands on: real screens by their test tags (`goTag`), placeholders by their button labels (`go`). The
+ * kiosk starts bound, so the real Splash routes to Idle; the setup edges (Splash, Sign in, Choose a restaurant) are
+ * walked by [com.hitachi.kiosk.feature.SetupJourneysUiTest]. The Menu → Upsell edge waits for the upsell decision of
+ * 0.4.0 (DEV-039); until then "View order" opens Your order.
  */
 @HiltAndroidTest
 class NavigationEdgeWalkUiTest {
@@ -72,16 +85,15 @@ class NavigationEdgeWalkUiTest {
     fun customerFlowCoversMenuBranchesAndPayment() {
         tapToOrder()
         pickDineIn()
-        go(R.string.nav_product_card, "SCR-08")
-        go(R.string.nav_keep_ordering, "SCR-06")
-        go(R.string.nav_meals, "SCR-07")
-        go(R.string.nav_back_to_menu, "SCR-06")
-        go(R.string.nav_change_order_type, "SCR-05")
+        goTag(menuChooseTag("b2"), "SCR-08")
+        goTag(ITEM_BACK_TAG, "SCR-06")
+        goTag(MENU_MEALS_PILL_TAG, "SCR-07")
+        goTag(COMBO_BACK_TAG, "SCR-06")
+        goTag(MENU_CHANGE_TAG, "SCR-05")
         pickDineIn()
-        go(R.string.nav_view_order_with_upsell, "SCR-09")
-        go(R.string.nav_continue_to_order, "SCR-10")
+        goTag(MENU_VIEW_ORDER_TAG, "SCR-10")
         go(R.string.nav_add_more, "SCR-06")
-        go(R.string.nav_view_order, "SCR-10")
+        goTag(MENU_VIEW_ORDER_TAG, "SCR-10")
         go(R.string.nav_pay, "SCR-11")
         go(R.string.nav_back_to_order, "SCR-10")
         go(R.string.nav_pay, "SCR-11")
@@ -93,37 +105,39 @@ class NavigationEdgeWalkUiTest {
     fun itemAndComboOpenYourOrderAndMenuCancelReturnsToIdle() {
         tapToOrder()
         pickDineIn()
-        go(R.string.nav_product_card, "SCR-08")
-        go(R.string.nav_view_order, "SCR-10")
+        goTag(menuChooseTag("b2"), "SCR-08")
+        goTag(ITEM_CART_TAG, "SCR-10")
         go(R.string.nav_add_more, "SCR-06")
-        go(R.string.nav_meals, "SCR-07")
-        go(R.string.nav_my_order, "SCR-10")
+        goTag(MENU_MEALS_PILL_TAG, "SCR-07")
+        goTag(COMBO_CART_TAG, "SCR-10")
         go(R.string.nav_add_more, "SCR-06")
-        go(R.string.nav_cancel_order, "SCR-04")
+        goTag(MENU_CANCEL_TAG, "SCR-04")
     }
 
     @Test
     fun budgetPlanStepsAndBackBehaviour() {
         tapToOrder()
         pickDineIn()
-        go(R.string.nav_plan_by_budget, "SCR-19")
+        goTag(MENU_BUDGET_PLAN_TAG, "SCR-19")
         go(R.string.nav_see_plans, "SCR-19")
         assertText(R.string.nav_add_plan)
         go(R.string.nav_back, "SCR-19")
         assertText(R.string.nav_see_plans)
         go(R.string.nav_back, "SCR-06")
-        go(R.string.nav_plan_by_budget, "SCR-19")
+        goTag(MENU_BUDGET_PLAN_TAG, "SCR-19")
         go(R.string.nav_see_plans, "SCR-19")
         go(R.string.nav_add_plan, "SCR-10")
         go(R.string.nav_add_more, "SCR-06")
     }
 
+    /** The real screens get the inactivity timer with DEV-040; the placeholders still offer the simulated edge. */
     @Test
     fun inactivityOverlayDismissesOrReturnsToIdle() {
         tapToOrder()
-        go(R.string.nav_simulate_inactivity, "SCR-13")
-        go(R.string.nav_still_here, "SCR-05")
         pickDineIn()
+        goTag(MENU_VIEW_ORDER_TAG, "SCR-10")
+        go(R.string.nav_simulate_inactivity, "SCR-13")
+        go(R.string.nav_still_here, "SCR-10")
         go(R.string.nav_simulate_inactivity, "SCR-13")
         go(R.string.nav_no_response, "SCR-04")
     }
@@ -165,7 +179,16 @@ class NavigationEdgeWalkUiTest {
         tag: String,
         expectedScreen: String,
     ) {
-        compose.onNodeWithTag(tag).performClick()
+        val target = compose.onNodeWithTag(tag)
+        if (compose
+                .onAllNodes(
+                    hasScrollAction() and hasAnyDescendant(hasTestTag(tag)),
+                ).fetchSemanticsNodes()
+                .isNotEmpty()
+        ) {
+            target.performScrollTo()
+        }
+        target.performClick()
         awaitOn(expectedScreen)
     }
 

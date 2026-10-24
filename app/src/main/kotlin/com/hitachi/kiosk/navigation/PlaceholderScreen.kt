@@ -113,12 +113,12 @@ private fun PlaceholderScreenPreview() {
     KioskTheme {
         DesignFrame {
             PlaceholderScreen(
-                screenId = "SCR-06",
-                title = R.string.screen_menu,
+                screenId = "SCR-10",
+                title = R.string.screen_your_order,
                 actions =
                     listOf(
-                        PlaceholderAction(R.string.nav_product_card) {},
-                        PlaceholderAction(R.string.nav_view_order) {},
+                        PlaceholderAction(R.string.nav_add_more) {},
+                        PlaceholderAction(R.string.nav_simulate_inactivity) {},
                     ),
             )
         }
