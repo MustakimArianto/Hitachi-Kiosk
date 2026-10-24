@@ -132,8 +132,13 @@ class MenuViewModel
 
                 is CartAddResult.LimitReached -> {
                     when (result.limit) {
-                        CartLimit.MAX_PER_LINE -> showMaxToast()
-                        CartLimit.MAX_LINES -> KioskLog.i("menu_quick_add_max_lines")
+                        CartLimit.MAX_PER_LINE -> {
+                            showMaxToast()
+                        }
+
+                        CartLimit.MAX_LINES, CartLimit.ORDER_LOCKED -> {
+                            KioskLog.i("menu_quick_add_refused", "limit" to result.limit.name)
+                        }
                     }
                 }
             }

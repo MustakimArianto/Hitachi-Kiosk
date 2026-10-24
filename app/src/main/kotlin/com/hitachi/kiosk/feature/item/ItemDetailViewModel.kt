@@ -155,8 +155,13 @@ class ItemDetailViewModel
 
                 is CartAddResult.LimitReached -> {
                     when (result.limit) {
-                        CartLimit.MAX_PER_LINE -> showMaxToast()
-                        CartLimit.MAX_LINES -> KioskLog.w("item_add_max_lines", "productId" to productId)
+                        CartLimit.MAX_PER_LINE -> {
+                            showMaxToast()
+                        }
+
+                        CartLimit.MAX_LINES, CartLimit.ORDER_LOCKED -> {
+                            KioskLog.w("item_add_refused", "productId" to productId, "limit" to result.limit.name)
+                        }
                     }
                 }
             }

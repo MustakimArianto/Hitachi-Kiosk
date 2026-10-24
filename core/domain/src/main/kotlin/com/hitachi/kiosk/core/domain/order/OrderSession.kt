@@ -1,32 +1,75 @@
 package com.hitachi.kiosk.core.domain.order
 
 import com.hitachi.kiosk.core.domain.cart.Cart
+import com.hitachi.kiosk.core.domain.cart.CartAddAllResult
 import com.hitachi.kiosk.core.domain.cart.CartAddResult
+import com.hitachi.kiosk.core.domain.cart.CartAddition
 import com.hitachi.kiosk.core.domain.cart.CartItem
+import com.hitachi.kiosk.core.domain.cart.CartLimit
 import com.hitachi.kiosk.core.domain.cart.LineChoice
 import com.hitachi.kiosk.core.domain.model.OrderType
 import com.hitachi.kiosk.core.domain.model.Rupiah
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.update
 
 /**
- * Where an order is in architecture §5.1. 0.3.0 has the states up to building the order; Reviewing and the payment
- * states arrive with the full state machine in 0.4.0 (DEV-041). Idle is the absence of a session
- * ([OrderSessionHolder.current] is `null`).
+ * Where an order is in the OrderSession machine of architecture §5.1 (PRD §12.2, DEV-041). Idle is the absence of a
+ * session ([OrderSessionHolder.current] is `null`).
  */
 enum class OrderPhase {
     /** Dine in or Takeaway was picked (FR-007). */
     TYPE_CHOSEN,
 
-    /** The customer reached the Menu (FR-009). */
+    /** The customer is on the Menu, Item, Combo or Budget Plan (FR-009–FR-011, FR-032). */
     BUILDING,
+
+    /** Upsell or Your order (FR-012–FR-015). */
+    REVIEWING,
+
+    /** Pay was tapped and E7 is running (FR-016). */
+    SUBMITTING,
+
+    /** The order exists and is being paid (FR-017, FR-018). */
+    PAYING,
+
+    /** The backend reported `PAID` (A-15). */
+    PAID,
+
+    /** The Complete screen was shown (FR-020). */
+    COMPLETED,
+
+    /** "Cancel" or "Start over" (FR-009, FR-023). */
+    CANCELLED,
+
+    /** The inactivity overlay ran out (FR-023). */
+    TIMED_OUT,
+    ;
+
+    /** Whether the customer can still change the cart: before Pay, and back on Your order after a failure (BR-08). */
+    val isEditable: Boolean get() = this == TYPE_CHOSEN || this == BUILDING || this == REVIEWING
+
+    /** Whether the order can still be cancelled or time out: every customer state before Submitting (§5.1). */
+    val isCancellable: Boolean get() = isEditable
 }
+
+/**
+ * The "Budget Plan · 2 adults · 1 child · Rp 150.000" row on Your order (FR-012, A-40). [lineIds] are the cart lines
+ * the plan created; editing or removing any of them clears the tag (architecture §5.1).
+ */
+data class PlanTag(
+    val budget: Rupiah,
+    val adults: Int,
+    val children: Int,
+    val lineIds: List<String>,
+)
 
 /**
  * One order's state (architecture §5.1). [menuVersion] and [configVersion] are the catalog the order started with:
  * a sync that lands mid-order waits until the order ends (FR-028, A-29).
+ *
+ * @property upsellShown whether SCR-09 was already offered in this order (FR-014: at most once).
+ * @property planTag the Budget Plan that filled the cart, while its lines are untouched (FR-032).
  */
 data class OrderState(
     val orderType: OrderType,
@@ -34,11 +77,15 @@ data class OrderState(
     val cart: Cart,
     val menuVersion: String,
     val configVersion: String,
+    val upsellShown: Boolean = false,
+    val planTag: PlanTag? = null,
 )
 
 /**
- * One customer order, shared by Order type, Menu, Item and Combo through [OrderSessionHolder] (architecture §5.1).
- * State changes are atomic, so a double tap can never add twice from a stale cart.
+ * One customer order, shared by Order type, Menu, Item, Combo, Budget Plan, Upsell and Your order through
+ * [OrderSessionHolder] (architecture §5.1). Every change is atomic (compare-and-set), so a double tap can never act
+ * on a stale cart. A transition that the machine does not allow from the current phase changes nothing and returns
+ * `false`.
  */
 class OrderSession(
     orderType: OrderType,
@@ -59,14 +106,23 @@ class OrderSession(
     val state: StateFlow<OrderState> = mutableState.asStateFlow()
 
     /** "Change" on the Menu: a new order type, the cart kept (FR-007, PRD §5.1). */
-    fun changeOrderType(orderType: OrderType) {
-        mutableState.update { it.copy(orderType = orderType) }
-    }
+    fun changeOrderType(orderType: OrderType): Boolean =
+        transition({ it.isEditable }) { it.copy(orderType = orderType) }
 
-    /** The first Menu screen of the order (architecture §5.1: TypeChosen → Building). */
-    fun startBuilding() {
-        mutableState.update { it.copy(phase = OrderPhase.BUILDING) }
-    }
+    /** The Menu is shown: TypeChosen → Building, or Reviewing → Building on "Add more" (§5.1). */
+    fun startBuilding(): Boolean =
+        transition({ it == OrderPhase.TYPE_CHOSEN || it == OrderPhase.BUILDING || it == OrderPhase.REVIEWING }) {
+            it.copy(phase = OrderPhase.BUILDING)
+        }
+
+    /** Upsell or Your order is shown: Building → Reviewing (§5.1). Also accepted on the way back from Submitting. */
+    fun startReviewing(): Boolean =
+        transition({ it == OrderPhase.BUILDING || it == OrderPhase.REVIEWING }) {
+            it.copy(phase = OrderPhase.REVIEWING)
+        }
+
+    /** SCR-09 was offered, so it is never offered again in this order (FR-014 AC2). */
+    fun markUpsellShown(): Boolean = transition({ it.isEditable }) { it.copy(upsellShown = true) }
 
     /** Adds to the cart with the merge and limit rules of [Cart.add] (FR-009 AC2, FR-010, BR-05). */
     fun add(
@@ -77,9 +133,99 @@ class OrderSession(
     ): CartAddResult {
         while (true) {
             val current = mutableState.value
+            if (!current.phase.isEditable) return CartAddResult.LimitReached(CartLimit.ORDER_LOCKED)
             val result = current.cart.add(item, quantity, unitPrice, choices)
             if (result !is CartAddResult.Added) return result
-            if (mutableState.compareAndSet(current, current.copy(cart = result.cart))) return result
+            val next = current.copy(cart = result.cart, planTag = current.planTag.without(result.line.lineId))
+            if (mutableState.compareAndSet(current, next)) return result
         }
     }
+
+    /** "+" on Your order (FR-012). `null` for an unknown line. Changing a plan line clears the plan tag. */
+    fun increment(lineId: String): CartAddResult? {
+        while (true) {
+            val current = mutableState.value
+            if (!current.phase.isEditable) return CartAddResult.LimitReached(CartLimit.ORDER_LOCKED)
+            val result = current.cart.increment(lineId)
+            if (result !is CartAddResult.Added) return result
+            val next = current.copy(cart = result.cart, planTag = current.planTag.without(lineId))
+            if (mutableState.compareAndSet(current, next)) return result
+        }
+    }
+
+    /** "−" on Your order; at quantity 1 the line is removed (FR-012). Changing a plan line clears the plan tag. */
+    fun decrement(lineId: String): Boolean = editLine(lineId) { it.decrement(lineId) }
+
+    /** The trash icon or "Remove" (FR-012, FR-016). Removing a plan line clears the plan tag. */
+    fun remove(lineId: String): Boolean = editLine(lineId) { it.remove(lineId) }
+
+    /**
+     * "Add plan to order" (FR-032 AC5): every line of the plan or none, tagged with [budget] and the group size for
+     * the Your order row (A-40).
+     */
+    fun addPlan(
+        additions: List<CartAddition>,
+        budget: Rupiah,
+        adults: Int,
+        children: Int,
+    ): CartAddAllResult {
+        while (true) {
+            val current = mutableState.value
+            if (!current.phase.isEditable) return CartAddAllResult.LimitReached(CartLimit.ORDER_LOCKED)
+            val result = current.cart.addAll(additions)
+            if (result !is CartAddAllResult.Added) return result
+            val tag = PlanTag(budget, adults, children, result.lineIds)
+            if (mutableState.compareAndSet(current, current.copy(cart = result.cart, planTag = tag))) return result
+        }
+    }
+
+    /** "Pay" on Your order: Reviewing → Submitting, only with something to pay for (FR-016). */
+    fun submit(): Boolean =
+        transition({ it == OrderPhase.REVIEWING }, { !it.cart.isEmpty() }) { it.copy(phase = OrderPhase.SUBMITTING) }
+
+    /** E7 refused or failed (`PRICE_CHANGED`, `ITEM_UNAVAILABLE`, network): Submitting → Reviewing (FR-016). */
+    fun submissionFailed(): Boolean =
+        transition({ it == OrderPhase.SUBMITTING }) { it.copy(phase = OrderPhase.REVIEWING) }
+
+    /** E7 created the order: Submitting → Paying (FR-016). */
+    fun orderCreated(): Boolean = transition({ it == OrderPhase.SUBMITTING }) { it.copy(phase = OrderPhase.PAYING) }
+
+    /** "Back to order" on Checkout after E11 and E8: Paying → Reviewing (FR-019, BR-08). */
+    fun backToOrder(): Boolean = transition({ it == OrderPhase.PAYING }) { it.copy(phase = OrderPhase.REVIEWING) }
+
+    /** The backend reported `PAID`: Paying → Paid (A-15). */
+    fun paid(): Boolean = transition({ it == OrderPhase.PAYING }) { it.copy(phase = OrderPhase.PAID) }
+
+    /** The Complete screen was shown: Paid → Completed (FR-020). */
+    fun complete(): Boolean = transition({ it == OrderPhase.PAID }) { it.copy(phase = OrderPhase.COMPLETED) }
+
+    /** "Cancel" on the Menu or "Start over" on the overlay (FR-009, FR-023): only before Submitting (§5.1). */
+    fun cancel(): Boolean = transition({ it.isCancellable }) { it.copy(phase = OrderPhase.CANCELLED) }
+
+    /** The inactivity overlay ran out (FR-023 AC3): only before Submitting (§5.1). */
+    fun timeOut(): Boolean = transition({ it.isCancellable }) { it.copy(phase = OrderPhase.TIMED_OUT) }
+
+    private fun editLine(
+        lineId: String,
+        edit: (Cart) -> Cart,
+    ): Boolean =
+        transition({ it.isEditable }, { it.cart.line(lineId) != null }) { current ->
+            current.copy(cart = edit(current.cart), planTag = current.planTag.without(lineId))
+        }
+
+    /** Applies [change] atomically when the phase passes [allowed] and the state passes [guard]. */
+    private inline fun transition(
+        allowed: (OrderPhase) -> Boolean,
+        guard: (OrderState) -> Boolean = { true },
+        change: (OrderState) -> OrderState,
+    ): Boolean {
+        while (true) {
+            val current = mutableState.value
+            if (!allowed(current.phase) || !guard(current)) return false
+            if (mutableState.compareAndSet(current, change(current))) return true
+        }
+    }
+
+    /** The tag, or `null` once one of its lines was edited (architecture §5.1). */
+    private fun PlanTag?.without(lineId: String): PlanTag? = this?.takeUnless { lineId in it.lineIds }
 }

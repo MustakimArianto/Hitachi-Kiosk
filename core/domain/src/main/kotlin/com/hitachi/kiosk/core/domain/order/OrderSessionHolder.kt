@@ -26,7 +26,10 @@ interface OrderSessionHolder {
         configVersion: String,
     ): OrderSession
 
-    /** Back to Idle: the order and its cart are gone (FR-006 AC5, BR-09). */
+    /**
+     * Back to Idle: the order and its cart are gone (FR-006 AC5, BR-09). Every way back to Idle ends here, whatever
+     * phase the order reached (architecture §5.1: Completed, Cancelled and TimedOut all lead to Idle).
+     */
     fun endOrder()
 }
 
