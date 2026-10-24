@@ -11,6 +11,7 @@ import com.hitachi.kiosk.core.domain.model.PaymentMethod
 import com.hitachi.kiosk.core.domain.model.Rupiah
 import com.hitachi.kiosk.core.domain.model.product
 import com.hitachi.kiosk.core.domain.order.OrderSession
+import com.hitachi.kiosk.core.domain.order.ReviewIssues
 import com.hitachi.kiosk.core.testing.fixture.SampleData
 
 /**
@@ -93,30 +94,28 @@ internal object YourOrderTestStates {
 
     val Plan: YourOrderUiState get() = board(order = planOrder())
 
-    /** `S_Payment_priceChanged`: E7 re-priced the burger meal from Rp 75.000 to Rp 79.000. */
+    /**
+     * `S_Payment_priceChanged`: the order was submitted and E7 re-priced the burger meal from Rp 75.000 to Rp 79.000,
+     * so the session carries the re-priced cart and the review notes ("Price updated · was Rp 75.000").
+     */
     val PriceChanged: YourOrderUiState
         get() {
             val order = sampleOrder()
-            // The cart holds the new price; the review keeps the old one for "Price updated · was Rp 75.000".
-            val repriced =
-                OrderSession(OrderType.DINE_IN, SampleData.menu.menuVersion, SampleData.config.configVersion).apply {
-                    startBuilding()
-                    val meal = burgerMeal()
-                    add(meal.toCartItem(), 1, Rupiah(79_000), meal.choices())
-                    order.state.value.cart.lines
-                        .drop(1)
-                        .forEach { add(it.item, it.quantity, it.unitPrice, it.choices) }
-                    startReviewing()
-                }
-            return board(
-                order = repriced,
-                local = YourOrderLocalState(review = ReviewIssues(previousUnitPrices = mapOf("l1" to Rupiah(75_000)))),
-            )
+            check(order.submit())
+            val cart = order.state.value.cart
+            val issues = ReviewIssues(previousUnitPrices = mapOf("l1" to Rupiah(75_000)), pricesChanged = true)
+            check(order.priceChanged(cart.withUnitPrices(mapOf("l1" to Rupiah(79_000))), "menu-119", "cfg-42", issues))
+            return board(order = order)
         }
 
-    /** `S_Payment_itemUnavailable`: E7 no longer sells the large fries (line l3). */
+    /** `S_Payment_itemUnavailable`: E7 answered `ITEM_UNAVAILABLE` for the large fries (line l3). */
     val ItemUnavailable: YourOrderUiState
-        get() = board(local = YourOrderLocalState(review = ReviewIssues(unavailableLineIds = setOf("l3"))))
+        get() {
+            val order = sampleOrder()
+            check(order.submit())
+            check(order.itemsUnavailable(setOf("l3")))
+            return board(order = order)
+        }
 
     val Offline: YourOrderUiState get() = board(connectivity = Connectivity.OFFLINE)
 

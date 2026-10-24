@@ -21,6 +21,8 @@ fun YourOrderRoute(
     val backToMenu by rememberUpdatedState(onBackToMenu)
     val pay by rememberUpdatedState(onPay)
     LaunchedEffect(viewModel) {
+        // Back from Checkout the composition starts again, so Pay can navigate once more (TC-069).
+        viewModel.onEvent(YourOrderEvent.Shown)
         viewModel.effect.collect { effect ->
             when (effect) {
                 YourOrderEffect.BackToMenu -> backToMenu()

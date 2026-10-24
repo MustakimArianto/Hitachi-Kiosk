@@ -21,9 +21,11 @@ import com.hitachi.kiosk.core.domain.model.combo
 import com.hitachi.kiosk.core.domain.model.product
 import com.hitachi.kiosk.core.domain.model.toneOf
 import com.hitachi.kiosk.core.domain.model.visiblePaymentMethods
+import com.hitachi.kiosk.core.domain.order.OrderPhase
 import com.hitachi.kiosk.core.domain.order.OrderSession
 import com.hitachi.kiosk.core.domain.order.OrderSessionHolder
 import com.hitachi.kiosk.core.domain.order.OrderState
+import com.hitachi.kiosk.core.domain.order.ReviewIssues
 import com.hitachi.kiosk.core.domain.pricing.PricingEngine
 import com.hitachi.kiosk.core.domain.pricing.PricingRules
 import com.hitachi.kiosk.core.domain.pricing.PromoHint
@@ -59,14 +61,19 @@ private const val STOP_TIMEOUT_MILLIS = 5_000L
 private const val PERCENT = 100f
 
 /**
- * SCR-10 Your order (FR-012, FR-013, FR-015; DEV-037, DEV-037a, DEV-038). Shows the current order priced by the
- * [PricingEngine] with the device's rounding step, lets the customer change quantities and remove lines, and offers
- * the payment methods that both merchant config and Payment settings allow. Opening the screen moves the order to
- * Reviewing; "Add more" moves it back to Building (architecture §5.1).
+ * SCR-10 Your order (FR-012, FR-013, FR-015, FR-016; DEV-037, DEV-037a, DEV-038, DEV-046, DEV-051). Shows the current
+ * order priced by the [PricingEngine] with the device's rounding step, lets the customer change quantities and remove
+ * lines, and offers the payment methods that both merchant config and Payment settings allow. Opening the screen
+ * moves the order to Reviewing; "Add more" moves it back to Building (architecture §5.1).
  *
- * "Pay Rp X" only navigates to Checkout in 0.4.0: order submission (E7, DEV-046) arrives in 0.5.0, and with it the
- * source of the `PRICE_CHANGED` and `ITEM_UNAVAILABLE` review states. Until then [ReviewIssues] stays empty, but
- * the mapping, the banners, the line notes and the Pay labels for both are in place (see [ReviewIssues]).
+ * The review states come from the order session: E7's `PRICE_CHANGED` and `ITEM_UNAVAILABLE` answers land in
+ * [OrderState.issues] (`SubmitOrder`, DEV-046), and "Review" and "Remove" clear them through the session, so the
+ * banner, the line notes and the Pay label always follow the domain. The re-priced cart and the refreshed catalog
+ * arrive the same way, so the totals shown are the ones E7 will accept.
+ *
+ * "Pay Rp X" is the Pay gate (DEV-051): disabled while an issue blocks or the kiosk is [Connectivity.OFFLINE]
+ * ([Connectivity.CHECKING] does not block, as on the Menu). It emits one navigation to Checkout per visit to this
+ * screen (TC-069); Checkout runs `SubmitOrder` and the payment, and handles an offline failure itself.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
@@ -102,6 +109,9 @@ class YourOrderViewModel
 
         private var toastJob: Job? = null
 
+        /** A Pay navigation went out and this screen has not been shown again, so further taps change nothing. */
+        private var payEmitted = false
+
         init {
             // Architecture §5.1: Upsell or Your order moves the order from Building to Reviewing.
             val session = sessions.current.value
@@ -127,13 +137,15 @@ class YourOrderViewModel
                 }
 
                 YourOrderEvent.ReviewPrices -> {
-                    local.update { it.copy(review = it.review.reviewed()) }
+                    session()?.reviewPrices()
                 }
 
                 YourOrderEvent.RemoveUnavailable -> {
-                    local.value.review.unavailableLineIds.forEach {
-                        removeOrDecrement(it, remove = true)
-                    }
+                    removeUnavailable()
+                }
+
+                YourOrderEvent.Shown -> {
+                    payEmitted = false
                 }
 
                 YourOrderEvent.ToggleDetails -> {
@@ -173,17 +185,32 @@ class YourOrderViewModel
             val index = lines.indexOfFirst { it.lineId == lineId }
             val line = lines.getOrNull(index) ?: return
             val removed = remove || line.quantity <= 1
+            val unavailable = lineId in session.state.value.issues.unavailableLineIds
             val changed = if (remove) session.remove(lineId) else session.decrement(lineId)
             if (!changed || !removed) return
-            local.update {
-                it.copy(
-                    leaving = it.leaving + LeavingLine(index, line),
-                    review = it.review.without(lineId),
-                )
-            }
+            slideOut(listOf(LeavingLine(index, line, unavailable)))
+        }
+
+        /** "Remove it" on the unavailable banner: every flagged line leaves the cart and slides out (FR-016). */
+        private fun removeUnavailable() {
+            val session = session() ?: return
+            val state = session.state.value
+            val flagged = state.issues.unavailableLineIds
+            val leaving =
+                state.cart.lines
+                    .withIndex()
+                    .filter { it.value.lineId in flagged }
+                    .map { LeavingLine(it.index, it.value, unavailable = true) }
+            if (session.removeUnavailable()) slideOut(leaving)
+        }
+
+        private fun slideOut(lines: List<LeavingLine>) {
+            if (lines.isEmpty()) return
+            local.update { it.copy(leaving = it.leaving + lines) }
+            val ids = lines.mapTo(mutableSetOf()) { it.line.lineId }
             viewModelScope.launch {
                 delay(REMOVE_SLIDE_DURATION)
-                local.update { state -> state.copy(leaving = state.leaving.filterNot { it.line.lineId == lineId }) }
+                local.update { state -> state.copy(leaving = state.leaving.filterNot { it.line.lineId in ids }) }
             }
         }
 
@@ -201,7 +228,16 @@ class YourOrderViewModel
                 )
             val method = ui.selectedMethod ?: return
             if (ui.pay !is PayUi.Ready) return
-            // E7 submission (session.submit()) and its review states arrive with DEV-046 in 0.5.0.
+            // TC-069: one navigation per visit. Checkout's SubmitOrder moves the order past Reviewing, and the
+            // session refuses a second submit, so a late tap can never send a second E7 either.
+            if (payEmitted || sessions.current.value
+                    ?.state
+                    ?.value
+                    ?.phase != OrderPhase.REVIEWING
+            ) {
+                return
+            }
+            payEmitted = true
             effects.trySend(YourOrderEffect.Pay(method))
         }
 
@@ -223,38 +259,21 @@ class YourOrderViewModel
     }
 
 /**
- * What the backend's E7 answer asked the customer to review (FR-016): lines it re-priced (`PRICE_CHANGED`) and lines
- * it no longer sells (`ITEM_UNAVAILABLE`). DEV-046 in 0.5.0 fills these from E7; in 0.4.0 they stay empty, and the
- * screenshot tests set them to render `S_Payment_priceChanged` and `S_Payment_itemUnavailable`.
- *
- * @property previousUnitPrices the unit price each re-priced line had before; empty once the customer tapped Review.
- * @property unavailableLineIds the lines to remove before paying; they are not billed.
+ * A line removed from the cart that is still sliding out, at the [index] it had. [unavailable] keeps the "No longer
+ * available" look while it leaves.
  */
-internal data class ReviewIssues(
-    val previousUnitPrices: Map<String, Rupiah> = emptyMap(),
-    val unavailableLineIds: Set<String> = emptySet(),
-) {
-    val pricesChanged: Boolean get() = previousUnitPrices.isNotEmpty()
-
-    /** "Review" clears the price notes and unblocks Pay (TC-177). */
-    fun reviewed(): ReviewIssues = copy(previousUnitPrices = emptyMap())
-
-    fun without(lineId: String): ReviewIssues = ReviewIssues(previousUnitPrices - lineId, unavailableLineIds - lineId)
-}
-
-/** A line removed from the cart that is still sliding out, at the [index] it had. */
 internal data class LeavingLine(
     val index: Int,
     val line: CartLine,
+    val unavailable: Boolean = false,
 )
 
-/** What only Your order holds. */
+/** What only Your order holds. The review states live in the order session ([OrderState.issues]). */
 internal data class YourOrderLocalState(
     val detailsOpen: Boolean = false,
     val selectedMethod: PaymentMethod? = null,
     val leaving: List<LeavingLine> = emptyList(),
     val showMaxToast: Boolean = false,
-    val review: ReviewIssues = ReviewIssues(),
 )
 
 /**
@@ -271,7 +290,7 @@ internal fun yourOrderUiState(
     if (catalog == null) return YourOrderUiState()
     val menu = catalog.menu
     val config = catalog.config
-    val review = local.review
+    val review = order?.issues ?: ReviewIssues()
     val cartLines = order?.cart?.lines.orEmpty()
     val billable = cartLines.filterNot { it.lineId in review.unavailableLineIds }
     val rules = PricingRules.of(config, settings.roundingStep)
@@ -299,7 +318,12 @@ internal fun yourOrderUiState(
         itemCount = blocks.itemCount,
         planTag = order?.planTag?.let { PlanTagUi(it.adults, it.children, IdrFormatter.format(it.budget)) },
         banner = blocks.banner { PricingEngine.promoHint(totals.subtotal, rules) },
-        lines = lines.withLeaving(local.leaving.map { it.index to menu.lineUi(it.line).copy(leaving = true) }),
+        lines =
+            lines.withLeaving(
+                local.leaving.map {
+                    it.index to menu.lineUi(it.line, unavailable = it.unavailable).copy(leaving = true)
+                },
+            ),
         empty = cartLines.isEmpty() && local.leaving.isEmpty(),
         totals = config.totalsUi(totals),
         detailsOpen = local.detailsOpen,

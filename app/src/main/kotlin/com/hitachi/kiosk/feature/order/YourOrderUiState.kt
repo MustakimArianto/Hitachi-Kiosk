@@ -194,6 +194,12 @@ sealed interface YourOrderEvent {
 
     /** "Pay Rp X". */
     data object Pay : YourOrderEvent
+
+    /**
+     * Your order came on screen, first time or back from Checkout ("Back to order", a failed submission): the next
+     * Pay can navigate again (TC-069).
+     */
+    data object Shown : YourOrderEvent
 }
 
 /** One-off navigation of SCR-10 (PRD §5.1). */
@@ -201,7 +207,7 @@ sealed interface YourOrderEffect {
     /** "Add more" or "Back to menu": back to SCR-06. */
     data object BackToMenu : YourOrderEffect
 
-    /** "Pay Rp X": on to SCR-11 Checkout with the chosen [method]. Order submission (E7) arrives in 0.5.0. */
+    /** "Pay Rp X": on to SCR-11 Checkout with the chosen [method]; Checkout submits the order (E7, FR-016). */
     data class Pay(
         val method: PaymentMethod,
     ) : YourOrderEffect
