@@ -15,6 +15,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.navigation
 import com.hitachi.kiosk.R
 import com.hitachi.kiosk.feature.activation.SignInRoute as SignInFeatureRoute
+import com.hitachi.kiosk.feature.menu.MenuRoute as MenuFeatureRoute
 import com.hitachi.kiosk.feature.merchant.MerchantsRoute as MerchantsFeatureRoute
 import com.hitachi.kiosk.feature.splash.SplashRoute as SplashFeatureRoute
 
@@ -101,10 +102,15 @@ private fun NavGraphBuilder.orderingDestinations(
         )
     }
     composable<MenuRoute> {
-        PlaceholderScreen(
-            screenId = "SCR-06",
-            title = R.string.screen_menu,
-            actions = menuActions(navController, inactivity),
+        MenuFeatureRoute(
+            onOpenProduct = { productId -> navController.navigate(ItemDetailRoute(productId = productId)) },
+            onOpenCombos = { navController.navigate(ComboRoute()) },
+            onOpenBudgetPlan = { navController.navigate(BudgetPlanRoute) },
+            // The cart is kept when the order type changes (PRD §5.1).
+            onChangeOrderType = { navController.popBackStack(OrderTypeRoute, false) },
+            // Entering Idle ends the order and clears the cart (FR-009 AC4).
+            onCancel = { navController.popBackStack(IdleRoute, false) },
+            onViewOrder = { navController.navigate(YourOrderRoute) },
         )
     }
     composable<ItemDetailRoute> {
@@ -135,23 +141,6 @@ private fun NavGraphBuilder.orderingDestinations(
         BudgetPlanPlaceholder(navController, inactivity)
     }
 }
-
-/** The Menu's edges (PRD §5.1): it branches to every other ordering screen. */
-private fun menuActions(
-    navController: NavHostController,
-    inactivity: PlaceholderAction,
-): List<PlaceholderAction> =
-    listOf(
-        PlaceholderAction(R.string.nav_product_card) { navController.navigate(ItemDetailRoute(productId = "b2")) },
-        PlaceholderAction(R.string.nav_plan_by_budget) { navController.navigate(BudgetPlanRoute) },
-        PlaceholderAction(R.string.nav_meals) { navController.navigate(ComboRoute()) },
-        // The cart is kept when the order type changes (PRD §5.1).
-        PlaceholderAction(R.string.nav_change_order_type) { navController.popBackStack(OrderTypeRoute, false) },
-        PlaceholderAction(R.string.nav_cancel_order) { navController.popBackStack(IdleRoute, false) },
-        PlaceholderAction(R.string.nav_view_order_with_upsell) { navController.navigate(UpsellRoute) },
-        PlaceholderAction(R.string.nav_view_order) { navController.navigate(YourOrderRoute) },
-        inactivity,
-    )
 
 /** SCR-09…SCR-12: upsell, review, payment and completion. */
 private fun NavGraphBuilder.checkoutDestinations(

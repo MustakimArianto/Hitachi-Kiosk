@@ -130,6 +130,37 @@
     <!-- end SCR-04 / SCR-05 -->
 
     <!-- SCR-06 Menu (Menu.dc.html, FR-009) -->
+    <string name="menu_order_type_dine_in">Dine in</string>
+    <string name="menu_order_type_takeaway">Takeaway</string>
+    <string name="menu_change">Change</string>
+    <string name="menu_change_description">%1$s · Change</string>
+    <string name="menu_cancel">Cancel</string>
+    <string name="menu_greeting_morning">Good morning</string>
+    <string name="menu_greeting_afternoon">Good afternoon</string>
+    <string name="menu_greeting_evening">Good evening</string>
+    <string name="menu_title">What are you having?</string>
+    <string name="menu_categories_description">Categories</string>
+    <string name="menu_category_popular">Popular</string>
+    <string name="menu_popular_heading">Popular now</string>
+    <plurals name="menu_item_count">
+        <item quantity="one">%d item</item>
+        <item quantity="other">%d items</item>
+    </plurals>
+    <string name="menu_budget_title">Plan by budget</string>
+    <string name="menu_budget_body">Set a budget and group size — we plan the meal</string>
+    <string name="menu_badge_new">New</string>
+    <string name="menu_badge_best_seller">Best seller</string>
+    <string name="menu_badge_spicy">Spicy</string>
+    <string name="menu_badge_share">Share</string>
+    <string name="menu_badge_local">Local</string>
+    <string name="menu_add_description">Add %1$s</string>
+    <string name="menu_choose">Choose</string>
+    <string name="menu_choose_description">Choose options for %1$s</string>
+    <string name="menu_empty_title">Nothing here right now</string>
+    <string name="menu_empty_body">Everything in this category is sold out. Try another one — the full menu is just above.</string>
+    <string name="menu_empty_action">See popular items</string>
+    <string name="menu_dock_description">Your order</string>
+    <string name="menu_view_order">View order</string>
     <!-- end SCR-06 -->
 
     <!-- SCR-07 Combo and SCR-08 Item detail (Combo.dc.html, ItemDetail.dc.html, FR-010, FR-011) -->
