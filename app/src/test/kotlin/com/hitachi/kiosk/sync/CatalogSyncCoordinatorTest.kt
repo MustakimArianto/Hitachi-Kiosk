@@ -70,6 +70,42 @@ class CatalogSyncCoordinatorTest {
         }
 
     @Test
+    fun `coming back online through checking still syncs, as the probe makes it do`() =
+        runTest {
+            activation.emit(SampleData.boundState)
+            started()
+
+            connectivity.set(Connectivity.OFFLINE)
+            runCurrent()
+            connectivity.set(Connectivity.CHECKING)
+            runCurrent()
+            assertThat(catalog.synced).isEmpty()
+            connectivity.set(Connectivity.ONLINE)
+            runCurrent()
+
+            assertThat(catalog.synced).containsExactly(SampleData.MERCHANT_ID)
+
+            // Going online again without an offline period in between is not a reconnect.
+            connectivity.set(Connectivity.CHECKING)
+            connectivity.set(Connectivity.ONLINE)
+            runCurrent()
+            assertThat(catalog.synced).hasSize(1)
+        }
+
+    @Test
+    fun `starting offline and then coming online syncs once`() =
+        runTest {
+            activation.emit(SampleData.boundState)
+            connectivity.set(Connectivity.OFFLINE)
+            started()
+
+            connectivity.set(Connectivity.ONLINE)
+            runCurrent()
+
+            assertThat(catalog.synced).containsExactly(SampleData.MERCHANT_ID)
+        }
+
+    @Test
     fun `reconnecting without a merchant syncs nothing`() =
         runTest {
             activation.emit(SampleData.activatedState)

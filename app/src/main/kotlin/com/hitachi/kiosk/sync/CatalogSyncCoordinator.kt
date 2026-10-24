@@ -12,7 +12,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.runningFold
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -44,10 +43,25 @@ class CatalogSyncCoordinator
                     .collect { catalog.applyPending() }
             }
             scope.launch {
-                connectivity.connectivity
-                    .runningFold(Reconnect()) { last, now -> Reconnect(previous = last.current, current = now) }
-                    .filter { it.previous == Connectivity.OFFLINE && it.current == Connectivity.ONLINE }
-                    .collect { syncBoundMerchant() }
+                // CHECKING (a probe in flight, a network that is not validated yet) sits between OFFLINE and
+                // ONLINE, so the trigger is the first ONLINE after any OFFLINE, not a direct OFFLINE → ONLINE.
+                var wasOffline = false
+                connectivity.connectivity.collect { now ->
+                    when (now) {
+                        Connectivity.OFFLINE -> {
+                            wasOffline = true
+                        }
+
+                        Connectivity.ONLINE -> {
+                            if (wasOffline) syncBoundMerchant()
+                            wasOffline = false
+                        }
+
+                        Connectivity.CHECKING -> {
+                            Unit
+                        }
+                    }
+                }
             }
         }
 
@@ -55,9 +69,4 @@ class CatalogSyncCoordinator
             val bound = activation.state.value as? DeviceState.Bound ?: return
             catalog.sync(bound.merchant.id)
         }
-
-        private data class Reconnect(
-            val previous: Connectivity? = null,
-            val current: Connectivity? = null,
-        )
     }
