@@ -225,4 +225,65 @@
     <string name="combo_choose_side">Choose a side</string>
     <string name="combo_choose_drink">Choose a drink</string>
     <!-- end SCR-07 / SCR-08 -->
+
+    <!-- SCR-10 Your order (Payment.dc.html, FR-012, FR-013, FR-015) -->
+    <string name="your_order_add_more">Add more</string>
+    <string name="your_order_step">Step 2 of 3 · Review &amp; pay</string>
+    <string name="your_order_title">Your order</string>
+    <plurals name="your_order_item_count">
+        <item quantity="one">%d item</item>
+        <item quantity="other">%d items</item>
+    </plurals>
+    <string name="your_order_plan_title">Budget Plan</string>
+    <plurals name="your_order_plan_adults">
+        <item quantity="one">%d adult</item>
+        <item quantity="other">%d adults</item>
+    </plurals>
+    <plurals name="your_order_plan_children">
+        <item quantity="one">%d child</item>
+        <item quantity="other">%d children</item>
+    </plurals>
+    <string name="your_order_plan_separator">" · "</string>
+    <string name="your_order_empty_title">Your tray is empty</string>
+    <string name="your_order_empty_body">Add something tasty to get started.</string>
+    <string name="your_order_back_to_menu">Back to menu</string>
+    <string name="your_order_banner_price_changed">Prices have been updated. Please review your order.</string>
+    <string name="your_order_banner_review">Review</string>
+    <plurals name="your_order_banner_unavailable">
+        <item quantity="one">%d item is no longer available.</item>
+        <item quantity="other">%d items are no longer available.</item>
+    </plurals>
+    <string name="your_order_banner_remove_it">Remove it</string>
+    <string name="your_order_banner_promo">Add %1$s more to get %2$s off</string>
+    <string name="your_order_line_price_updated">Price updated · was %1$s</string>
+    <string name="your_order_line_unavailable">No longer available</string>
+    <string name="your_order_line_unavailable_total">—</string>
+    <string name="your_order_line_remove">Remove</string>
+    <string name="your_order_line_remove_description">Remove %1$s</string>
+    <string name="your_order_quantity_description">Quantity for %1$s</string>
+    <string name="your_order_decrement_description">Remove one %1$s</string>
+    <string name="your_order_increment_description">Add one %1$s</string>
+    <string name="your_order_total">Total</string>
+    <string name="your_order_details">Details</string>
+    <string name="your_order_details_description">Show price details</string>
+    <string name="your_order_subtotal">Subtotal</string>
+    <string name="your_order_promo">Promo</string>
+    <string name="your_order_discount_amount">− %1$s</string>
+    <string name="your_order_tax">Tax</string>
+    <string name="your_order_rounding">Rounding</string>
+    <string name="your_order_rounding_amount">+ %1$s</string>
+    <string name="your_order_methods_description">Payment method</string>
+    <string name="your_order_method_qris">QRIS</string>
+    <string name="your_order_method_qris_note">Any e-wallet</string>
+    <string name="your_order_method_card">Card</string>
+    <string name="your_order_method_card_note">Debit or credit</string>
+    <string name="your_order_no_methods_title">No payment methods right now</string>
+    <string name="your_order_no_methods_body">Please ask a team member for help.</string>
+    <string name="your_order_pay">Pay %1$s</string>
+    <string name="your_order_pay_empty">Add an item to pay</string>
+    <string name="your_order_pay_offline">Pay unavailable while offline</string>
+    <string name="your_order_pay_price_changed">Review your order to continue</string>
+    <string name="your_order_pay_item_unavailable">Remove the unavailable item to pay</string>
+    <string name="your_order_pay_unavailable">Pay unavailable</string>
+    <!-- end SCR-10 -->
 </resources>
