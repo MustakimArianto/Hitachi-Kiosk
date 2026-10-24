@@ -8,11 +8,13 @@ import com.hitachi.kiosk.core.domain.cart.CartItem
 import com.hitachi.kiosk.core.domain.cart.CartLimit
 import com.hitachi.kiosk.core.domain.cart.CartLine
 import com.hitachi.kiosk.core.domain.cart.ProductCustomization
+import com.hitachi.kiosk.core.domain.cart.Upsell
 import com.hitachi.kiosk.core.domain.device.Connectivity
 import com.hitachi.kiosk.core.domain.device.ConnectivityMonitor
 import com.hitachi.kiosk.core.domain.format.IdrFormatter
 import com.hitachi.kiosk.core.domain.log.KioskLog
 import com.hitachi.kiosk.core.domain.model.Catalog
+import com.hitachi.kiosk.core.domain.model.KioskSettings
 import com.hitachi.kiosk.core.domain.model.Menu
 import com.hitachi.kiosk.core.domain.model.Product
 import com.hitachi.kiosk.core.domain.model.availableCombos
@@ -25,7 +27,9 @@ import com.hitachi.kiosk.core.domain.model.toneOf
 import com.hitachi.kiosk.core.domain.model.visibleProducts
 import com.hitachi.kiosk.core.domain.order.OrderSessionHolder
 import com.hitachi.kiosk.core.domain.order.OrderState
+import com.hitachi.kiosk.core.domain.planner.BudgetPlanner
 import com.hitachi.kiosk.core.domain.repository.CatalogRepository
+import com.hitachi.kiosk.core.domain.repository.SettingsRepository
 import com.hitachi.kiosk.core.domain.time.Clock
 import com.hitachi.kiosk.core.domain.time.DayPart
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -60,7 +64,8 @@ private const val STOP_TIMEOUT_MILLIS = 5_000L
 /**
  * SCR-06 Menu (FR-009, DEV-027) and quick add (DEV-028). Browses the cached catalog in memory, so a category switch
  * is a pure filter (TC-034), and adds one unit with the default options to the current order (FR-009 AC2). Offline,
- * adds and "View order" do nothing (FR-009 AC3).
+ * adds and "View order" do nothing (FR-009 AC3). "View order" goes through SCR-09 Upsell the first time in an order
+ * when the toggle is on (FR-014, DEV-039).
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
@@ -70,11 +75,14 @@ class MenuViewModel
         catalogRepository: CatalogRepository,
         private val sessions: OrderSessionHolder,
         private val connectivity: ConnectivityMonitor,
+        settingsRepository: SettingsRepository,
         private val clock: Clock,
         private val zone: ZoneId,
     ) : ViewModel() {
         private val catalog: StateFlow<Catalog?> =
             catalogRepository.catalog.stateIn(viewModelScope, SharingStarted.Eagerly, null)
+
+        private val settings = settingsRepository.settings.stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
         private val local = MutableStateFlow(MenuLocalState())
 
@@ -109,7 +117,7 @@ class MenuViewModel
                 MenuEvent.OpenBudgetPlan -> effects.trySend(MenuEffect.OpenBudgetPlan)
                 MenuEvent.ChangeOrderType -> effects.trySend(MenuEffect.ChangeOrderType)
                 MenuEvent.Cancel -> effects.trySend(MenuEffect.Cancel)
-                MenuEvent.ViewOrder -> if (!isOffline()) effects.trySend(MenuEffect.ViewOrder)
+                MenuEvent.ViewOrder -> viewOrder()
             }
         }
 
@@ -142,6 +150,17 @@ class MenuViewModel
                     }
                 }
             }
+        }
+
+        private fun viewOrder() {
+            if (isOffline()) return
+            val order =
+                sessions.current.value
+                    ?.state
+                    ?.value
+            // Settings still loading count as the defaults (upsell on, FR-026).
+            val offer = order != null && Upsell.shouldOffer(settings.value ?: KioskSettings(), order)
+            effects.trySend(if (offer) MenuEffect.OfferUpsell else MenuEffect.ViewOrder)
         }
 
         private fun showAdded(productId: String) {
@@ -214,7 +233,11 @@ internal fun menuUiState(
         dayPart = dayPart,
         pills = menu?.pills(selection) ?: listOf(MenuPillUi.Popular(active = true)),
         selection = selection,
-        showBudgetPlan = selection == MenuSelection.Popular && catalog?.config?.budgetPlanner?.enabled == true,
+        // FR-032 entry and AC7: only on Popular, only when enabled, and only for a menu a plan can be built from.
+        showBudgetPlan =
+            selection == MenuSelection.Popular &&
+                catalog?.config?.budgetPlanner?.enabled == true &&
+                BudgetPlanner.canPlan(catalog.menu),
         sectionTitle =
             (selection as? MenuSelection.Category)?.let { category ->
                 menu

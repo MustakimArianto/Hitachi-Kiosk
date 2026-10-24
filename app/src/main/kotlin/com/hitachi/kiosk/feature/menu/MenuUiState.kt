@@ -182,5 +182,9 @@ sealed interface MenuEffect {
 
     data object Cancel : MenuEffect
 
+    /** Straight to SCR-10 Your order. */
     data object ViewOrder : MenuEffect
+
+    /** To SCR-09 Upsell first (FR-014: once per order, when the toggle is on). */
+    data object OfferUpsell : MenuEffect
 }

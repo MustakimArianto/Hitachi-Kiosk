@@ -71,7 +71,7 @@ class BudgetPlanner(
     private val unit: Long = priceUnit()
     private val totalsCache = HashMap<Long, Totals>()
 
-    /** Whether any plan can be built: the Menu shows "Plan by budget" only then (FR-032 entry). */
+    /** Whether any plan can be built from this menu (see [canPlan]). */
     val isAvailable: Boolean get() = adultMains.isNotEmpty() && drinks.isNotEmpty()
 
     /** Step 2 of SCR-19 for [request] (FR-032). */
@@ -380,19 +380,27 @@ class BudgetPlanner(
         }
     }
 
-    private companion object {
-        const val PERCENT = 100L
-        const val REPEAT_PENALTY = 1
+    companion object {
+        /**
+         * Whether [menu] has an available one-person main and an available drink, the least a plan needs. The Menu
+         * shows "Plan by budget" only then (FR-032 entry), so the planner is never opened on a menu it cannot serve.
+         */
+        fun canPlan(menu: Menu): Boolean =
+            menu.products.any { it.available && it.role == ProductRole.MAIN && it.servesAdults == 1 } &&
+                menu.products.any { it.available && it.role == ProductRole.DRINK }
 
-        fun adult(number: Int) = Diner(isChild = false, number = number)
+        private const val PERCENT = 100L
+        private const val REPEAT_PENALTY = 1
 
-        fun gcd(
+        private fun adult(number: Int) = Diner(isChild = false, number = number)
+
+        private fun gcd(
             a: Long,
             b: Long,
         ): Long = if (b == 0L) a else gcd(b, a % b)
 
         /** The item after [current] in [list], wrapping; [current] itself when it is the only one. */
-        fun next(
+        private fun next(
             list: List<PlannedItem>,
             current: PlannedItem,
         ): PlannedItem {
@@ -405,7 +413,7 @@ class BudgetPlanner(
          * Available products in planner preference order: `plannerWeight` (higher first), then featured items in
          * their featured order, then menu order (FR-032 ranking 3 and 4).
          */
-        fun preferred(menu: Menu): List<Product> {
+        private fun preferred(menu: Menu): List<Product> {
             val featured = menu.featuredProductIds.withIndex().associate { it.value to it.index }
             return menu.products
                 .withIndex()
@@ -417,13 +425,13 @@ class BudgetPlanner(
                 ).map { it.value }
         }
 
-        fun List<Product>.items(
+        private fun List<Product>.items(
             menu: Menu,
             role: PlanRole,
         ): List<PlannedItem> = map { product -> productItem(menu, product, role) }
 
         /** [product] with its defaults, and the first option of each required group without one (A-42). */
-        fun productItem(
+        private fun productItem(
             menu: Menu,
             product: Product,
             role: PlanRole,
@@ -456,7 +464,7 @@ class BudgetPlanner(
         }
 
         /** A combo with its first available side and drink, Regular (FR-011 defaults); `null` if it cannot be made. */
-        fun comboItem(
+        private fun comboItem(
             menu: Menu,
             comboId: String,
         ): PlannedItem? {
@@ -474,7 +482,7 @@ class BudgetPlanner(
             )
         }
 
-        inline fun BitSet.forEachSetBit(action: (Long) -> Unit) {
+        private inline fun BitSet.forEachSetBit(action: (Long) -> Unit) {
             var bit = nextSetBit(0)
             while (bit >= 0) {
                 action(bit.toLong())

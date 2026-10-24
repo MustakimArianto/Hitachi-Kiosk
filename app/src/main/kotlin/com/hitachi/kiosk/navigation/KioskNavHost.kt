@@ -102,6 +102,7 @@ private fun NavGraphBuilder.orderingDestinations(
             // Entering Idle ends the order and clears the cart (FR-009 AC4).
             onCancel = { navController.popBackStack(IdleRoute, false) },
             onViewOrder = { navController.navigate(YourOrderRoute) },
+            onOfferUpsell = { navController.navigate(UpsellRoute) },
         )
     }
     composable<ItemDetailRoute> {
