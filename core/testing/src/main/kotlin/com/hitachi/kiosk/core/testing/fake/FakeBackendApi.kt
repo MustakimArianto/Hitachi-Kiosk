@@ -180,7 +180,7 @@ class FakeBackendApi(
         val now = clock?.now() ?: return this
         val payment = (this as? Outcome.Success)?.value as? StartedPayment.Qris ?: return this
         val seconds = qrExpirySeconds ?: DEFAULT_QR_EXPIRY_SECONDS
-        return Outcome.Success(payment.copy(createdAt = now, expiresAt = now + seconds.seconds))
+        return Outcome.Success(payment.copy(createdAt = now, expiresAt = now + seconds.seconds, serverTime = now))
     }
 
     private companion object {

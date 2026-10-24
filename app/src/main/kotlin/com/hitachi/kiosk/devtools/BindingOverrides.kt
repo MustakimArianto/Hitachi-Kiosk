@@ -1,6 +1,7 @@
 package com.hitachi.kiosk.devtools
 
 import com.hitachi.kiosk.core.domain.backend.BackendApi
+import com.hitachi.kiosk.core.domain.device.CardTerminal
 import com.hitachi.kiosk.core.domain.device.ConnectivityMonitor
 import com.hitachi.kiosk.core.domain.device.DeviceIdentityProvider
 
@@ -20,4 +21,10 @@ interface BindingOverrides {
 
     /** The connectivity the offline banner reads (FR-028). Instrumented tests replace it with a scriptable fake. */
     fun connectivityMonitor(real: ConnectivityMonitor): ConnectivityMonitor
+
+    /**
+     * The EDC card terminal (FR-018). The real adapter arrives in 0.9.0 (ADR-0003), so until then the release binding
+     * is a terminal that always fails; debug builds return a scriptable fake. The default keeps [real].
+     */
+    fun cardTerminal(real: CardTerminal): CardTerminal = real
 }

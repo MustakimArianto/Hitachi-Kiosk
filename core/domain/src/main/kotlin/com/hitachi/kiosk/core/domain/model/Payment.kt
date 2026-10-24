@@ -33,7 +33,11 @@ sealed interface StartedPayment {
     val amount: Rupiah
     val createdAt: Instant
 
-    /** [expiresAt] is authoritative for the QR countdown (NFR-017). */
+    /**
+     * [expiresAt] is authoritative for the QR countdown (NFR-017). [serverTime] is the `Date` header of the E9 answer:
+     * the backend's clock when it answered. The countdown corrects the device clock with it (technical-design §5.4).
+     * It is `null` when the header was missing, and the payment machine then falls back to [createdAt].
+     */
     data class Qris(
         override val paymentId: String,
         override val status: PaymentStatus,
@@ -41,6 +45,7 @@ sealed interface StartedPayment {
         val qrString: String,
         val expiresAt: Instant,
         override val createdAt: Instant,
+        val serverTime: Instant? = null,
     ) : StartedPayment {
         override fun toString(): String = "Qris(paymentId=$paymentId, status=$status, amount=$amount)"
     }

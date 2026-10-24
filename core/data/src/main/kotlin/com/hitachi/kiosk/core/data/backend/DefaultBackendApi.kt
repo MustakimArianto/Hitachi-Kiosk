@@ -9,6 +9,7 @@ import com.hitachi.kiosk.core.data.dto.CancelOrderRequestDto
 import com.hitachi.kiosk.core.data.dto.CancelPaymentRequestDto
 import com.hitachi.kiosk.core.data.dto.ChangeStaffPinRequestDto
 import com.hitachi.kiosk.core.data.dto.StartPaymentRequestDto
+import com.hitachi.kiosk.core.data.mapper.httpDateToInstantOrNull
 import com.hitachi.kiosk.core.data.mapper.toDomain
 import com.hitachi.kiosk.core.data.mapper.toDto
 import com.hitachi.kiosk.core.domain.Outcome
@@ -120,7 +121,7 @@ class DefaultBackendApi internal constructor(
                 qrExpirySeconds = qrExpirySeconds.takeIf { method == PaymentMethod.QRIS },
             )
         return errors.execute("E9", request = { api.startPayment(orderId, body, key.toRequestKey()) }) {
-            it.requireBody().toDomain()
+            it.requireBody().toDomain(serverTime = it.headers()[DATE_HEADER].httpDateToInstantOrNull())
         }
     }
 
@@ -187,5 +188,6 @@ class DefaultBackendApi internal constructor(
     private companion object {
         const val HTTP_NOT_MODIFIED = 304
         const val ETAG = "ETag"
+        const val DATE_HEADER = "Date"
     }
 }

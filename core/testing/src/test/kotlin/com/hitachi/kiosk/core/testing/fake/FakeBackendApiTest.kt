@@ -130,6 +130,8 @@ class FakeBackendApiTest {
                 ).value
 
             assertThat((payment as StartedPayment.Qris).expiresAt).isEqualTo(clock.now() + 180.seconds)
+            // The fake backend's `Date` header is the clock it was given (NFR-017).
+            assertThat(payment.serverTime).isEqualTo(clock.now())
             val defaultExpiry =
                 realtime.startPayment(
                     SampleData.ORDER_ID,
