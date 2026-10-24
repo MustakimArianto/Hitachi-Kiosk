@@ -43,6 +43,19 @@ internal class DefaultCatalogSyncRepository
         private var pending: StoredCatalog? = null
 
         override suspend fun sync(merchantId: String): Outcome<KioskMode> =
+            download(merchantId, deferDuringOrder = true)
+
+        /**
+         * The `PRICE_CHANGED` refresh (FR-016, DEV-046): the same download, written even while an order runs. A catalog
+         * held back earlier is superseded, because the download used its ETags as the base.
+         */
+        override suspend fun syncNow(merchantId: String): Outcome<KioskMode> =
+            download(merchantId, deferDuringOrder = false)
+
+        private suspend fun download(
+            merchantId: String,
+            deferDuringOrder: Boolean,
+        ): Outcome<KioskMode> =
             mutex.withLock {
                 // The newest copy we hold for this merchant; another merchant's cache never lends its ETags.
                 val base = (pending ?: store.stored())?.takeIf { it.catalog.config.merchantId == merchantId }
@@ -61,8 +74,7 @@ internal class DefaultCatalogSyncRepository
                 val configValue = config.valueOr(base?.catalog?.config) ?: return@withLock notModified("E5")
                 val menuValue = menu.valueOr(base?.catalog?.menu) ?: return@withLock notModified("E6")
                 if (base != null && config is Conditional.NotModified && menu is Conditional.NotModified) {
-                    KioskLog.i("catalog_unchanged", "merchantId" to merchantId, "menuVersion" to menuValue.menuVersion)
-                    return@withLock Outcome.Success(configValue.mode)
+                    return@withLock unchanged(merchantId, configValue.mode, menuValue.menuVersion, deferDuringOrder)
                 }
 
                 val next =
@@ -75,13 +87,31 @@ internal class DefaultCatalogSyncRepository
                                 fetchedAtMillis = clock.now().toEpochMilliseconds(),
                             ),
                     )
-                if (orders.isOrderActive) {
-                    pending = next
-                    KioskLog.i("catalog_deferred", "menuVersion" to menuValue.menuVersion)
-                    return@withLock Outcome.Success(configValue.mode)
-                }
-                write(next)
+                landOrHold(next, deferDuringOrder)
             }
+
+        /** Stores [next], or holds it back while an order runs and [deferDuringOrder] (A-29). Must hold [mutex]. */
+        private suspend fun landOrHold(
+            next: StoredCatalog,
+            deferDuringOrder: Boolean,
+        ): Outcome<KioskMode> {
+            if (!deferDuringOrder || !orders.isOrderActive) return write(next)
+            pending = next
+            KioskLog.i("catalog_deferred", "menuVersion" to next.catalog.menu.menuVersion)
+            return Outcome.Success(next.catalog.config.mode)
+        }
+
+        /** Nothing newer than what we hold; a copy held back during an order still has to land on [syncNow]. */
+        private suspend fun unchanged(
+            merchantId: String,
+            mode: KioskMode,
+            menuVersion: String,
+            deferDuringOrder: Boolean,
+        ): Outcome<KioskMode> {
+            pending?.takeIf { !deferDuringOrder }?.let { return write(it) }
+            KioskLog.i("catalog_unchanged", "merchantId" to merchantId, "menuVersion" to menuVersion)
+            return Outcome.Success(mode)
+        }
 
         override suspend fun applyPending() {
             mutex.withLock {

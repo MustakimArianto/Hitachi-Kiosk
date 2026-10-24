@@ -3,7 +3,9 @@ package com.hitachi.kiosk.core.data.di
 import android.content.Context
 import androidx.room.Room
 import com.hitachi.kiosk.core.data.db.KioskDatabase
+import com.hitachi.kiosk.core.data.db.addKioskMigrations
 import com.hitachi.kiosk.core.data.db.dao.CatalogDao
+import com.hitachi.kiosk.core.data.db.dao.PendingOrderDao
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -12,8 +14,9 @@ import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
 
 /**
- * The Room database (architecture §6, technical-design §6.1). Before 1.0.0 only cache tables exist, so a schema
- * change may drop and re-download them (TR-DAT-04); from 0.5.0 `pending_order` needs real migrations.
+ * The Room database (architecture §6, technical-design §6.1). Since 0.5.0 it holds `pending_order`, which must
+ * survive an upgrade, so every schema change has a real `Migration` and there is no destructive fallback, not even
+ * for the cache tables (TR-DAT-04, TR-REL-09).
  */
 @Module
 @InstallIn(SingletonComponent::class)
@@ -25,9 +28,12 @@ internal object DatabaseModule {
     ): KioskDatabase =
         Room
             .databaseBuilder(context, KioskDatabase::class.java, KioskDatabase.NAME)
-            .fallbackToDestructiveMigration(dropAllTables = true)
+            .addKioskMigrations()
             .build()
 
     @Provides
     fun catalogDao(database: KioskDatabase): CatalogDao = database.catalogDao()
+
+    @Provides
+    fun pendingOrderDao(database: KioskDatabase): PendingOrderDao = database.pendingOrderDao()
 }

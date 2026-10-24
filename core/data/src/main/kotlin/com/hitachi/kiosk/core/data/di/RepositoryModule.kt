@@ -6,7 +6,11 @@ import com.hitachi.kiosk.core.data.repository.CatalogStore
 import com.hitachi.kiosk.core.data.repository.DefaultActivationRepository
 import com.hitachi.kiosk.core.data.repository.DefaultCatalogRepository
 import com.hitachi.kiosk.core.data.repository.DefaultMerchantRepository
+import com.hitachi.kiosk.core.data.repository.DefaultOrderRepository
 import com.hitachi.kiosk.core.data.repository.DefaultSettingsRepository
+import com.hitachi.kiosk.core.data.repository.PendingOrderCache
+import com.hitachi.kiosk.core.data.repository.PendingOrderStore
+import com.hitachi.kiosk.core.data.repository.RoomPendingOrderStore
 import com.hitachi.kiosk.core.data.repository.SessionInvalidator
 import com.hitachi.kiosk.core.data.sync.CatalogSyncScheduler
 import com.hitachi.kiosk.core.data.sync.DefaultCatalogSyncRepository
@@ -15,6 +19,7 @@ import com.hitachi.kiosk.core.domain.repository.ActivationRepository
 import com.hitachi.kiosk.core.domain.repository.CatalogRepository
 import com.hitachi.kiosk.core.domain.repository.CatalogSyncRepository
 import com.hitachi.kiosk.core.domain.repository.MerchantRepository
+import com.hitachi.kiosk.core.domain.repository.OrderRepository
 import com.hitachi.kiosk.core.domain.repository.SettingsRepository
 import dagger.Binds
 import dagger.Module
@@ -45,6 +50,18 @@ internal abstract class RepositoryModule {
     /** A session wipe empties the same cache (FR-004 AC3). */
     @Binds
     abstract fun catalogCache(repository: DefaultCatalogRepository): CatalogCache
+
+    /** E7, E8 and the pending order (DEV-045). */
+    @Binds
+    abstract fun orderRepository(repository: DefaultOrderRepository): OrderRepository
+
+    /** The Room `pending_order` table; the order repository reads and writes it (DEV-045). */
+    @Binds
+    abstract fun pendingOrderStore(store: RoomPendingOrderStore): PendingOrderStore
+
+    /** A session wipe forgets the pending order too (FR-004 AC3). */
+    @Binds
+    abstract fun pendingOrderCache(store: RoomPendingOrderStore): PendingOrderCache
 
     /** The device settings in `settings.preferences_pb` (FR-025, FR-026). */
     @Binds
