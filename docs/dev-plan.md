@@ -281,7 +281,7 @@ A customer can start an order and browse and customize the full menu with design
 - **DEV-031 moved to 1.0.0** (PO, 2026-10-24), together with the benchmark runs of DEV-082 (TC-142–TC-144, TC-168).
 - PO decisions taken during 0.3.0 (PRD 1.6): "Choose ›" only for a required group without a default; OQ-08 closed (sold-out products hidden); A-29 kept strictly for the Item sold-out state; sold-out combo sides and drinks (new optional E6 `available`); the offline banner follows the validated network until DEV-051 (technical-design TD-12).
 - Built ahead of later tasks, so those tasks extend it: `Cart.add` and the structured line choices (DEV-036), `OrderSessionHolder` with the TypeChosen and Building states (DEV-041), the validated-network monitor and the reconnect sync (DEV-051).
-- Still open from earlier milestones: the DEV-012 serial-number spike, and the API 30 and API 34/35 emulator runs.
+- Open items (the DEV-012 serial-number spike, TC-125 and TC-146 on the device, the API 30 and API 34/35 emulator runs, the rest of TC-157, the J5/J6 recordings) are listed in [`todo.md`](../todo.md) and run after the 1.0.0 implementation (PO, 2026-10-24).
 - Evidence: [`docs/test-reports/0.3.0.md`](test-reports/0.3.0.md).
 
 ### Acceptance criteria
@@ -688,6 +688,7 @@ Rolled out to pilot kiosks with no P1/P2 issues in 48 h. The full rollout is app
 | Language switching (EN/ID control, `values-in`, Bahasa translation, per-order receipt language) | FR-008, D-09, D-29 | 1.1.0 (decision needed) |
 | Menu promo carousel on Popular (removed from the design; idle promos remain) | FR-009 | Not planned |
 | Merchant rebinding from settings (if OQ-07 is not resolved by 0.7.0) | OQ-07 | 1.0.1 |
+| Open checks from 0.2.0 and 0.3.0: DEV-012 spike, device and older-emulator runs, J5/J6 recordings ([`todo.md`](../todo.md)) | FR-002, FR-028, NFR-001, NFR-013, NFR-016 | After the 1.0.0 implementation (PO, 2026-10-24) |
 | Dark theme | D-02 | Not planned |
 | Telemetry / crash reporting | D-23 | 1.1.0 (decision needed) |
 | Multiple promos / promo types beyond threshold | A-12 | 1.1.0 |
