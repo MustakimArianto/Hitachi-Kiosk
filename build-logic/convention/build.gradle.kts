@@ -37,6 +37,10 @@ gradlePlugin {
             id = "kiosk.android.library"
             implementationClass = "com.hitachi.kiosk.buildlogic.AndroidLibraryConventionPlugin"
         }
+        register("androidTest") {
+            id = "kiosk.android.test"
+            implementationClass = "com.hitachi.kiosk.buildlogic.AndroidTestConventionPlugin"
+        }
         register("jvmLibrary") {
             id = "kiosk.jvm.library"
             implementationClass = "com.hitachi.kiosk.buildlogic.JvmLibraryConventionPlugin"

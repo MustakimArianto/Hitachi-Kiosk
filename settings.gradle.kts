@@ -30,6 +30,7 @@ enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
 rootProject.name = "hitachi-kiosk"
 
 include(":app")
+include(":benchmark")
 include(":core:designsystem")
 include(":core:domain")
 include(":core:data")

@@ -157,6 +157,7 @@ roborazzi-gradle-plugin = { module = "io.github.takahirom.roborazzi:roborazzi-gr
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
 android-library = { id = "com.android.library", version.ref = "agp" }
+android-test = { id = "com.android.test", version.ref = "agp" }
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
@@ -174,6 +175,7 @@ versions = { id = "com.github.ben-manes.versions", version.ref = "versions-plugi
 # Convention plugins from build-logic (docs/technical-design.md §2.2)
 kiosk-android-application = { id = "kiosk.android.application" }
 kiosk-android-library = { id = "kiosk.android.library" }
+kiosk-android-test = { id = "kiosk.android.test" }
 kiosk-jvm-library = { id = "kiosk.jvm.library" }
 kiosk-compose = { id = "kiosk.compose" }
 kiosk-hilt = { id = "kiosk.hilt" }
