@@ -57,6 +57,31 @@ enum class CartLimit {
 
     /** The order already has 30 lines. */
     MAX_LINES,
+
+    /** The order is being paid, so its cart cannot change (BR-08). */
+    ORDER_LOCKED,
+}
+
+/** One line to add with [Cart.addAll], for example one item of a Budget Plan (FR-032). */
+data class CartAddition(
+    val item: CartItem,
+    val quantity: Int,
+    val unitPrice: Rupiah,
+    val choices: List<LineChoice>,
+)
+
+/** The outcome of [Cart.addAll]. */
+sealed interface CartAddAllResult {
+    /** Every addition landed; [lineIds] are the lines they created or merged into, in addition order. */
+    data class Added(
+        val cart: Cart,
+        val lineIds: List<String>,
+    ) : CartAddAllResult
+
+    /** Nothing changed: one addition would break [limit]. */
+    data class LimitReached(
+        val limit: CartLimit,
+    ) : CartAddAllResult
 }
 
 /** The outcome of [Cart.add]. */
@@ -79,8 +104,8 @@ sealed interface CartAddResult {
 }
 
 /**
- * The lines of the current order, in the order they were added (FR-010, FR-012). Immutable. 0.3.0 has the add
- * operations; increment, decrement and removal arrive with SCR-10 in 0.4.0 (DEV-036).
+ * The lines of the current order, in the order they were added (FR-010, FR-012). Immutable: every operation returns a
+ * new cart. Limits of 20 per line and 30 lines (BR-05) are enforced here, so no screen can bypass them.
  */
 data class Cart(
     val lines: List<CartLine> = emptyList(),
@@ -96,6 +121,9 @@ data class Cart(
 
     /** The quantity of the line identical to [item], or 0. */
     fun quantityOf(item: CartItem): Int = lines.firstOrNull { it.item == item }?.quantity ?: 0
+
+    /** The line with [lineId], or `null`. */
+    fun line(lineId: String): CartLine? = lines.firstOrNull { it.lineId == lineId }
 
     /**
      * Adds [quantity] of [item] at [unitPrice]. An identical line is merged into, capped at [MAX_PER_LINE]
@@ -132,6 +160,49 @@ data class Cart(
             }
         }
     }
+
+    /**
+     * Adds every one of [additions] or none of them (FR-032 AC5: a plan lands whole). A merge that would pass 20 counts
+     * as [CartLimit.MAX_PER_LINE], because a capped plan would no longer equal the plan.
+     */
+    fun addAll(additions: List<CartAddition>): CartAddAllResult {
+        var cart = this
+        val lineIds = mutableListOf<String>()
+        additions.forEach { addition ->
+            when (val result = cart.add(addition.item, addition.quantity, addition.unitPrice, addition.choices)) {
+                is CartAddResult.LimitReached -> {
+                    return CartAddAllResult.LimitReached(result.limit)
+                }
+
+                is CartAddResult.Added -> {
+                    if (result.capped) return CartAddAllResult.LimitReached(CartLimit.MAX_PER_LINE)
+                    cart = result.cart
+                    lineIds += result.line.lineId
+                }
+            }
+        }
+        return CartAddAllResult.Added(cart, lineIds.distinct())
+    }
+
+    /**
+     * "+" on Your order (FR-012): one more of [lineId]. A line at [MAX_PER_LINE] does not change and reports
+     * [CartLimit.MAX_PER_LINE]; the result is [CartAddResult.Added] with `merged = true` otherwise. `null` when the
+     * cart has no such line (for example a tap on a line that is sliding out).
+     */
+    fun increment(lineId: String): CartAddResult? {
+        val index = lines.indexOfFirst { it.lineId == lineId }
+        return if (index < 0) null else merge(index, 1)
+    }
+
+    /** "−" on Your order (FR-012): one fewer of [lineId]; at quantity 1 the line is removed. An unknown line is ignored. */
+    fun decrement(lineId: String): Cart {
+        val line = line(lineId) ?: return this
+        if (line.quantity <= 1) return remove(lineId)
+        return copy(lines = lines.map { if (it.lineId == lineId) it.copy(quantity = it.quantity - 1) else it })
+    }
+
+    /** The trash icon or "Remove" (FR-012, FR-016 `ITEM_UNAVAILABLE`): the line is gone. An unknown line is ignored. */
+    fun remove(lineId: String): Cart = copy(lines = lines.filterNot { it.lineId == lineId })
 
     /** Adds [quantity] to the line at [index], capped at [MAX_PER_LINE]; a full line does not change. */
     private fun merge(

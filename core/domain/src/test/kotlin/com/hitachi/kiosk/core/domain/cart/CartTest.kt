@@ -89,4 +89,62 @@ class CartTest {
         assertThrows(IllegalArgumentException::class.java) { Cart().add(c1, 0, Rupiah(1), emptyList()) }
         assertThat(Cart().isEmpty()).isTrue()
     }
+
+    @Test
+    fun `plus and minus change one line and the totals (FR-012 AC1, TC-050)`() {
+        val cart =
+            Cart()
+                .added(c1)
+                .cart
+                .added(d1, quantity = 2, price = 16_000)
+                .cart
+
+        val more = cart.increment("l1") as CartAddResult.Added
+        val fewer = more.cart.decrement("l2")
+
+        assertThat(more.line.quantity).isEqualTo(2)
+        assertThat(more.merged).isTrue()
+        assertThat(fewer.lines.map { it.lineId to it.quantity }).containsExactly("l1" to 2, "l2" to 1).inOrder()
+        assertThat(fewer.subtotal).isEqualTo(Rupiah(2 * 38_000 + 16_000))
+        assertThat(fewer.itemCount).isEqualTo(3)
+    }
+
+    @Test
+    fun `minus at quantity 1 removes the line (TC-051)`() {
+        val cart =
+            Cart()
+                .added(c1)
+                .cart
+                .added(d1, price = 16_000)
+                .cart
+
+        val removed = cart.decrement("l1")
+
+        assertThat(removed.lines.map { it.lineId }).containsExactly("l2")
+        assertThat(removed.line("l1")).isNull()
+        assertThat(removed.remove("l2").isEmpty()).isTrue()
+    }
+
+    @Test
+    fun `plus stops at 20 and unknown lines change nothing (BR-05, TC-052)`() {
+        val cart = Cart().added(c1, quantity = 20).cart
+
+        assertThat(cart.increment("l1")).isEqualTo(CartAddResult.LimitReached(CartLimit.MAX_PER_LINE))
+        assertThat(cart.increment("nope")).isNull()
+        assertThat(cart.decrement("nope")).isEqualTo(cart)
+        assertThat(cart.remove("nope")).isEqualTo(cart)
+    }
+
+    @Test
+    fun `a removed line's ID is never reused`() {
+        val cart =
+            Cart()
+                .added(c1)
+                .cart
+                .remove("l1")
+                .added(d1)
+                .cart
+
+        assertThat(cart.lines.single().lineId).isEqualTo("l2")
+    }
 }
