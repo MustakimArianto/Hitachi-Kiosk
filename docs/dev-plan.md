@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Document version | 1.3 (2026-10-23) — 0.2.0 implemented except the on-device SN spike (see the 0.2.0 status note) |
+| Document version | 1.4 (2026-10-24) — 0.3.0 implemented; the benchmarks (DEV-031) moved to 1.0.0 (see the 0.3.0 status note) |
 | Requirements | [`product-requirement.md`](product-requirement.md) (FR-xxx, NFR-xxx, D-xx, A-xx, OQ-xx), [`technical-requirement.md`](technical-requirement.md) (TR-) |
 | Implementation | [`technical-design.md`](technical-design.md), [`technology-stack.md`](technology-stack.md) (versions for DEV-001) |
 | Tests | [`testing-plan.md`](testing-plan.md) (TC-xxx) |
@@ -224,24 +224,24 @@ A customer can start an order and browse and customize the full menu with design
 ### TODO checklist
 
 **Data**
-- [ ] **DEV-020** Domain models in `:core:domain` per PRD §10.3: Category, Product, ModifierGroup (SINGLE/MULTI/LEVEL), Option, Combo, Promo (idle promos only), MerchantConfig, LocalizedText. The UI shows the `en` text; the optional `id` text is kept in the model and DTOs so the backend contract does not change when language switching returns (D-29).
+- [x] **DEV-020** Domain models in `:core:domain` per PRD §10.3: Category, Product, ModifierGroup (SINGLE/MULTI/LEVEL), Option, Combo, Promo (idle promos only), MerchantConfig, LocalizedText. The UI shows the `en` text; the optional `id` text is kept in the model and DTOs so the backend contract does not change when language switching returns (D-29).
   - *Verify:* unit tests for LocalizedText resolution (a missing `en` falls back to `id`, never blank) and LEVEL price deltas.
-- [ ] **DEV-021** Room schema for config and menu with atomic replace by `menuVersion`. Add the migration test scaffold.
+- [x] **DEV-021** Room schema for config and menu with atomic replace by `menuVersion`. Add the migration test scaffold.
   - *Verify:* DAO tests (in-memory Room) for replace atomicity: a failed replace leaves the old version intact.
-- [ ] **DEV-022** `CatalogSyncRepository` (FR-028).
+- [x] **DEV-022** `CatalogSyncRepository` (FR-028).
   - Calls E5/E6 with ETag, maps DTOs to the domain, and replaces the cache.
   - Triggers at binding, startup and "sync now"; defers application while an order is active [A-29].
   - *Verify:* integration tests: 200, 304, malformed payload (keep the old cache), and mid-order deferral.
-- [ ] **DEV-023** A periodic `WorkManager` sync every 15 min with the network constraint, plus Coil with a 200 MB disk cache, a prefetch of menu images after sync, and the `PhotoSlot` component with a tone placeholder (FR-028, NFR-013).
+- [x] **DEV-023** A periodic `WorkManager` sync every 15 min with the network constraint, plus Coil with a 200 MB disk cache, a prefetch of menu images after sync, and the `PhotoSlot` component with a tone placeholder (FR-028, NFR-013).
   - *Verify:* WorkManager test (`TestDriver`). Offline cold-start manual check shows cached images.
 
 **Customer screens**
-- [ ] **DEV-024** SCR-04 Idle per `Idle.dc.html` (FR-006).
+- [x] **DEV-024** SCR-04 Idle per `Idle.dc.html` (FR-006).
   - Slideshow of 7 s with 1.4 s crossfade, 8 s Ken Burns and progress dots; the bottom sheet with "Hungry?", the CTA ring and the subtitle "Touch the screen to start your order"; tap-anywhere → SCR-05.
   - The staff corner exists here but only routes to the 0.7.0 placeholder. Hold detection is 2.0 s and implemented now. The red issue dot on the corner (`S_Idle_issues`) is wired to the status source in DEV-073.
   - Entering Idle clears the order session.
   - *Verify:* TC-020–TC-024.
-- [ ] **DEV-025** SCR-05 Order type per `OrderType.dc.html` (FR-007).
+- [x] **DEV-025** SCR-05 Order type per `OrderType.dc.html` (FR-007).
   - **Text and logo only: no photos, no hero image and no language control.** The screen shows the brand mark, "Welcome to {merchant}", the question "Where are you eating today?" and two full-width cards (icon, title, one-line description) for Dine in and Takeaway.
   - Cards come from config toggles. With one type enabled, a single card and the note "Takeaway isn't offered at this restaurant right now." are shown (`S_OrderType_singleOption`).
   - The selection animation runs, then navigation after 950 ms; extra taps are ignored.
@@ -250,7 +250,7 @@ A customer can start an order and browse and customize the full menu with design
 - [-] **DEV-026** ~~Runtime language switching (FR-008)~~ **Removed from 1.0 (D-29).** The id stays so references remain stable.
   - There is no `LocaleController`, no EN/ID control and no `values-in`. All customer and staff strings are English and live in `values/strings.xml` (no hardcoded text, NFR-008), so a second language can be added later without touching the screens.
   - Replacement check: lint `HardcodedText` is an error from this milestone (TC-032).
-- [ ] **DEV-027** SCR-06 Menu per `Menu.dc.html` (FR-009).
+- [x] **DEV-027** SCR-06 Menu per `Menu.dc.html` (FR-009).
   - Header with the "Dine in · Change" pill (no language tag) and Cancel; time-of-day greeting [A-07].
   - Category pills including Popular and the Meals → Combo link.
   - On Popular: one slim "Plan by budget" row (hidden when `budgetPlanner.enabled` is false; built in DEV-043). **There is no promo carousel on the Menu.**
@@ -258,23 +258,31 @@ A customer can start an order and browse and customize the full menu with design
   - Content has bottom padding for the dock plus a fade above it, so no card is cut against the dock.
   - States: empty category "Nothing here right now" with "See popular items" [A-33] (`S_Menu_emptyCategory`); offline banner "Ordering is paused — reconnecting…" with add buttons and "View order" disabled (`S_Menu_offline`). Also `scenario` values: `unavailable` (sold-out items hidden) and `maxQty` (toast "Maximum 20 per item").
   - *Verify:* TC-033–TC-035, TC-037, TC-175; screenshot tests of both state boards.
-- [ ] **DEV-028** Quick add and cart dock (FR-009).
+- [x] **DEV-028** Quick add and cart dock (FR-009).
   - `+` → check state for 1.4 s with ring burst, fly-to-cart animation (760 ms), dock thumbnails (last 3), count bump and total roll.
   - Products with required groups show a "Choose ›" pill instead of "+" and open Item [A-08].
   - The in-memory `Cart.add()` merges identical lines (FR-010 rule).
   - *Verify:* TC-038, TC-039.
-- [ ] **DEV-029** SCR-08 Item detail per `ItemDetail.dc.html` (FR-010).
+- [x] **DEV-029** SCR-08 Item detail per `ItemDetail.dc.html` (FR-010).
   - Photo hero 560 dpx tall; the sheet below is rendered generically from modifier groups in this order: a required SINGLE group first (e.g. "Choose a size", tagged "Required"), "Make it a meal?" as one switch row (off by default), then **collapsed** rows "Customize" (LEVEL rows with the 3-segment indicator colors) and "Add extras" (MULTI) whose closed state shows a summary ("No changes", "None added").
   - Stepper 1–20; the price roll; "Add to order" → Added dock swap with Keep ordering / View order.
   - States: required group unselected disables the CTA with "Choose a size to continue" (`S_ItemDetail_requiredMissing`); "No longer available" banner with a dimmed hero and a disabled CTA (`S_ItemDetail_soldOut`); `maxQty` scenario starts at 20 with the "Maximum 20 per item" toast.
   - *Verify:* TC-040–TC-045 (including the Rp 81.000 sample), TC-176.
-- [ ] **DEV-030** SCR-07 Combo per `Combo.dc.html` (FR-011).
+- [x] **DEV-030** SCR-07 Combo per `Combo.dc.html` (FR-011).
   - Combo radio list with Save; Side and Drink sections show **3 option cards each** with a "More sides (n)" / "More drinks (n)" button revealing the rest (a selected hidden option stays visible); Size segmented; multiplier logic; summary line; the Add combo → Added state for 1.8 s.
   - States: required side or drink missing disables the CTA ("Pick side & drink", "Choose a side", "Choose a drink") with "Required" tags (`S_Combo_requiredMissing`); sold-out options are greyed and not selectable (`S_Combo_soldOut`).
   - *Verify:* TC-046–TC-049 (Rp 74.000 and Rp 129.000 samples), TC-176.
 
 **Performance**
 - [-] **DEV-031** ~~Benchmark module and performance baseline~~ **Moved to 1.0.0 (PO, 2026-10-24).** The task is listed there; the id stays so references remain stable.
+
+### 0.3.0 status (2026-10-24)
+- DEV-020–DEV-025 and DEV-027–DEV-030 are done: `./gradlew verify` is green, and the instrumented suite (26 tests: `IdleOrderTypeUiTest`, `MenuUiTest`, `ItemComboUiTest`, `SetupJourneysUiTest`, `NavigationEdgeWalkUiTest`) passes on the API 37 emulator.
+- **DEV-031 moved to 1.0.0** (PO, 2026-10-24), together with the benchmark runs of DEV-082 (TC-142–TC-144, TC-168).
+- PO decisions taken during 0.3.0 (PRD 1.6): "Choose ›" only for a required group without a default; OQ-08 closed (sold-out products hidden); A-29 kept strictly for the Item sold-out state; sold-out combo sides and drinks (new optional E6 `available`); the offline banner follows the validated network until DEV-051 (technical-design TD-12).
+- Built ahead of later tasks, so those tasks extend it: `Cart.add` and the structured line choices (DEV-036), `OrderSessionHolder` with the TypeChosen and Building states (DEV-041), the validated-network monitor and the reconnect sync (DEV-051).
+- Still open from earlier milestones: the DEV-012 serial-number spike, and the API 30 and API 34/35 emulator runs.
+- Evidence: [`docs/test-reports/0.3.0.md`](test-reports/0.3.0.md).
 
 ### Acceptance criteria
 - FR-006, FR-007, FR-009, FR-010 and FR-011 acceptance criteria pass with fake data mirroring the design samples.
