@@ -61,7 +61,7 @@ Every external system sits behind a domain interface with a scriptable fake in `
 - **Serial number diagnostics**: what every serial-number source returns on this device, the cached value, device-owner and permission state, and the window size and orientation, with Read again, Clear serial cache, Copy and Share. This is the DEV-012 spike; the procedure is in [ADR-0002](docs/adr/0002-device-serial.md). Each row is also logged: `adb logcat -d | grep serial_spike`.
 - **Card terminal**: *Fake: wait for the simulate bar* (default), *Fake: approve*, *Fake: decline*, *Fake: cancelled at the terminal*, *Fake: error*, *Fake: no answer* (runs the 90 s timeout), or *Release adapter* (no EDC adapter exists before 0.9.0, so every sale fails).
 - **Checkout simulate bar**: on Checkout, the design's "Prototype only · simulate the result" bar approves or declines the payment against the in-app fakes.
-- **Demo images**: the sample catalog shows photos from `app/src/debug/assets/demo` on the fakes and the Prism mock (a real backend's image URLs are never replaced).
+- **Demo images**: the sample catalog shows photos from `app/src/debug/assets/demo` on the fakes and the Prism mock (a real backend's image URLs are never replaced). How they were prepared, and what a real photo has to look like, is in [`docs/ui-design/photo-guidelines.md`](docs/ui-design/photo-guidelines.md); `scripts/demo-images/make_demo_images.py` rebuilds them.
 - **Build** information: version, build type, environment and backend URL.
 
 Release builds contain none of this (`scripts/check-release-apk.sh`).

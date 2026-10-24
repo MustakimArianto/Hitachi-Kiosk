@@ -7,7 +7,7 @@ How code is written and how changes land. [`architecture.md`](architecture.md) c
 ```
 com.hitachi.kiosk                      :app (MainActivity, KioskApp, navigation/, di/, devtools/, kiosk/, inactivity/, image/, sync/, recovery/, ui/ (incl. ui/qr), log/, time/)
 com.hitachi.kiosk.debug                :app src/debug only (Developer options, switchable wrappers, Checkout simulate bar, demo images in src/debug/assets/demo)
-com.hitachi.kiosk.feature.<feature>    :app feature packages (menu, cart, checkout, …)
+com.hitachi.kiosk.feature.<feature>    :app feature packages (menu, order, checkout, …)
 com.hitachi.kiosk.core.designsystem    :core:designsystem (theme/, unit/, motion/, component/)
 com.hitachi.kiosk.core.domain          :core:domain (model/, error/, backend/, pricing/, cart/, planner/, order/, payment/, repository/, setup/, device/, time/, id/, log/, format/, image/)
 com.hitachi.kiosk.core.data            :core:data (api/, backend/, dto/, mapper/, db/, prefs/, repository/, sync/, net/, di/)

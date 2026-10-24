@@ -14,6 +14,9 @@ Font: Schibsted Grotesk 400–800. Scale: display 112/800, title 80/700, section
 Layout: 72 px side margins, 8-pt spacing, radii 40/32/pill, touch targets ≥ 96 px, one accent action per screen in the bottom dock.
 Language: English only (the language switch is deferred).
 
+## Photos and logos
+How the app crops photos, what a photo needs and where the merchant logo is used: [`photo-guidelines.md`](photo-guidelines.md). The design shows the Order type mark, the headers and the QR centre mark as the ink tile with the accent dot; the built app draws the merchant logo over that tile when the config has one. On the Choose a restaurant card the logo fills the whole picture box instead of the cover photo and the small chip (PO, 2026-10-25).
+
 ## Where the built app differs
 The design files stay as they are. Each milestone's deviations are in `docs/test-reports/<version>.md`. For Checkout (0.5.0):
 - The QR centre mark is 96 dpx, which is 20 % of the 480 dpx code. The design draws 104 dpx (21.7 %). The code is level H, so it decodes with the mark on (technical-design §8.5, TD-07).
