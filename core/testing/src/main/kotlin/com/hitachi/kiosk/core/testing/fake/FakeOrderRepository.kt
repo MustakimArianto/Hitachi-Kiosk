@@ -9,6 +9,7 @@ import com.hitachi.kiosk.core.domain.model.OrderRequest
 import com.hitachi.kiosk.core.domain.model.OrderStatus
 import com.hitachi.kiosk.core.domain.model.PaymentMethod
 import com.hitachi.kiosk.core.domain.model.PendingOrder
+import com.hitachi.kiosk.core.domain.model.Rupiah
 import com.hitachi.kiosk.core.domain.repository.OrderRepository
 import com.hitachi.kiosk.core.testing.fixture.SampleData
 
@@ -33,6 +34,9 @@ class FakeOrderRepository(
     val createKeys: List<IdempotencyKey> get() = synchronized(lock) { recordedKeys.toList() }
     val cancels: List<Pair<String, CancelOrderReason>> get() = synchronized(lock) { recordedCancels.toList() }
 
+    /** The total of the pending order, without suspending, for fakes that must agree with it. */
+    val pendingTotal: Rupiah? get() = synchronized(lock) { pendingOrder?.totals?.total }
+
     override suspend fun create(
         request: OrderRequest,
         key: IdempotencyKey,
@@ -41,7 +45,14 @@ class FakeOrderRepository(
             recordedRequests += request
             recordedKeys += key
         }
-        val outcome = create.next()
+        // The sample order answers with the total of the request, like the real backend with correct pricing.
+        val scripted = create.next()
+        val outcome =
+            if (scripted is Outcome.Success && scripted.value === SampleData.createdOrder) {
+                Outcome.Success(scripted.value.copy(totals = request.clientTotals))
+            } else {
+                scripted
+            }
         if (outcome is Outcome.Success) {
             val order = outcome.value
             synchronized(lock) {

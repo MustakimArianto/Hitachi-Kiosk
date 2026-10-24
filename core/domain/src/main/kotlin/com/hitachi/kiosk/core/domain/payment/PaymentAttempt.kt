@@ -2,6 +2,7 @@ package com.hitachi.kiosk.core.domain.payment
 
 import com.hitachi.kiosk.core.domain.error.DomainError
 import com.hitachi.kiosk.core.domain.id.IdempotencyKey
+import com.hitachi.kiosk.core.domain.model.CancelPaymentReason
 import com.hitachi.kiosk.core.domain.model.PaymentFailureReason
 import com.hitachi.kiosk.core.domain.model.PaymentMethod
 import com.hitachi.kiosk.core.domain.model.PaymentState
@@ -30,6 +31,9 @@ internal class PaymentAttempt(
     /** The `Idempotency-Key` of E11 for this payment, kept for every retry of the cancel (TD §5.3). */
     var cancelKey: IdempotencyKey? = null
 
+    /** The reason [cancelKey] was made for: another reason is another request and gets a new key. */
+    var cancelKeyReason: CancelPaymentReason? = null
+
     var saleStarted = false
     var saleActive = false
 
@@ -37,7 +41,13 @@ internal class PaymentAttempt(
     var qrDeadline: Duration? = null
     var cardDeadline: Duration? = null
     var unknownSince: Duration? = null
+
+    /** When the next E10 poll is due. */
+    var nextPoll: Duration = Duration.ZERO
     var processingSince: Duration? = null
+
+    /** When "Confirming payment" gives up if E10 is still not `PAID` (FR-019); set with [processingSince]. */
+    var processingDeadline: Duration? = null
 
     /** What to show again when the status is known after "Checking your payment…". */
     var resumeState: PaymentUiState? = null

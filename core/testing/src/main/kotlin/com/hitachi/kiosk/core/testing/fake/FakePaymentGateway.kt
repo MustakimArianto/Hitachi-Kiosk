@@ -6,6 +6,7 @@ import com.hitachi.kiosk.core.domain.model.CancelPaymentReason
 import com.hitachi.kiosk.core.domain.model.PaymentMethod
 import com.hitachi.kiosk.core.domain.model.PaymentState
 import com.hitachi.kiosk.core.domain.model.PaymentUpdate
+import com.hitachi.kiosk.core.domain.model.Rupiah
 import com.hitachi.kiosk.core.domain.model.StartedPayment
 import com.hitachi.kiosk.core.domain.model.TerminalResult
 import com.hitachi.kiosk.core.domain.payment.PaymentGateway
@@ -16,7 +17,13 @@ import com.hitachi.kiosk.core.testing.fixture.SampleData
  * happy path; [startKeys] records every idempotency key so tests can check that each attempt uses a new one, and
  * [starts], [cancels] and [relays] record every call with its arguments.
  */
-class FakePaymentGateway : PaymentGateway {
+class FakePaymentGateway(
+    /**
+     * The total of the order being paid, when a test has one: the sample payments then carry it, as the real backend's
+     * E9 carries the order total (TR-INT-04). A payment a test scripted itself is never changed.
+     */
+    private val orderTotal: () -> Rupiah? = { null },
+) : PaymentGateway {
     /** One E9 call. */
     data class Start(
         val orderId: String,
@@ -62,9 +69,21 @@ class FakePaymentGateway : PaymentGateway {
         key: IdempotencyKey,
     ): Outcome<StartedPayment> {
         synchronized(lock) { recordedStarts += Start(orderId, method, qrExpirySeconds, key) }
-        return when (method) {
-            PaymentMethod.QRIS -> startQris.next()
-            PaymentMethod.CARD -> startCard.next()
+        val outcome =
+            when (method) {
+                PaymentMethod.QRIS -> startQris.next()
+                PaymentMethod.CARD -> startCard.next()
+            }
+        return outcome.withOrderTotal()
+    }
+
+    private fun Outcome<StartedPayment>.withOrderTotal(): Outcome<StartedPayment> {
+        val payment = (this as? Outcome.Success)?.value ?: return this
+        val total = orderTotal() ?: return this
+        return when {
+            payment === SampleData.qrisPayment -> Outcome.Success(SampleData.qrisPayment.copy(amount = total))
+            payment === SampleData.cardPayment -> Outcome.Success(SampleData.cardPayment.copy(amount = total))
+            else -> this
         }
     }
 

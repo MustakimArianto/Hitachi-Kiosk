@@ -6,10 +6,12 @@ import com.hitachi.kiosk.core.domain.cart.CartLine
 import com.hitachi.kiosk.core.domain.error.DomainError
 import com.hitachi.kiosk.core.domain.id.IdGenerator
 import com.hitachi.kiosk.core.domain.log.KioskLog
+import com.hitachi.kiosk.core.domain.model.CancelOrderReason
 import com.hitachi.kiosk.core.domain.model.Catalog
 import com.hitachi.kiosk.core.domain.model.CreatedOrder
 import com.hitachi.kiosk.core.domain.model.OrderLine
 import com.hitachi.kiosk.core.domain.model.OrderRequest
+import com.hitachi.kiosk.core.domain.model.Totals
 import com.hitachi.kiosk.core.domain.pricing.PricingEngine
 import com.hitachi.kiosk.core.domain.pricing.PricingRules
 import com.hitachi.kiosk.core.domain.repository.CatalogRepository
@@ -55,6 +57,7 @@ sealed interface SubmitResult {
  * 1. [OrderSession.submit] moves Reviewing → Submitting and settles the request and its `Idempotency-Key` atomically,
  *    so 10 rapid taps send exactly one E7 (AC1) and a retry of the same body reuses the key (technical-design §5.3).
  * 2. [OrderRepository.create] sends E7 (with its retries) and saves the pending order.
+ *    The backend total must equal the total the kiosk sent: another total is never paid (cancelled with E8, Failed).
  * 3. The session then moves on: Paying on success, Reviewing on `PRICE_CHANGED` (after a catalog refresh and a
  *    re-price, the one exception to A-29), on `ITEM_UNAVAILABLE` (lines flagged) and on any other failure.
  *
@@ -80,7 +83,7 @@ class SubmitOrder(
             ) ?: return SubmitResult.Ignored
         return try {
             when (val outcome = orders.create(submission.request, submission.key)) {
-                is Outcome.Success -> created(session, outcome.value)
+                is Outcome.Success -> created(session, outcome.value, submission.request.clientTotals)
                 is Outcome.Failure -> rejected(session, catalog, outcome.error)
             }
         } finally {
@@ -89,13 +92,35 @@ class SubmitOrder(
         }
     }
 
-    private fun created(
+    private suspend fun created(
         session: OrderSession,
         order: CreatedOrder,
+        sent: Totals,
     ): SubmitResult {
+        if (order.totals.total != sent.total) return totalDiffers(session, order, sent)
         session.orderCreated()
         KioskLog.i("order_created", "menuVersion" to session.state.value.menuVersion)
         return SubmitResult.Created(order)
+    }
+
+    /**
+     * The backend order has another total than the kiosk showed (FR-016, TR-INT-04): nothing is paid. The order is
+     * cancelled (E8; if that fails the saved pending order is cancelled by the recovery) and the session returns to
+     * Reviewing, as for any failure with no payment.
+     */
+    private suspend fun totalDiffers(
+        session: OrderSession,
+        order: CreatedOrder,
+        sent: Totals,
+    ): SubmitResult {
+        KioskLog.w(
+            "order_total_differs",
+            "sent" to sent.total.value,
+            "backend" to order.totals.total.value,
+        )
+        orders.cancel(order.orderId, CancelOrderReason.PAYMENT_FAILED)
+        session.submissionFailed()
+        return SubmitResult.Failed(DomainError.Unknown)
     }
 
     private suspend fun rejected(

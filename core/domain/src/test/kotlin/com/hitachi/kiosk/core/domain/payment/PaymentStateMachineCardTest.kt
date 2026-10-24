@@ -34,13 +34,14 @@ class PaymentStateMachineCardTest {
     fun `the terminal is sent the backend amount and reference, not the cart (TC-080, TR-INT-04)`() =
         runTest {
             val h = PaymentHarness(this)
-            h.gateway.startCard.succeed(card.copy(amount = Rupiah(180_000)))
+            // The E9 amount is the order total the backend holds; an E9 for another amount is refused (TR-INT-04).
+            h.gateway.startCard.succeed(card.copy(amount = SampleData.totals.total))
 
             h.start(PaymentMethod.CARD)
 
-            assertThat(h.terminal.sales).containsExactly(FakeCardTerminal.Sale(Rupiah(180_000), card.terminalRef))
+            assertThat(h.terminal.sales).containsExactly(FakeCardTerminal.Sale(Rupiah(172_700), card.terminalRef))
             assertThat(h.state)
-                .isEqualTo(PaymentUiState.WaitingForCard(Rupiah(180_000), terminalPrompted = true))
+                .isEqualTo(PaymentUiState.WaitingForCard(Rupiah(172_700), terminalPrompted = true))
             assertThat(
                 h.gateway.starts
                     .single()
@@ -72,7 +73,8 @@ class PaymentStateMachineCardTest {
 
             h.pass(2.seconds)
             assertThat(h.state).isEqualTo(PaymentUiState.Processing(PaymentMethod.CARD))
-            h.pass(60.seconds)
+            // Confirming payment lasts at most 60 s (FR-019); until then an approval alone is never Paid.
+            h.pass(59.seconds)
 
             assertThat(h.state).isEqualTo(PaymentUiState.Processing(PaymentMethod.CARD))
             assertThat(h.phase).isEqualTo(OrderPhase.PAYING)

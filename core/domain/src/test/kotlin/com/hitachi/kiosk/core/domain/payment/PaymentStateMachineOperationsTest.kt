@@ -568,6 +568,7 @@ class PaymentStateMachineOperationsTest {
         runTest {
             val h = PaymentHarness(this)
             h.holder.endOrder()
+            h.pass(0.milliseconds)
             h.gateway.status.succeed(SampleData.paymentPaid)
 
             h.start()

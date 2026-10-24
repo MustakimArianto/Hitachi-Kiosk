@@ -10,6 +10,7 @@ import com.hitachi.kiosk.core.domain.id.IdGenerator
 import com.hitachi.kiosk.core.domain.log.KioskLog
 import com.hitachi.kiosk.core.domain.model.CancelOrderReason
 import com.hitachi.kiosk.core.domain.model.CancelPaymentReason
+import com.hitachi.kiosk.core.domain.model.OrderStatus
 import com.hitachi.kiosk.core.domain.model.PaymentMethod
 import com.hitachi.kiosk.core.domain.model.PaymentState
 import com.hitachi.kiosk.core.domain.model.PaymentStatus
@@ -21,6 +22,7 @@ import com.hitachi.kiosk.core.domain.repository.OrderRepository
 import com.hitachi.kiosk.core.domain.time.Clock
 import com.hitachi.kiosk.core.domain.time.ServerClockOffset
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
 import kotlinx.coroutines.cancelAndJoin
@@ -31,7 +33,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withTimeoutOrNull
+import kotlinx.coroutines.selects.onTimeout
+import kotlinx.coroutines.selects.select
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.time.Duration
 
@@ -56,7 +59,7 @@ import kotlin.time.Duration
  * the state, then stopping that coroutine, so a late answer can never overwrite its result. Operations run in the
  * application scope too: a screen that goes away mid-call does not leave the order half-cancelled.
  */
-@Suppress("TooManyFunctions") // One small function per transition of architecture §5.2.
+@Suppress("TooManyFunctions", "LargeClass") // One small function per transition of architecture §5.2.
 class PaymentStateMachine(
     private val scope: CoroutineScope,
     private val clock: Clock,
@@ -83,6 +86,11 @@ class PaymentStateMachine(
 
     @Volatile
     private var job: Job? = null
+
+    init {
+        // An order that ends outside the machine (the device was wiped by a 401, a staff reset) takes its payment with it.
+        scope.launch { sessions.current.collect { if (it == null) reset() } }
+    }
 
     /**
      * Starts the payment of the created order [orderId] (FR-017, FR-018): E9 with a new `Idempotency-Key`, then the
@@ -150,6 +158,24 @@ class PaymentStateMachine(
         }
     }
 
+    /**
+     * Forgets a payment whose order ended without going through the machine, and goes Idle (FR-016, FR-018 AC3): the
+     * polling stops and a running card sale is cancelled. Does nothing at Idle, at [PaymentUiState.Paid] (the Complete
+     * hand-off owns it, [acknowledgePaid]) or while an operation runs. It sends nothing to the backend and keeps the
+     * pending order, so recovery still settles a payment that may be live (TR-REL-02).
+     */
+    suspend fun reset() {
+        inScope {
+            val attempt = current
+            if (claim { it !is PaymentUiState.Idle && it !is PaymentUiState.Paid }) {
+                job?.cancelAndJoin()
+                if (attempt?.saleActive == true) cancelTerminal(attempt)
+                current = null
+                finish(PaymentUiState.Idle)
+            }
+        }
+    }
+
     // Operations ----------------------------------------------------------------------------------------------------
 
     private fun restart(to: PaymentMethod?): Boolean {
@@ -206,9 +232,14 @@ class PaymentStateMachine(
     ): PaymentExit =
         when (val result = orders.cancel(attempt.orderId, reason)) {
             is Outcome.Success -> {
-                finish(PaymentUiState.Idle)
-                if (backToOrder) sessions.current.value?.backToOrder()
-                PaymentExit.Left
+                if (result.value.status == OrderStatus.CANCELLED) {
+                    finish(PaymentUiState.Idle)
+                    if (backToOrder) sessions.current.value?.backToOrder()
+                    PaymentExit.Left
+                } else {
+                    // An order that is not cancelled (still awaiting payment, or paid) is never claimed as left.
+                    orderNotCancelled(attempt)
+                }
             }
 
             is Outcome.Failure -> {
@@ -220,6 +251,10 @@ class PaymentStateMachine(
                 }
             }
         }
+
+    /** E8 answered 200 but not `CANCELLED`: E10 decides whether it was paid, otherwise the customer sees a failure. */
+    private suspend fun orderNotCancelled(attempt: PaymentAttempt): PaymentExit =
+        orderPaidMeanwhile(attempt) ?: stayFailed(attempt, DomainError.Unknown)
 
     /** E8 said the order is already paid: E10 has the order number, and the machine moves to Paid. */
     private suspend fun orderPaidMeanwhile(attempt: PaymentAttempt): PaymentExit? {
@@ -307,6 +342,10 @@ class PaymentStateMachine(
         attempt.paymentId = started.paymentId
         attempt.amount = started.amount
         orders.recordPayment(attempt.orderId, started.paymentId, attempt.method)
+        if (!amountMatchesOrder(attempt)) {
+            rejectAmountMismatch(attempt)
+            return
+        }
         val waiting =
             when {
                 started is StartedPayment.Qris && attempt.method == PaymentMethod.QRIS -> startQr(attempt, started)
@@ -319,6 +358,30 @@ class PaymentStateMachine(
         } else if (publish(waiting)) {
             monitor(attempt)
         }
+    }
+
+    /** The amount the payer sees is the backend order total, never another one (TR-INT-04). No total to compare = ok. */
+    private suspend fun amountMatchesOrder(attempt: PaymentAttempt): Boolean {
+        val pending = orders.pending()?.takeIf { it.orderId == attempt.orderId } ?: return true
+        return pending.totals.total == attempt.amount
+    }
+
+    /** E9 answered another amount than the order total: cancel the payment (E11), the order (E8) and fail. */
+    private suspend fun rejectAmountMismatch(attempt: PaymentAttempt) {
+        KioskLog.w(
+            "payment_amount_mismatch",
+            "orderTotal" to
+                orders
+                    .pending()
+                    ?.totals
+                    ?.total
+                    ?.value,
+            "paymentAmount" to attempt.amount.value,
+        )
+        if (cancelPayment(attempt, CancelPaymentReason.SWITCH_METHOD) == CancelResult.Cancelled) {
+            orders.cancel(attempt.orderId, CancelOrderReason.PAYMENT_FAILED)
+        }
+        fail(attempt, FailureReason.GENERIC, notCharged = false)
     }
 
     private fun startQr(
@@ -355,28 +418,82 @@ class PaymentStateMachine(
             }
         }
 
+    /** Runs [pollStep] until the payment ends. */
     private suspend fun pollLoop(
         attempt: PaymentAttempt,
         events: Channel<TerminalEvent>,
     ) {
-        var nextPoll = clock.elapsedRealtime() + policy.pollInterval
-        while (true) {
-            val now = clock.elapsedRealtime()
-            val expired = attempt.qrDeadline?.let { now >= it } == true
-            val silent = attempt.cardDeadline?.let { now >= it } == true
-            if (expired || silent) {
-                if (expired) expire(attempt) else terminalTimedOut(attempt)
-                return
+        attempt.nextPoll = clock.elapsedRealtime() + policy.pollInterval
+        var ended = false
+        while (!ended) ended = pollStep(attempt, events)
+    }
+
+    /**
+     * Does the next thing that is due: a queued terminal event, the QR or terminal deadline, the E10 poll, the end of
+     * the [PaymentPolicy.unknownLimit] for "Confirming payment", or waits for the earliest of them. Queued terminal
+     * events come first, so an approval that arrived while the loop was busy is not overtaken by a deadline. Returns
+     * `true` when the payment ended.
+     */
+    private suspend fun pollStep(
+        attempt: PaymentAttempt,
+        events: Channel<TerminalEvent>,
+    ): Boolean {
+        val queued = events.tryReceive().getOrNull()
+        val now = clock.elapsedRealtime()
+        return when {
+            queued != null -> {
+                onTerminalEvent(attempt, queued)
             }
-            if (now >= nextPoll) {
-                if (poll(attempt)) return
-                nextPoll = clock.elapsedRealtime() + policy.pollInterval
-                continue
+
+            attempt.qrDeadline?.let { now >= it } == true -> {
+                expire(attempt)
             }
-            val wakeAt = listOfNotNull(nextPoll, attempt.qrDeadline, attempt.cardDeadline).min()
-            val event = withTimeoutOrNull(wakeAt - now) { events.receive() }
-            if (event != null && onTerminalEvent(attempt, event)) return
+
+            attempt.cardDeadline?.let { now >= it } == true -> {
+                terminalTimedOut(attempt)
+            }
+
+            now >= attempt.nextPoll -> {
+                poll(attempt).also { attempt.nextPoll = clock.elapsedRealtime() + policy.pollInterval }
+            }
+
+            attempt.processingDeadline?.let { now >= it } == true -> {
+                giveUpProcessing(attempt)
+                true
+            }
+
+            else -> {
+                waitForEvent(attempt, events, now)
+            }
         }
+    }
+
+    /** Sleeps until the next due time; a terminal event wakes it. Returns `true` when the event ended the payment. */
+    @OptIn(ExperimentalCoroutinesApi::class)
+    private suspend fun waitForEvent(
+        attempt: PaymentAttempt,
+        events: Channel<TerminalEvent>,
+        now: Duration,
+    ): Boolean {
+        val wakeAt =
+            listOfNotNull(attempt.nextPoll, attempt.qrDeadline, attempt.cardDeadline, attempt.processingDeadline).min()
+        // A select, not a timeout around receive(): an event at the timeout instant must not be dropped.
+        val event =
+            select<TerminalEvent?> {
+                events.onReceiveCatching { it.getOrNull() }
+                onTimeout(wakeAt - now) { null }
+            }
+        return event != null && onTerminalEvent(attempt, event)
+    }
+
+    /**
+     * E10 did not say `PAID` within [PaymentPolicy.unknownLimit] of "Confirming payment" (FR-019, TD §5.3): Failed
+     * without "not charged", so "Try again" and "Cancel order" are available. The backend never said the payment
+     * ended, so the failure claims nothing; "Try again" cancels the payment first and `PAID` still wins.
+     */
+    private fun giveUpProcessing(attempt: PaymentAttempt) {
+        val reason = if (attempt.unknownSince != null) FailureReason.NETWORK else FailureReason.GENERIC
+        fail(attempt, reason, notCharged = false)
     }
 
     /** E10. Returns `true` when the payment ended and polling must stop (FR-017 AC5, TR-NET-10). */
@@ -400,6 +517,8 @@ class PaymentStateMachine(
     ): Boolean =
         when (status.status) {
             PaymentStatus.PAID -> {
+                // Paid whatever the terminal is doing: it must not charge a second time.
+                if (attempt.saleActive) cancelTerminal(attempt)
                 completePayment(attempt, status, force = false)
                 true
             }
@@ -413,10 +532,22 @@ class PaymentStateMachine(
             }
 
             PaymentStatus.FAILED, PaymentStatus.EXPIRED, PaymentStatus.CANCELLED -> {
-                attempt.backendNonPaid = true
-                fail(attempt, failureReasonOf(status, attempt.method), notCharged = true)
+                failBackendEnded(attempt, failureReasonOf(status, attempt.method))
             }
         }
+
+    /**
+     * The backend ended the payment without `PAID`: "not charged" (FR-019). A card sale that is still running is
+     * cancelled first, so the terminal is never left armed for a payment that no longer exists (FR-018 AC3).
+     */
+    private suspend fun failBackendEnded(
+        attempt: PaymentAttempt,
+        reason: FailureReason,
+    ): Boolean {
+        attempt.backendNonPaid = true
+        if (attempt.saleActive) cancelTerminal(attempt)
+        return fail(attempt, reason, notCharged = true)
+    }
 
     /** The status is known again after "Checking your payment…". Returns `true` when the machine was taken over. */
     private fun restore(attempt: PaymentAttempt): Boolean {
@@ -561,8 +692,7 @@ class PaymentStateMachine(
             }
 
             status.isNonPaidFinal -> {
-                attempt.backendNonPaid = true
-                fail(attempt, failureReasonOf(status, attempt.method), notCharged = true)
+                failBackendEnded(attempt, failureReasonOf(status, attempt.method))
             }
 
             else -> {
@@ -612,25 +742,42 @@ class PaymentStateMachine(
     )
 
     /** The terminal stayed silent for [PaymentPolicy.terminalTimeout] (A-16, TR-INT-05): cancel it and E11 `TIMEOUT`. */
-    private suspend fun terminalTimedOut(attempt: PaymentAttempt) {
+    private suspend fun terminalTimedOut(attempt: PaymentAttempt): Boolean =
         cancelAndFail(attempt, FailureReason.TERMINAL_TIMEOUT, CancelPaymentReason.TIMEOUT)
-    }
 
     /** The QR passed its device-side expiry (FR-017, NFR-017): E11 `EXPIRED_ON_KIOSK`, E10 first when it answers 409. */
-    private suspend fun expire(attempt: PaymentAttempt) {
+    private suspend fun expire(attempt: PaymentAttempt): Boolean =
         cancelAndFail(attempt, FailureReason.EXPIRED, CancelPaymentReason.EXPIRED_ON_KIOSK)
-    }
 
+    /**
+     * Cancels the payment after a deadline. Returns `true` when the attempt ended, `false` when E11 was refused and
+     * E10 says `PROCESSING`: money may be in flight (a QR paid in its last seconds), so the machine shows "Confirming
+     * payment" and keeps polling instead of failing (FR-017).
+     */
     private suspend fun cancelAndFail(
         attempt: PaymentAttempt,
         failure: FailureReason,
         reason: CancelPaymentReason,
-    ) {
+    ): Boolean {
         if (attempt.saleActive) cancelTerminal(attempt)
-        when (val result = cancelPayment(attempt, reason)) {
-            CancelResult.Cancelled -> fail(attempt, failure, notCharged = true)
-            is CancelResult.Paid -> completePayment(attempt, result.state, force = false)
-            is CancelResult.NotCancelled -> fail(attempt, failure, notCharged = false)
+        return when (val result = cancelPayment(attempt, reason)) {
+            CancelResult.Cancelled -> {
+                fail(attempt, failure, notCharged = true)
+            }
+
+            is CancelResult.Paid -> {
+                completePayment(attempt, result.state, force = false)
+                true
+            }
+
+            is CancelResult.NotCancelled -> {
+                if (result.processing && enterProcessing(attempt, force = false)) {
+                    attempt.cardDeadline = null
+                    false
+                } else {
+                    fail(attempt, failure, notCharged = false)
+                }
+            }
         }
     }
 
@@ -657,8 +804,10 @@ class PaymentStateMachine(
             val state: PaymentState,
         ) : CancelResult
 
+        /** [processing]: E10 says `PROCESSING`, so the payment may be paid any moment. */
         data class NotCancelled(
             val error: DomainError,
+            val processing: Boolean = false,
         ) : CancelResult
     }
 
@@ -668,7 +817,13 @@ class PaymentStateMachine(
         reason: CancelPaymentReason,
     ): CancelResult {
         val paymentId = attempt.paymentId ?: return CancelResult.Cancelled
-        val key = attempt.cancelKey ?: ids.newIdempotencyKey().also { attempt.cancelKey = it }
+        // One key per reason: a retry of the same cancel repeats it, a different cancel is a different request.
+        val key =
+            attempt.cancelKey?.takeIf { attempt.cancelKeyReason == reason }
+                ?: ids.newIdempotencyKey().also {
+                    attempt.cancelKey = it
+                    attempt.cancelKeyReason = reason
+                }
         return when (val result = gateway.cancel(attempt.orderId, paymentId, reason, key)) {
             is Outcome.Failure -> {
                 val error = result.error
@@ -701,6 +856,7 @@ class PaymentStateMachine(
                 when {
                     state.status == PaymentStatus.PAID -> CancelResult.Paid(state)
                     state.status.isNonPaidFinal -> cancelled(attempt)
+                    state.status == PaymentStatus.PROCESSING -> CancelResult.NotCancelled(error, processing = true)
                     else -> notCancelled(error)
                 }
             }
@@ -727,8 +883,14 @@ class PaymentStateMachine(
         keepChecking: Boolean = false,
     ): Boolean {
         val shown = mutableState.value
+        // The backend has the payment in flight: the QR can no longer expire on the kiosk (FR-017).
+        attempt.qrDeadline = null
         if (shown is PaymentUiState.Processing) return true
-        if (attempt.processingSince == null) attempt.processingSince = clock.elapsedRealtime()
+        if (attempt.processingSince == null) {
+            val now = clock.elapsedRealtime()
+            attempt.processingSince = now
+            attempt.processingDeadline = now + policy.unknownLimit
+        }
         if (keepChecking && shown is PaymentUiState.Checking) {
             attempt.resumeState = PaymentUiState.Processing(attempt.method)
             return true

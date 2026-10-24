@@ -4,6 +4,7 @@ import com.google.common.truth.Truth.assertThat
 import com.hitachi.kiosk.core.domain.Outcome
 import com.hitachi.kiosk.core.domain.error.DomainError
 import com.hitachi.kiosk.core.domain.id.IdempotencyKey
+import com.hitachi.kiosk.core.domain.model.CancelOrderReason
 import com.hitachi.kiosk.core.domain.model.Catalog
 import com.hitachi.kiosk.core.domain.model.ComboSelection
 import com.hitachi.kiosk.core.domain.model.ComboSize
@@ -68,7 +69,9 @@ class SubmitOrderTest {
         runTest {
             val result = submit()
 
-            assertThat(result).isEqualTo(SubmitResult.Created(SampleData.createdOrder))
+            // The sample order answers with the total the kiosk sent, as the real backend does.
+            val order = SampleData.createdOrder.copy(totals = orders.requests.single().clientTotals)
+            assertThat(result).isEqualTo(SubmitResult.Created(order))
             assertThat(state.phase).isEqualTo(OrderPhase.PAYING)
             val request = orders.requests.single()
             assertThat(request.merchantId).isEqualTo(SampleData.MERCHANT_ID)
@@ -100,6 +103,21 @@ class SubmitOrderTest {
             // 70.000 subtotal, below the 100.000 promo, 10 % tax.
             assertThat(request.clientTotals.total).isEqualTo(Rupiah(77_000))
             assertThat(orders.createKeys).containsExactly(IdempotencyKey("key-1"))
+        }
+
+    @Test
+    fun `an order with another total than the kiosk sent is cancelled and never paid (TR-INT-04)`() =
+        runTest {
+            val other = SampleData.totals.copy(total = Rupiah(1_000))
+            orders.create.succeed(SampleData.createdOrder.copy(totals = other))
+
+            val result = submit()
+
+            assertThat(result).isEqualTo(SubmitResult.Failed(DomainError.Unknown))
+            assertThat(orders.cancels.single().first).isEqualTo(SampleData.ORDER_ID)
+            assertThat(orders.cancels.single().second).isEqualTo(CancelOrderReason.PAYMENT_FAILED)
+            assertThat(state.phase).isEqualTo(OrderPhase.REVIEWING)
+            assertThat(orders.pending()).isNull()
         }
 
     @Test

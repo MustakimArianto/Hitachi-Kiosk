@@ -20,6 +20,7 @@ import com.hitachi.kiosk.core.domain.model.OrderRequest
 import com.hitachi.kiosk.core.domain.model.PaymentMethod
 import com.hitachi.kiosk.core.domain.model.PaymentState
 import com.hitachi.kiosk.core.domain.model.PaymentUpdate
+import com.hitachi.kiosk.core.domain.model.Rupiah
 import com.hitachi.kiosk.core.domain.model.StaffPinHash
 import com.hitachi.kiosk.core.domain.model.StartedPayment
 import com.hitachi.kiosk.core.domain.model.TerminalResult
@@ -71,6 +72,7 @@ class FakeBackendApi(
     var extraDelay: Duration = Duration.ZERO
 
     private val recorded = mutableListOf<Call>()
+    private val orderTotals = mutableMapOf<String, Rupiah>()
 
     val calls: List<Call> get() = synchronized(recorded) { recorded.toList() }
 
@@ -108,7 +110,7 @@ class FakeBackendApi(
     override suspend fun createOrder(
         request: OrderRequest,
         key: IdempotencyKey,
-    ): Outcome<CreatedOrder> = answer(Endpoint.E7, listOf(request), key, createOrder)
+    ): Outcome<CreatedOrder> = answer(Endpoint.E7, listOf(request), key, createOrder).priceLikeRequest(request)
 
     override suspend fun cancelOrder(
         orderId: String,
@@ -128,7 +130,7 @@ class FakeBackendApi(
                 PaymentMethod.CARD -> startCard
             }
         val outcome = answer(Endpoint.E9, listOf(orderId, method, qrExpirySeconds), key, script)
-        return outcome.withExpiryFromClock(qrExpirySeconds)
+        return outcome.withOrderTotal(orderId).withExpiryFromClock(qrExpirySeconds)
     }
 
     override suspend fun paymentStatus(
@@ -174,6 +176,28 @@ class FakeBackendApi(
     ): Outcome<T> {
         synchronized(recorded) { recorded += Call(endpoint, args, key) }
         return script.next(extraDelay)
+    }
+
+    /**
+     * The sample order answers with the total of the request, as the real backend does when the kiosk's pricing is
+     * right, so the kiosk's "same total" checks (FR-016, TR-INT-04) pass for any cart. A scripted order is left alone.
+     */
+    private fun Outcome<CreatedOrder>.priceLikeRequest(request: OrderRequest): Outcome<CreatedOrder> {
+        val order = (this as? Outcome.Success)?.value ?: return this
+        val priced = if (order === SampleData.createdOrder) order.copy(totals = request.clientTotals) else order
+        synchronized(orderTotals) { orderTotals[priced.orderId] = priced.totals.total }
+        return Outcome.Success(priced)
+    }
+
+    /** The sample payments carry the total of their order, like the real backend's E9; a scripted one is left alone. */
+    private fun Outcome<StartedPayment>.withOrderTotal(orderId: String): Outcome<StartedPayment> {
+        val payment = (this as? Outcome.Success)?.value ?: return this
+        val total = synchronized(orderTotals) { orderTotals[orderId] } ?: return this
+        return when {
+            payment === SampleData.qrisPayment -> Outcome.Success(SampleData.qrisPayment.copy(amount = total))
+            payment === SampleData.cardPayment -> Outcome.Success(SampleData.cardPayment.copy(amount = total))
+            else -> this
+        }
     }
 
     private fun Outcome<StartedPayment>.withExpiryFromClock(qrExpirySeconds: Int?): Outcome<StartedPayment> {
