@@ -6,6 +6,7 @@ import com.hitachi.kiosk.core.data.repository.CatalogStore
 import com.hitachi.kiosk.core.data.repository.DefaultActivationRepository
 import com.hitachi.kiosk.core.data.repository.DefaultCatalogRepository
 import com.hitachi.kiosk.core.data.repository.DefaultMerchantRepository
+import com.hitachi.kiosk.core.data.repository.DefaultSettingsRepository
 import com.hitachi.kiosk.core.data.repository.SessionInvalidator
 import com.hitachi.kiosk.core.data.sync.CatalogSyncScheduler
 import com.hitachi.kiosk.core.data.sync.DefaultCatalogSyncRepository
@@ -14,6 +15,7 @@ import com.hitachi.kiosk.core.domain.repository.ActivationRepository
 import com.hitachi.kiosk.core.domain.repository.CatalogRepository
 import com.hitachi.kiosk.core.domain.repository.CatalogSyncRepository
 import com.hitachi.kiosk.core.domain.repository.MerchantRepository
+import com.hitachi.kiosk.core.domain.repository.SettingsRepository
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -43,6 +45,10 @@ internal abstract class RepositoryModule {
     /** A session wipe empties the same cache (FR-004 AC3). */
     @Binds
     abstract fun catalogCache(repository: DefaultCatalogRepository): CatalogCache
+
+    /** The device settings in `settings.preferences_pb` (FR-025, FR-026). */
+    @Binds
+    abstract fun settingsRepository(repository: DefaultSettingsRepository): SettingsRepository
 
     /** The 15-minute periodic sync (DEV-023). */
     @Binds

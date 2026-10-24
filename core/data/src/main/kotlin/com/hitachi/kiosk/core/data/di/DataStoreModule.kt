@@ -14,12 +14,14 @@ import com.hitachi.kiosk.core.data.prefs.KeystoreAead
 import com.hitachi.kiosk.core.data.prefs.SecureStore
 import com.hitachi.kiosk.core.data.prefs.SecureTokenStore
 import com.hitachi.kiosk.core.data.prefs.TokenStore
+import com.hitachi.kiosk.core.data.repository.DefaultSettingsRepository
 import com.hitachi.kiosk.core.domain.log.KioskLog
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
+import javax.inject.Named
 import javax.inject.Singleton
 
 /**
@@ -41,6 +43,12 @@ internal object DataStoreModule {
     fun tokenStore(
         @ApplicationContext context: Context,
     ): TokenStore = SecureTokenStore(SecureDataStore.get(context))
+
+    @Provides
+    @Named(DefaultSettingsRepository.SETTINGS_STORE)
+    fun settingsDataStore(
+        @ApplicationContext context: Context,
+    ): DataStore<Preferences> = context.settingsDataStore
 }
 
 /** `device.preferences_pb`. Unreadable content is replaced: FR-001 treats it as "not activated", never a crash. */
@@ -49,6 +57,16 @@ private val Context.deviceDataStore: DataStore<Preferences> by preferencesDataSt
     corruptionHandler =
         ReplaceFileCorruptionHandler {
             KioskLog.e("device_store_corrupt")
+            emptyPreferences()
+        },
+)
+
+/** `settings.preferences_pb`. Unreadable content is replaced by the defaults (FR-026 values, TR-REL-06). */
+private val Context.settingsDataStore: DataStore<Preferences> by preferencesDataStore(
+    name = "settings",
+    corruptionHandler =
+        ReplaceFileCorruptionHandler {
+            KioskLog.e("settings_store_corrupt")
             emptyPreferences()
         },
 )
