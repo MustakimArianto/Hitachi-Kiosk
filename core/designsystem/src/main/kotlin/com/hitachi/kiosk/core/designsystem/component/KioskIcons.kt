@@ -176,6 +176,21 @@ object KioskIcons {
 
     /** The backspace key of the budget keypad, stroke 1.8. */
     val Backspace: ImageVector = lineIcon("Backspace", "M9 5h11v14H9l-6-7zM12 9l5 6M17 9l-5 6", strokeWidth = 1.8f)
+
+    /** The padlock of "Secure payment" (`Checkout.dc.html`), stroke 2. */
+    val Lock: ImageVector = lineIcon("Lock", "M6 11V8a6 6 0 0 1 12 0v3M5 11h14v10H5z", strokeWidth = 2f)
+
+    /** The "✕" of the failure badge (`Checkout.dc.html`), stroke 2.4. */
+    val Cross: ImageVector = lineIcon("Cross", "M7 7l10 10M17 7L7 17", strokeWidth = 2.4f)
+
+    /** The circular arrow of "Try again" (`Checkout.dc.html`), stroke 2.2. */
+    val Retry: ImageVector = lineIcon("Retry", "M20 12a8 8 0 1 1-2.4-5.7M20 4v4h-4", strokeWidth = 2.2f)
+
+    /** The bobbing arrow under the card terminal (`Checkout.dc.html`), stroke 2. */
+    val ArrowDown: ImageVector = lineIcon("ArrowDown", "M12 4v15M5 13l7 7 7-7", strokeWidth = 2f)
+
+    /** The open ring of the offline failure badge, which turns (`S_Checkout_offline`), stroke 2.2. */
+    val SpinnerArc: ImageVector = lineIcon("SpinnerArc", "M12 3a9 9 0 1 0 9 9", strokeWidth = 2.2f)
 }
 
 private fun lineIcon(
