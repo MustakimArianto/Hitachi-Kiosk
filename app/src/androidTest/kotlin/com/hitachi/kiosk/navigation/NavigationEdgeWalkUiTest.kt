@@ -19,6 +19,9 @@ import com.hitachi.kiosk.R
 import com.hitachi.kiosk.core.domain.model.OrderType
 import com.hitachi.kiosk.core.domain.repository.ActivationRepository
 import com.hitachi.kiosk.core.domain.repository.MerchantRepository
+import com.hitachi.kiosk.feature.budgetplan.BUDGET_PLAN_BACK_TAG
+import com.hitachi.kiosk.feature.budgetplan.BUDGET_PLAN_CTA_TAG
+import com.hitachi.kiosk.feature.budgetplan.budgetPlanChipTag
 import com.hitachi.kiosk.feature.combo.COMBO_BACK_TAG
 import com.hitachi.kiosk.feature.combo.COMBO_CART_TAG
 import com.hitachi.kiosk.feature.idle.IDLE_STAFF_CORNER_TAG
@@ -119,14 +122,17 @@ class NavigationEdgeWalkUiTest {
         tapToOrder()
         pickDineIn()
         goTag(MENU_BUDGET_PLAN_TAG, "SCR-19")
-        go(R.string.nav_see_plans, "SCR-19")
-        assertText(R.string.nav_add_plan)
-        go(R.string.nav_back, "SCR-19")
-        assertText(R.string.nav_see_plans)
-        go(R.string.nav_back, "SCR-06")
+        goTag(budgetPlanChipTag(BUDGET), "SCR-19")
+        goTag(BUDGET_PLAN_CTA_TAG, "SCR-19")
+        assertText(R.string.budget_plan_add)
+        goTag(BUDGET_PLAN_BACK_TAG, "SCR-19")
+        assertText(R.string.budget_plan_see_plans)
+        goTag(BUDGET_PLAN_BACK_TAG, "SCR-06")
         goTag(MENU_BUDGET_PLAN_TAG, "SCR-19")
-        go(R.string.nav_see_plans, "SCR-19")
-        go(R.string.nav_add_plan, "SCR-10")
+        goTag(budgetPlanChipTag(BUDGET), "SCR-19")
+        goTag(BUDGET_PLAN_CTA_TAG, "SCR-19")
+        // "Added to order" shows for 1 s, then Your order opens.
+        goTag(BUDGET_PLAN_CTA_TAG, "SCR-10")
         go(R.string.nav_add_more, "SCR-06")
     }
 
@@ -222,6 +228,9 @@ class NavigationEdgeWalkUiTest {
     private companion object {
         /** Holds a little past the 2 s threshold. */
         const val HOLD_MARGIN_MILLIS = 200L
+
+        /** The Rp 150k chip of the sample config (FR-032 AC1). */
+        const val BUDGET = 150_000L
     }
 
     private fun assertText(

@@ -2,12 +2,7 @@ package com.hitachi.kiosk.navigation
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -15,6 +10,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.navigation
 import com.hitachi.kiosk.R
 import com.hitachi.kiosk.feature.activation.SignInRoute as SignInFeatureRoute
+import com.hitachi.kiosk.feature.budgetplan.BudgetPlanRoute as BudgetPlanFeatureRoute
 import com.hitachi.kiosk.feature.combo.ComboRoute as ComboFeatureRoute
 import com.hitachi.kiosk.feature.idle.IdleRoute as IdleFeatureRoute
 import com.hitachi.kiosk.feature.item.ItemDetailRoute as ItemDetailFeatureRoute
@@ -44,7 +40,7 @@ fun KioskNavHost(
     NavHost(navController = navController, startDestination = SplashRoute, modifier = modifier) {
         setupDestinations(navController, onBrandMarkClick)
         navigation<CustomerGraph>(startDestination = OrderTypeRoute) {
-            orderingDestinations(navController, onInactivity)
+            orderingDestinations(navController)
             checkoutDestinations(navController, onInactivity)
         }
         navigation<StaffGraph>(startDestination = StaffPinRoute) {
@@ -84,11 +80,7 @@ private fun NavGraphBuilder.setupDestinations(
 }
 
 /** SCR-05…SCR-08 and SCR-19: building the order. */
-private fun NavGraphBuilder.orderingDestinations(
-    navController: NavHostController,
-    onInactivity: () -> Unit,
-) {
-    val inactivity = PlaceholderAction(R.string.nav_simulate_inactivity, onInactivity)
+private fun NavGraphBuilder.orderingDestinations(navController: NavHostController) {
     composable<OrderTypeRoute> {
         OrderTypeFeatureRoute(onNavigateToMenu = { navController.navigate(MenuRoute) })
     }
@@ -118,7 +110,10 @@ private fun NavGraphBuilder.orderingDestinations(
         )
     }
     composable<BudgetPlanRoute> {
-        BudgetPlanPlaceholder(navController, inactivity)
+        BudgetPlanFeatureRoute(
+            onNavigateToMenu = { navController.popBackStack(MenuRoute, false) },
+            onNavigateToYourOrder = { navController.navigateToYourOrder() },
+        )
     }
 }
 
@@ -171,35 +166,6 @@ private fun NavGraphBuilder.checkoutDestinations(
             actions = listOf(PlaceholderAction(R.string.nav_done) { navController.popBackStack(IdleRoute, false) }),
         )
     }
-}
-
-@Composable
-private fun BudgetPlanPlaceholder(
-    navController: NavHostController,
-    inactivity: PlaceholderAction,
-) {
-    var step by rememberSaveable { mutableIntStateOf(1) }
-    val back = {
-        // Back from step 2 returns to step 1, Back from step 1 returns to Menu (architecture §11).
-        if (step == 2) step = 1 else navController.popBackStack(MenuRoute, false)
-    }
-    BackHandler(onBack = { back() })
-    val stepName = stringResource(if (step == 1) R.string.budget_plan_step_table else R.string.budget_plan_step_plan)
-    PlaceholderScreen(
-        screenId = "SCR-19",
-        title = R.string.screen_budget_plan,
-        subtitle = stringResource(R.string.budget_plan_step, step, stepName),
-        actions =
-            buildList {
-                if (step == 1) {
-                    add(PlaceholderAction(R.string.nav_see_plans) { step = 2 })
-                } else {
-                    add(PlaceholderAction(R.string.nav_add_plan) { navController.navigateToYourOrder() })
-                }
-                add(PlaceholderAction(R.string.nav_back) { back() })
-                add(inactivity)
-            },
-    )
 }
 
 private fun NavGraphBuilder.staffDestinations(navController: NavHostController) {

@@ -110,6 +110,18 @@ object KioskIcons {
             "M12 3a9 9 0 1 0 0 18a9 9 0 1 0 0-18z" to 2f,
             "M12 11v5M12 8h.01" to 2.2f,
         )
+
+    /** "✕" of sheet close buttons (`BudgetPas.dc.html` Customize), stroke 2.2. */
+    val Close: ImageVector = lineIcon("Close", "M6 6l12 12M18 6L6 18", strokeWidth = 2.2f)
+
+    /** The sliders of the Budget Plan "Customize" row, stroke 2. */
+    val Sliders: ImageVector = lineIcon("Sliders", "M4 7h9M17 7h3M4 17h3M11 17h9M13 4v6M7 14v6", strokeWidth = 2f)
+
+    /** The two opposed arrows of the Budget Plan "Swap" pill, stroke 2. */
+    val Swap: ImageVector = lineIcon("Swap", "M4 8h13l-3.5-3.5M20 16H7l3.5 3.5", strokeWidth = 2f)
+
+    /** The backspace key of the budget keypad, stroke 1.8. */
+    val Backspace: ImageVector = lineIcon("Backspace", "M9 5h11v14H9l-6-7zM12 9l5 6M17 9l-5 6", strokeWidth = 1.8f)
 }
 
 private fun lineIcon(
