@@ -23,7 +23,8 @@ import kotlin.coroutines.cancellation.CancellationException
  * Creates and cancels orders (E7, E8) and keeps the [PendingOrder] for process-death recovery (FR-016, DEV-045,
  * technical-design §5.3, architecture §5.3). Both calls carry an `Idempotency-Key`, so [retryWithBackoff] resends them
  * after a network error, 5xx or 429 (1 s, 2 s, 4 s) without ever creating or cancelling twice; business errors
- * (`PRICE_CHANGED`, `ITEM_UNAVAILABLE`, conflicts) are never retried and come back as they are.
+ * (`PRICE_CHANGED`, `ITEM_UNAVAILABLE`, conflicts) are never retried and come back as they are. A new order is
+ * refused (a conflict, nothing sent) while the pending order still has a payment that nothing settled.
  */
 internal class DefaultOrderRepository
     @Inject
@@ -42,6 +43,10 @@ internal class DefaultOrderRepository
             request: OrderRequest,
             key: IdempotencyKey,
         ): Outcome<CreatedOrder> {
+            if (holdsUnresolvedPayment(key)) {
+                KioskLog.w("order_create_refused_pending_payment")
+                return Outcome.Failure(DomainError.Conflict(PENDING_PAYMENT_UNRESOLVED))
+            }
             val outcome = retryWithBackoff { backend.createOrder(request, key) }
             val order =
                 when (outcome) {
@@ -65,6 +70,16 @@ internal class DefaultOrderRepository
                 KioskLog.e("pending_order_save_failed", "type" to e.javaClass.simpleName)
                 Outcome.Failure(DomainError.Unknown)
             }
+        }
+
+        /**
+         * The single pending row holds an order with a payment that nothing has settled yet (a cancel that failed, a
+         * deferred recovery): a new order must not replace it, or the kiosk would forget a payment that may be live
+         * (TR-REL-02, FR-016). The row of the same order (a retry with the same [key]) is not in the way.
+         */
+        private suspend fun holdsUnresolvedPayment(key: IdempotencyKey): Boolean {
+            val existing = pending() ?: return false
+            return existing.paymentId != null && existing.idempotencyKey != key
         }
 
         /**
@@ -125,6 +140,11 @@ internal class DefaultOrderRepository
         private fun unreadable(e: Exception): PendingOrder? {
             KioskLog.e("pending_order_unreadable", "type" to e.javaClass.simpleName)
             return null
+        }
+
+        private companion object {
+            /** E7 is not sent while the pending order still has an unsettled payment. */
+            const val PENDING_PAYMENT_UNRESOLVED = "PENDING_PAYMENT_UNRESOLVED"
         }
 
         private fun logFailure(

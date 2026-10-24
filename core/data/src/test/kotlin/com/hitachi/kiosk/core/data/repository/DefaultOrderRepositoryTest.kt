@@ -137,14 +137,40 @@ class DefaultOrderRepositoryTest {
         }
 
     @Test
-    fun `a new order replaces the pending one`() =
+    fun `a new order replaces a pending order that has no payment`() =
         runTest {
-            store.stored =
-                SamplePendingOrder.copy(orderId = "ord_old", paymentId = "pay_old", method = PaymentMethod.QRIS)
+            store.stored = SamplePendingOrder.copy(orderId = "ord_old")
 
             repository.create(request, IdempotencyKey("key-9"))
 
             assertThat(store.stored).isEqualTo(SamplePendingOrder.copy(idempotencyKey = IdempotencyKey("key-9")))
+        }
+
+    @Test
+    fun `a new order never replaces a pending order whose payment is unsettled (TR-REL-02)`() =
+        runTest {
+            val unsettled =
+                SamplePendingOrder.copy(orderId = "ord_old", paymentId = "pay_old", method = PaymentMethod.QRIS)
+            store.stored = unsettled
+
+            val outcome = repository.create(request, IdempotencyKey("key-9"))
+
+            assertThat(outcome).isEqualTo(Outcome.Failure(DomainError.Conflict("PENDING_PAYMENT_UNRESOLVED")))
+            assertThat(backend.callsTo(Endpoint.E7)).isEmpty()
+            assertThat(store.stored).isEqualTo(unsettled)
+        }
+
+    @Test
+    fun `once the unsettled payment is cleared a new order is created again`() =
+        runTest {
+            store.stored =
+                SamplePendingOrder.copy(orderId = "ord_old", paymentId = "pay_old", method = PaymentMethod.QRIS)
+            repository.create(request, IdempotencyKey("key-9"))
+
+            repository.clearPending()
+            val outcome = repository.create(request, IdempotencyKey("key-9"))
+
+            assertThat(outcome).isEqualTo(Outcome.Success(SampleData.createdOrder))
         }
 
     // cancel -----------------------------------------------------------------------------------------------------------

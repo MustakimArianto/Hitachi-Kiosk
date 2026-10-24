@@ -48,6 +48,11 @@ internal data class ConnectivityTimings(
     val probeTimeout: Duration = 5.seconds,
     /** The state must hold this long before it is published, so a flapping network does not flicker the banner. */
     val debounce: Duration = 1.seconds,
+    /**
+     * How long a connected but not validated network (a captive portal, no internet) stays CHECKING before it counts
+     * as OFFLINE. With the [debounce] it is at most 5 s, which keeps FR-028 AC1 for the banner.
+     */
+    val unvalidatedGrace: Duration = 4.seconds,
 )
 
 /**
@@ -58,10 +63,14 @@ internal data class ConnectivityTimings(
  * | Network | Last probe | Connectivity |
  * |---|---|---|
  * | none | any | OFFLINE |
- * | connected, not validated | any | CHECKING |
+ * | connected, not validated | any | CHECKING, OFFLINE after [ConnectivityTimings.unvalidatedGrace] |
  * | validated | none yet, or in flight after a network change | CHECKING |
  * | validated | healthy | ONLINE |
  * | validated | unhealthy or timed out | OFFLINE |
+ *
+ * A network the platform has not validated (a captive portal, no internet) is never CHECKING for ever: the Pay gate
+ * and the banner only react to OFFLINE, so after the grace it counts as OFFLINE. It is not probed: the platform
+ * reports a change when it validates, and that change starts the probe of the validated network (FR-028 AC2).
  *
  * Probing, only on a validated network:
  * - once on every network change (a new [NetworkStatus.state] or [NetworkStatus.id]);
@@ -99,9 +108,19 @@ internal class ConnectivityEngine(
             // A StateFlow already skips equal readings, so a signal-strength update does not restart the probe.
             network.collectLatest { status ->
                 health.value = Health.UNKNOWN
-                if (status.state == NetworkState.VALIDATED) probeWhileValidated()
+                when (status.state) {
+                    NetworkState.NONE -> Unit
+                    NetworkState.UNVALIDATED -> giveUpAfterGrace()
+                    NetworkState.VALIDATED -> probeWhileValidated()
+                }
             }
         }
+    }
+
+    /** A connected network that stays unvalidated is OFFLINE once the grace is over (FR-028 AC1). */
+    private suspend fun giveUpAfterGrace() {
+        delay(timings.unvalidatedGrace)
+        health.value = Health.UNHEALTHY
     }
 
     private suspend fun probeWhileValidated() {
@@ -136,7 +155,7 @@ internal class ConnectivityEngine(
             }
 
             NetworkState.UNVALIDATED -> {
-                Connectivity.CHECKING
+                if (health == Health.UNHEALTHY) Connectivity.OFFLINE else Connectivity.CHECKING
             }
 
             NetworkState.VALIDATED -> {

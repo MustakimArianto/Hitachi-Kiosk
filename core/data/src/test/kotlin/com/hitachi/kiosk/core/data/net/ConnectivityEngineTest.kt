@@ -90,13 +90,30 @@ class ConnectivityEngineTest {
         }
 
     @Test
-    fun `a network that is not validated is checking and is never probed`() =
+    fun `a network that is connected but not validated is checking for a moment, then offline (FR-028 AC1)`() =
+        runTest {
+            val h = harness(unvalidated)
+            advance(3.seconds)
+            assertThat(h.state).isEqualTo(Connectivity.CHECKING)
+
+            // The 4 s grace and the 1 s debounce: the banner is up within 5 s.
+            advance(2.seconds)
+
+            assertThat(h.state).isEqualTo(Connectivity.OFFLINE)
+            assertThat(h.probe.calls).isEqualTo(0)
+        }
+
+    @Test
+    fun `a network that validates later recovers within 10 s (FR-028 AC2)`() =
         runTest {
             val h = harness(unvalidated)
             advance(2.minutes)
+            assertThat(h.state).isEqualTo(Connectivity.OFFLINE)
 
-            assertThat(h.state).isEqualTo(Connectivity.CHECKING)
-            assertThat(h.probe.calls).isEqualTo(0)
+            h.network.value = validated
+            advance(2.seconds)
+
+            assertThat(h.state).isEqualTo(Connectivity.ONLINE)
         }
 
     @Test
@@ -150,15 +167,15 @@ class ConnectivityEngineTest {
         }
 
     @Test
-    fun `a captive portal after being online is checking`() =
+    fun `a captive portal after being online ends offline within 5 s`() =
         runTest {
             val h = harness(validated)
             advance(1.seconds)
 
             h.network.value = unvalidated
-            advance(1.seconds)
+            advance(5.seconds)
 
-            assertThat(h.state).isEqualTo(Connectivity.CHECKING)
+            assertThat(h.state).isEqualTo(Connectivity.OFFLINE)
         }
 
     // Probe cadence -----------------------------------------------------------------------------------------------
