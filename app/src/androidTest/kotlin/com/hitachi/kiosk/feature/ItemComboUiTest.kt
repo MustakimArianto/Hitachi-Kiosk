@@ -1,9 +1,10 @@
 package com.hitachi.kiosk.feature
 
+import androidx.compose.ui.test.hasAnyDescendant
+import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
-import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
@@ -12,6 +13,7 @@ import com.google.common.truth.Truth.assertThat
 import com.hitachi.kiosk.MainActivity
 import com.hitachi.kiosk.R
 import com.hitachi.kiosk.core.domain.cart.CartItem
+import com.hitachi.kiosk.core.domain.model.OrderType
 import com.hitachi.kiosk.core.domain.order.OrderSessionHolder
 import com.hitachi.kiosk.core.domain.repository.ActivationRepository
 import com.hitachi.kiosk.core.domain.repository.MerchantRepository
@@ -19,6 +21,9 @@ import com.hitachi.kiosk.feature.combo.COMBO_ADD_TAG
 import com.hitachi.kiosk.feature.item.ITEM_ADD_TAG
 import com.hitachi.kiosk.feature.item.ITEM_VIEW_ORDER_TAG
 import com.hitachi.kiosk.feature.item.itemOptionTag
+import com.hitachi.kiosk.feature.menu.MENU_MEALS_PILL_TAG
+import com.hitachi.kiosk.feature.menu.menuChooseTag
+import com.hitachi.kiosk.feature.ordertype.orderTypeCardTag
 import com.hitachi.kiosk.navigation.screenTag
 import com.hitachi.kiosk.testing.KioskState
 import com.hitachi.kiosk.testing.SCREEN_TIMEOUT_MS
@@ -74,25 +79,31 @@ class ItemComboUiTest {
     private fun startOrder() {
         compose.onNodeWithTag(screenTag("SCR-04")).performClick()
         compose.awaitScreen("SCR-05")
-        tapText(DINE_IN)
+        tapTag(orderTypeCardTag(OrderType.DINE_IN))
         compose.awaitScreen("SCR-06")
     }
 
-    private fun tapText(text: String) {
+    /** Taps the node tagged [tag], scrolling to it first when it sits in a scrollable container. */
+    private fun tapTag(tag: String) {
         compose.waitUntil(SCREEN_TIMEOUT_MS) {
-            compose.onAllNodes(hasText(text)).fetchSemanticsNodes().isNotEmpty()
+            compose.onAllNodes(hasTestTag(tag)).fetchSemanticsNodes().isNotEmpty()
         }
-        compose
-            .onAllNodes(hasText(text))
-            .onFirst()
-            .performScrollTo()
-            .performClick()
+        val node = compose.onNodeWithTag(tag)
+        if (compose
+                .onAllNodes(
+                    hasScrollAction() and hasAnyDescendant(hasTestTag(tag)),
+                ).fetchSemanticsNodes()
+                .isNotEmpty()
+        ) {
+            node.performScrollTo()
+        }
+        node.performClick()
     }
 
     @Test
     fun itemNeedsASizeThenAddsOneLineAndOpensYourOrder() {
         startOrder()
-        tapText(SMOKY_DOUBLE)
+        tapTag(menuChooseTag("b2"))
         compose.awaitScreen("SCR-08")
 
         // TC-044: the size is required.
@@ -124,7 +135,7 @@ class ItemComboUiTest {
     @Test
     fun comboAddsOnceOnADoubleTap() {
         startOrder()
-        tapText(MEALS)
+        tapTag(MENU_MEALS_PILL_TAG)
         compose.awaitScreen("SCR-07")
 
         compose
@@ -143,11 +154,5 @@ class ItemComboUiTest {
         assertThat(lines).hasSize(1)
         assertThat(lines.single().quantity).isEqualTo(1)
         assertThat((lines.single().item as CartItem.ComboItem).comboId).isEqualTo("combo_burger")
-    }
-
-    private companion object {
-        const val DINE_IN = "Dine in"
-        const val SMOKY_DOUBLE = "Smoky Double Burger"
-        const val MEALS = "Meals"
     }
 }

@@ -14,6 +14,12 @@ android {
         applicationId = "com.hitachi.kiosk"
         testInstrumentationRunner = "com.hitachi.kiosk.HiltTestRunner"
     }
+
+    // Instrumented tests run with system animations off, which the app reads as reduce motion (TR-ACC-05): Idle's
+    // back-to-back slide animations would otherwise never let Compose go idle.
+    testOptions {
+        animationsDisabled = true
+    }
 }
 
 roborazzi {
@@ -69,5 +75,6 @@ dependencies {
     androidTestImplementation(libs.androidx.test.ext.junit)
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     androidTestImplementation(libs.hilt.android.testing)
+    androidTestImplementation(libs.androidx.work.testing)
     kspAndroidTest(libs.hilt.compiler)
 }
