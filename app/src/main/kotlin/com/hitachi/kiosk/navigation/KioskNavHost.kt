@@ -15,8 +15,10 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.navigation
 import com.hitachi.kiosk.R
 import com.hitachi.kiosk.feature.activation.SignInRoute as SignInFeatureRoute
+import com.hitachi.kiosk.feature.idle.IdleRoute as IdleFeatureRoute
 import com.hitachi.kiosk.feature.menu.MenuRoute as MenuFeatureRoute
 import com.hitachi.kiosk.feature.merchant.MerchantsRoute as MerchantsFeatureRoute
+import com.hitachi.kiosk.feature.ordertype.OrderTypeRoute as OrderTypeFeatureRoute
 import com.hitachi.kiosk.feature.splash.SplashRoute as SplashFeatureRoute
 
 /**
@@ -72,14 +74,9 @@ private fun NavGraphBuilder.setupDestinations(
         )
     }
     composable<IdleRoute> {
-        PlaceholderScreen(
-            screenId = "SCR-04",
-            title = R.string.screen_idle,
-            actions =
-                listOf(
-                    PlaceholderAction(R.string.nav_tap_anywhere) { navController.navigate(CustomerGraph) },
-                    PlaceholderAction(R.string.nav_hold_staff_entry) { navController.navigate(StaffGraph) },
-                ),
+        IdleFeatureRoute(
+            onStartOrder = { navController.navigate(CustomerGraph) },
+            onStaffEntry = { navController.navigate(StaffGraph) },
         )
     }
 }
@@ -91,15 +88,7 @@ private fun NavGraphBuilder.orderingDestinations(
 ) {
     val inactivity = PlaceholderAction(R.string.nav_simulate_inactivity, onInactivity)
     composable<OrderTypeRoute> {
-        PlaceholderScreen(
-            screenId = "SCR-05",
-            title = R.string.screen_order_type,
-            actions =
-                listOf(
-                    PlaceholderAction(R.string.nav_pick_order_type) { navController.navigate(MenuRoute) },
-                    inactivity,
-                ),
-        )
+        OrderTypeFeatureRoute(onNavigateToMenu = { navController.navigate(MenuRoute) })
     }
     composable<MenuRoute> {
         MenuFeatureRoute(

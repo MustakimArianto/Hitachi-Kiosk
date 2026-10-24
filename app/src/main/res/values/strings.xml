@@ -6,8 +6,6 @@
     <string name="placeholder_caption">Placeholder screen</string>
     <string name="placeholder_developer_mark">Brand mark</string>
 
-    <string name="screen_idle">Idle</string>
-    <string name="screen_order_type">Dine in or takeaway</string>
     <string name="screen_menu">Menu</string>
     <string name="screen_combo">Combos</string>
     <string name="screen_item">Item</string>
@@ -29,9 +27,6 @@
     <string name="budget_plan_step_plan">Your plan</string>
 
     <!-- Edges of PRD §5.1 -->
-    <string name="nav_tap_anywhere">Tap anywhere</string>
-    <string name="nav_hold_staff_entry">Hold bottom right for 2 s</string>
-    <string name="nav_pick_order_type">Pick an order type</string>
     <string name="nav_product_card">Product card</string>
     <string name="nav_plan_by_budget">Plan by budget</string>
     <string name="nav_meals">Meals</string>
@@ -127,6 +122,24 @@
     <string name="max_per_item_toast">Maximum 20 per item</string>
 
     <!-- SCR-04 Idle and SCR-05 Order type (Idle.dc.html, OrderType.dc.html, FR-006, FR-007) -->
+    <string name="idle_title">Hungry?</string>
+    <string name="idle_subtitle">Order here and skip the queue.</string>
+    <string name="idle_tap_to_order">Tap to order</string>
+    <string name="idle_helper">Touch the screen to start your order</string>
+    <string name="idle_staff_corner">Staff settings, press and hold</string>
+    <string name="idle_issue_dot">Staff attention needed</string>
+    <string name="order_type_welcome">Welcome to</string>
+    <string name="order_type_welcome_description">Welcome to %1$s</string>
+    <string name="order_type_question">Where are you eating today?</string>
+    <string name="order_type_question_single">Ready when you are</string>
+    <string name="order_type_group">Order type</string>
+    <string name="order_type_dine_in">Dine in</string>
+    <string name="order_type_dine_in_description">Served on a tray. We\'ll call your number.</string>
+    <string name="order_type_takeaway">Takeaway</string>
+    <string name="order_type_takeaway_description">Packed in a sealed bag, ready to go.</string>
+    <string name="order_type_takeaway_unavailable">Takeaway isn\'t offered at this restaurant right now.</string>
+    <string name="order_type_dine_in_unavailable">Dine in isn\'t offered at this restaurant right now.</string>
+    <string name="order_type_footer">Powered by Hitachi Kiosk</string>
     <!-- end SCR-04 / SCR-05 -->
 
     <!-- SCR-06 Menu (Menu.dc.html, FR-009) -->
