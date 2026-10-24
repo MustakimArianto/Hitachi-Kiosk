@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Version | v1 draft (2026-10-23) — combo slot options carry an optional `available` for sold-out sides and drinks (E6, FR-011); merchants carry an optional `opensAt` for the closed badge (E1/E2, FR-004); state conflicts on E3, E8 and E9 have their own 409 codes; E6 is the full design menu, with required choices on b2 (size, FR-010), c4, r1 and d2 |
+| Version | v1 draft (2026-10-23) — combo slot options carry an optional `available` for sold-out sides and drinks (E6, FR-011); merchants carry an optional `opensAt` for the closed badge (E1/E2, FR-004); state conflicts on E3, E8 and E9 have their own 409 codes; E6 is the full design menu, with required choices on b2 (size, FR-010), c4, r1 and d2; E8 cancel is idempotent: cancelling a `CANCELLED` order answers 200 (0.5.0, DEV-053) |
 | Consumer | Hitachi Kiosk Android app |
 | Requirements | [`../product-requirement.md`](../product-requirement.md) §10 (endpoints E1–E14) |
 | Status | **Proposed.** Build the mock server from this document. The real backend implements the same contract (PRD D-06). |
@@ -585,6 +585,8 @@ Every SINGLE and MULTI choice is sent. Of the LEVEL options, only the changed on
 { "orderId": "ord_7Hq2k9", "status": "CANCELLED" }
 ```
 **Errors:** `409 ORDER_ALREADY_PAID` if the order is already `PAID` (the app must then go to Complete).
+
+Cancelling an order that is already `CANCELLED` also answers `200` with status `CANCELLED`, so a retry after a lost response and the app's recovery cancel (`APP_RECOVERY`) are safe. The app sends `Idempotency-Key` on E8 and reuses it for every retry of one cancel.
 
 ---
 
