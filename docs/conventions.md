@@ -5,7 +5,7 @@ How code is written and how changes land. [`architecture.md`](architecture.md) c
 ## 1. Packages
 
 ```
-com.hitachi.kiosk                      :app (MainActivity, KioskApp, navigation/, di/, devtools/, kiosk/, image/, sync/, ui/, log/, time/)
+com.hitachi.kiosk                      :app (MainActivity, KioskApp, navigation/, di/, devtools/, kiosk/, inactivity/, image/, sync/, ui/, log/, time/)
 com.hitachi.kiosk.debug                :app src/debug only (Developer options, switchable wrappers)
 com.hitachi.kiosk.feature.<feature>    :app feature packages (menu, cart, checkout, …)
 com.hitachi.kiosk.core.designsystem    :core:designsystem (theme/, unit/, motion/, component/)

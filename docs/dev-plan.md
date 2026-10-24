@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Document version | 1.4 (2026-10-24) — 0.3.0 implemented; the benchmarks (DEV-031) moved to 1.0.0 (see the 0.3.0 status note) |
+| Document version | 1.5 (2026-10-24) — 0.4.0 implemented (see the 0.4.0 status note); 1.4: 0.3.0 implemented and the benchmarks (DEV-031) moved to 1.0.0 |
 | Requirements | [`product-requirement.md`](product-requirement.md) (FR-xxx, NFR-xxx, D-xx, A-xx, OQ-xx), [`technical-requirement.md`](technical-requirement.md) (TR-) |
 | Implementation | [`technical-design.md`](technical-design.md), [`technology-stack.md`](technology-stack.md) (versions for DEV-001) |
 | Tests | [`testing-plan.md`](testing-plan.md) (TC-xxx) |
@@ -317,41 +317,41 @@ Complete the ordering half of the journey:
 
 ### Scope
 **Included:** PricingEngine, full cart management, the OrderSession state machine, the Budget Plan optimizer + SCR-19 + Menu entry row + menu data fields, SCR-10 Your order (totals, methods, empty state), SCR-09 Upsell, the SCR-13 inactivity overlay.
-**Excluded:** Order submission and payment (0.5.0), the offline gate on Pay (0.5.0; Pay navigates to the 0.5.0 placeholder).
+**Excluded:** Order submission and payment (0.5.0; Pay navigates to the 0.5.0 placeholder) and the E14-backed checkout gate (DEV-051). SCR-10 already disables Pay while the validated network is down (`S_Payment_offline`, built with DEV-037a).
 
 ### TODO checklist
-- [ ] **DEV-035** `PricingEngine` in `:core:domain` (FR-013, BR-01–BR-04).
+- [x] **DEV-035** `PricingEngine` in `:core:domain` (FR-013, BR-01–BR-04).
   - Integer IDR, threshold promo, exclusive tax with half-up rounding, upward total rounding with a "Rounding" line, the unlock hint, and an `IdrFormatter`.
   - *Verify:* table-driven unit tests TC-055–TC-061, including the Rp 172.700 sample, plus property-based tests (total ≥ 0, monotonic in qty).
-- [ ] **DEV-036** `Cart` domain (FR-012): add/merge, increment, decrement-to-remove, the limits of 20 per line and 30 lines with error results, and the line description builder (e.g. "Fries · Cola · Extra cheddar · No onion"). *0.3.0 already has `Cart.add` with the merge, both limits and the structured `LineChoice` parts; this task adds increment, decrement, removal and the worded description.*
+- [x] **DEV-036** `Cart` domain (FR-012): add/merge, increment, decrement-to-remove, the limits of 20 per line and 30 lines with error results, and the line description builder (e.g. "Fries · Cola · Extra cheddar · No onion"). *0.3.0 already has `Cart.add` with the merge, both limits and the structured `LineChoice` parts; this task adds increment, decrement, removal and the worded description.*
   - *Verify:* unit tests TC-050–TC-052.
-- [ ] **DEV-041** `OrderSession` state machine (PRD §12.2) owning the cart, order type and the upsell-shown flag. Every transition to Idle resets it. *0.3.0 already has `OrderSessionHolder` and an `OrderSession` with the TypeChosen and Building states; this task adds the remaining states and transitions.*
+- [x] **DEV-041** `OrderSession` state machine (PRD §12.2) owning the cart, order type and the upsell-shown flag. Every transition to Idle resets it. *0.3.0 already has `OrderSessionHolder` and an `OrderSession` with the TypeChosen and Building states; this task adds the remaining states and transitions.*
   - *Verify:* state-transition unit tests for every edge.
-- [ ] **DEV-037** SCR-10 Your order per `Payment.dc.html` (FR-012). The order lines are the primary scroll area (at least 3½ rows visible above the summary panel), with roll animations and slide-out removal, the fade mask, the empty state, step label, item count plural, "Add more" and the order-type chip.
+- [x] **DEV-037** SCR-10 Your order per `Payment.dc.html` (FR-012). The order lines are the primary scroll area (at least 3½ rows visible above the summary panel), with roll animations and slide-out removal, the fade mask, the empty state, step label, item count plural, "Add more" and the order-type chip.
   - Lines that came from a Budget Plan carry a "Budget Plan plan" tag row above the list (`plan`), and the promo nudge "Add Rp X more to get Rp 10.000 off" appears as a banner with a progress bar while the subtotal is under the threshold.
   - Banners (price changed, offline, nudge) scroll inside the list so the summary panel never leaves the screen.
   - *Verify:* TC-053, TC-054.
-- [ ] **DEV-037a** SCR-10 blocking states per the state boards (FR-012, FR-015, FR-016, FR-028): `S_Payment_priceChanged` ("Prices have been updated. Please review your order." with Review), `S_Payment_itemUnavailable` ("1 item is no longer available." with Remove on the line), `S_Payment_offline` ("Ordering is paused — reconnecting…"), `S_Payment_noMethods` ("No payment methods right now" / "Please ask a team member for help."), `S_Payment_emptyTray` ("Your tray is empty" with "Back to menu") and `S_Payment_promoNudge`. In every blocking state Pay is disabled and shows the reason.
+- [x] **DEV-037a** SCR-10 blocking states per the state boards (FR-012, FR-015, FR-016, FR-028): `S_Payment_priceChanged` ("Prices have been updated. Please review your order." with Review), `S_Payment_itemUnavailable` ("1 item is no longer available." with Remove on the line), `S_Payment_offline` ("Ordering is paused — reconnecting…"), `S_Payment_noMethods` ("No payment methods right now" / "Please ask a team member for help."), `S_Payment_emptyTray` ("Your tray is empty" with "Back to menu") and `S_Payment_promoNudge`. In every blocking state Pay is disabled and shows the reason.
   - *Verify:* TC-177 and a screenshot test per board.
-- [ ] **DEV-038** Summary panel and payment method tiles (FR-013 display, FR-015).
+- [x] **DEV-038** Summary panel and payment method tiles (FR-013 display, FR-015).
   - The dark summary panel is compact (about 520 dpx): it shows the large Total and a "Details" toggle. Details expands Subtotal, the Promo line, the PB1 label from config and the Rounding line; the list above resizes to match.
   - Method tiles are **two wide tiles, QRIS and Card** (methods = settings ∩ config); there is no "At counter" tile. The Pay label equals the total; the disabled state.
   - *Verify:* TC-065–TC-067, TC-173.
-- [ ] **DEV-039** SCR-09 Upsell per `Upsell.dc.html` (FR-014): a "Your order" summary strip (thumbs, item count, total), up to 4 suggestions in a 2 × 2 grid with quick add, "No thanks" and "Continue · Rp X", once per order, and the toggle read from settings (default on).
+- [x] **DEV-039** SCR-09 Upsell per `Upsell.dc.html` (FR-014): a "Your order" summary strip (thumbs, item count, cart subtotal), up to 4 suggestions in a 2 × 2 grid with quick add, "No thanks" and "Continue · Rp X", once per order, and the toggle read from settings (default on).
   - When nothing is left to suggest, show "Nothing more to suggest" ("Your order already has everything it needs…") with a single "Review order" button (`S_Upsell_noSuggestions`).
   - *Verify:* TC-062–TC-064, TC-172. The design exists, so no interim UI or restyle task is needed.
-- [ ] **DEV-040** Inactivity controller (FR-023). A global touch observer on customer routes with the configurable timeout and the SCR-13 overlay per `StillThere.dc.html`: the current screen stays visible under a blurred scrim, with the "Still there?" card, a 15 s ring, "Continue ordering" and "Start over". The last 5 s pulse (`scenario=countdownLow`).
+- [x] **DEV-040** Inactivity controller (FR-023). A global touch observer on customer routes with the configurable timeout and the SCR-13 overlay per `StillThere.dc.html`: the current screen stays visible under a blurred scrim, with the "Still there?" card, a 15 s ring, "Continue ordering" and "Start over". The last 5 s pulse (`scenario=countdownLow`).
   - Excluded on Checkout pending/processing, Complete and settings. The empty-cart rule on SCR-05 applies [A-23].
   - *Verify:* TC-101–TC-104 using a test clock.
 
 **Budget Plan (FR-032)**
-- [ ] **DEV-044** Menu and config data for the planner (prereq: DEV-020, DEV-022).
+- [x] **DEV-044** Menu and config data for the planner (prereq: DEV-020, DEV-022).
   - Add `role`, `kidFriendly`, `servesAdults`, `shareable` and `plannerWeight` to the Product domain model and its DTO mapper.
   - Add the `budgetPlanner` block (`enabled`, `overCapPercent` default 10, `maxGroupSize` default 10, `quickBudgets`) to MerchantConfig.
   - Default missing values: role → MAIN for categories with no tag [logged as a data warning], kidFriendly → false, servesAdults → 1.
   - Update the `:core:testing` fixtures to the tagged sample menu in `api-spec.md` §4.
   - *Verify:* mapper unit tests, fixture equality with `api-spec.md`.
-- [ ] **DEV-042** `BudgetPlanner` in `:core:domain` (prereq: DEV-035, DEV-036, DEV-044).
+- [x] **DEV-042** `BudgetPlanner` in `:core:domain` (prereq: DEV-035, DEV-036, DEV-044).
   - Input: budget, adults, children, menu, config. Output: `under` and `over` plans (each a list of cart lines grouped per person + shared) plus the edge-case outcome.
   - Algorithm:
     1. Build per-person slot candidates per BR-13/BR-14 (adult: main + drink or a combo; child: kid-friendly main + drink, falling back to the cheapest main).
@@ -363,15 +363,24 @@ Complete the ordering half of the journey:
     7. Options: `includeSides`, `includeDesserts` and `tolerance` (STRICT = only plans at or under budget; PLUS_10 = allow the over plan within `overCapPercent`).
   - Pure Kotlin, deterministic (stable ordering), no Android dependency.
   - *Verify:* TC-161–TC-166 and TC-169 (exact values: Rp 149.600 / Rp 150.700; the Rp 99.000 promo twist now an exact match; Rp 116.600 infeasible), TC-170 (rebalancing). Property test (1,000 random groups/budgets): under ≤ budget, budget < over ≤ cap, every person covered, ≤ 1 main per person. A JVM micro-benchmark for the 10-person worst case.
-- [ ] **DEV-043** SCR-19 Budget Plan UI + the Menu entry row, per `BudgetPas.dc.html` (prereq: DEV-042, DEV-027).
+- [x] **DEV-043** SCR-19 Budget Plan UI + the Menu entry row, per `BudgetPas.dc.html` (prereq: DEV-042, DEV-027).
   - **Step 1 "Your table":** the budget as a large amount with quick chips (Rp 50k / 100k / 150k / 200k from `quickBudgets`) and "Other" (exact-amount keypad, to the nearest Rp 100), and Adults / Children steppers with the group limit. The dock button is "See plans"; it is disabled for an empty budget.
   - **Step 2 "Your plan":** one hero plan card with the final total and a badge ("Exact match", "Rp X left", "+Rp X over", "Need Rp X more", "More than enough"); a "Just under" / "Just over" segmented control only when both plans exist; collapsed rows "What's included" (per-person grouping) and "Price details" (breakdown); a "Customize" row; the dock "Add plan to order · Rp X" loads the lines into `Cart`, flags them as a plan and navigates to SCR-10. Back returns to Step 1 with the inputs kept.
   - Edge states in the same layout: budget too low ("Need Rp X more", closest complete plan), "More than enough", and a group over `maxGroupSize` ("Please order in smaller groups", "Set group to 10", dock disabled).
   - The entry is the slim "Plan by budget" row on the Menu's Popular view, hidden when `budgetPlanner.enabled` is false.
   - *Verify:* TC-167 and TC-169–TC-171 (Compose UI); screenshot tests of `S_BudgetPas_exact`, `S_BudgetPas_tooLow`, `S_BudgetPas_moreThanEnough`, `S_BudgetPas_group` and the two default steps; TC-168 benchmark on the device in 1.0.0 (DEV-031).
-- [ ] **DEV-043a** Budget Plan "Customize" bottom sheet (prereq: DEV-043, DEV-042).
+- [x] **DEV-043a** Budget Plan "Customize" bottom sheet (prereq: DEV-043, DEV-042).
   - Header with the live total; "Swap items" (per item, uses the rebalancing `swap`); toggles "Include sides" and "Include desserts"; "Strict" / "Up to +10 %" over-budget control; "Reset to suggested"; "Done". The sheet is closed by default so Step 2 stays simple.
   - *Verify:* TC-170. If time is short these options (not Swap) are the 1.0.1 cut in §3.
+
+### 0.4.0 status (2026-10-24)
+- All twelve 0.4.0 tasks are done: `./gradlew verify` is green, and the instrumented suite (31 tests, including the new `OrderingUiTest`) passes on the API 37 emulator. Evidence: [`docs/test-reports/0.4.0.md`](test-reports/0.4.0.md).
+- PO decision (2026-10-24, PRD 1.7): the first "View order" on the Menu in every order goes through SCR-09 when "Suggest add-ons" is on; with nothing left to suggest SCR-09 shows "Nothing more to suggest" (FR-014, TC-172).
+- New in `:core:domain`: `KioskSettings` + `SettingsRepository` (the four keys the ordering screens read; `SettingsStore` on `settings.preferences_pb` in `:core:data`). The 0.7.0 settings screens (DEV-068, DEV-069) write through the same repository.
+- Built ahead of later tasks, so those tasks extend it: the Pay gate when offline on SCR-10 (DEV-051 adds the E14 probe and the checkout gate) and the `S_Payment_priceChanged` / `S_Payment_itemUnavailable` visuals and their Review / Remove actions (DEV-046 feeds them from E7). The SCR-10 Pay button only navigates to the Checkout placeholder; `OrderSession.submit()` is called by DEV-045.
+- Not in 0.4.0: the staff settings' own 120 s timeout of TC-104 (A-22) comes with the PIN gate (DEV-066, 0.7.0); TC-104 here covers Checkout, Complete and the staff placeholders (timer off).
+- `docs/pricing-cases.md` (25 carts) and `docs/budget-plan-cases.md` (16 cases, computed by an independent exhaustive search) are checked row by row by the tests. The planner takes about 0.7 ms (P95) for 10 adults on the JVM, and about 45 ms on a menu whose prices share only Rp 1; the device benchmark is TC-168 in 1.0.0.
+- Open for the PO, listed in [`todo.md`](../todo.md): the review of the built Upsell and Budget Plan screens against their designs (exit criterion), the 20-cart pricing spreadsheet spot check and the 10-combination plan sanity review (manual testing requirements), and the API 30 and API 34/35 emulator runs.
 
 ### Acceptance criteria
 FR-012 AC1–AC3, FR-013 AC1–AC3 (AC4 deferred to 0.5.0), FR-014 AC1–AC3, FR-015 AC1–AC3, FR-023 AC1–AC4 and FR-032 AC1–AC5 + AC7 pass. FR-032 AC6 is measured with the JVM micro-benchmark here (DEV-042) and confirmed with the macrobenchmark on the iMin device in 1.0.0 (DEV-031).
@@ -384,8 +393,8 @@ FR-012 AC1–AC3, FR-013 AC1–AC3 (AC4 deferred to 0.5.0), FR-014 AC1–AC3, FR
 - Regression: 0.3.0 menu suite.
 
 ### Deliverables
-- A pricing engine with a test table (`docs/pricing-cases.md`, generated from the tests).
-- The Budget Plan planner with its case table (`docs/budget-plan-cases.md`, generated from the tests).
+- A pricing engine with a test table (`docs/pricing-cases.md`, checked row by row by the tests).
+- The Budget Plan planner with its case table (`docs/budget-plan-cases.md`, computed by an independent exhaustive search and checked row by row by the tests).
 - A complete ordering flow up to Pay.
 
 ### Exit criteria

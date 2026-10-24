@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Document version | 1.4 (2026-10-24) — 0.3.0: quick add needs a choice only without a default (TC-039), sold-out combo options (TC-176), connectivity fake in instrumented tests; benchmark TCs (TC-142–TC-144, TC-168) move to 1.0.0 |
+| Document version | 1.5 (2026-10-24) — 0.4.0: the pricing and Budget Plan case tables are checked by tests (TC-060, TC-161–TC-165); Upsell shows once per order with the no-suggestions fallback (TC-172, PO); TC-104's staff-settings timeout runs with the PIN gate in 0.7.0. 1.4: 0.3.0 changes; benchmark TCs move to 1.0.0 |
 | Requirements | [`product-requirement.md`](product-requirement.md) |
 | Development roadmap | [`dev-plan.md`](dev-plan.md) |
 | API contract | [`api/api-spec.md`](api/api-spec.md) |
@@ -64,7 +64,8 @@ Every external dependency has a scriptable fake (dev-plan DEV-005). The debug-on
 
 ### 2.2 Test data
 - **Menu and config:** the design sample data (`api-spec.md` §3 E5/E6, §4) is the canonical fixture. Fixtures live in `:core:testing/src/main/resources/fixtures/` and are byte-identical to the spec examples.
-- **Pricing table:** `docs/pricing-cases.md` (generated in 0.4.0) holds ≥ 20 carts with expected subtotal, discount, tax, rounding and total.
+- **Pricing table:** `docs/pricing-cases.md` (0.4.0) holds ≥ 20 carts with expected subtotal, discount, tax, rounding and total; `PricingCasesTest` checks every row (TC-060).
+- **Budget Plan table:** `docs/budget-plan-cases.md` (0.4.0) holds the planner cases on the sample menu, computed by an independent exhaustive search; `BudgetPlanCasesTest` checks every row (TC-161–TC-165).
 - **Staff PIN:** `1234` in mock/fakes. Never a real merchant PIN in tests or logs.
 - **Devices:** SN `IMN24K0003118` (registered) and `IMN24K9999999` (unregistered) in the mock.
 - **Payments:** gateway sandbox test cards and QRIS test wallets (DEP-2) in 0.9.0. Production: one real QRIS and one real card transaction of the lowest menu price, refunded (DEV-102).
@@ -269,7 +270,7 @@ Test data: the tagged sample menu from `api-spec.md` §4 (kid-friendly mains b1,
 | TC-101 | FR-023 | Overlay at timeout | Timeout 60 s, on Menu with items | No touch 60 s (test clock) | "Still there?" with 15 s ring at 60 ± 1 s | UI | H | Y |
 | TC-102 | FR-023 | Continue | Overlay shown | Tap | Overlay gone; timer reset; cart intact | UI | H | Y |
 | TC-103 | FR-023 | Cancel on expiry | Overlay shown | Wait 15 s | Idle; cart empty | UI | H | Y |
-| TC-104 | FR-023 | Excluded screens | Checkout pending, Complete, Settings | Wait beyond timeout | No overlay on any of them (Settings exits after 120 s) | UI | H | Y |
+| TC-104 | FR-023 | Excluded screens | Checkout pending, Complete, Settings | Wait beyond timeout | No overlay on any of them (Settings exits after 120 s). The overlay part runs from 0.4.0; the Settings 120 s exit runs with the PIN gate (DEV-066, 0.7.0) | UI | H | Y |
 
 ### 5.8 Staff settings and kiosk (FR-024 – FR-031)
 

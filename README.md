@@ -2,7 +2,7 @@
 
 Android self-order kiosk app for iMin kiosks (Kotlin, Jetpack Compose, `minSdk 30`, portrait 1080 × 1920). Customers order and pay by QRIS or card (EDC); staff configure printers, payment and kiosk behaviour. It runs in lock-task mode as device owner.
 
-**Status: `0.3.0` Catalog.** On top of device activation (0.2.0), a customer can start an order and browse and customize the whole menu: Idle, Order type, Menu with quick add and the cart dock, Item detail and Combo, backed by a menu cached in Room that syncs with ETags (at binding, at startup, every 15 minutes, on reconnect) and works offline. Your order, payment and the screens after it are still labelled placeholders until their milestones ([`docs/dev-plan.md`](docs/dev-plan.md)). The serial-number source still needs its on-device spike ([ADR-0002](docs/adr/0002-device-serial.md)).
+**Status: `0.4.0` Cart, pricing, Budget Plan, upsell & inactivity.** On top of device activation (0.2.0) and the cached, synced menu (0.3.0: Idle, Order type, Menu, Item detail, Combo), a customer can complete the ordering half of the journey: the Upsell step, Your order with live totals (promo, PB1, rounding) and the QRIS / Card choice, the Budget Plan group meal planner, and the "Still there?" inactivity overlay. Checkout and the screens after it are still labelled placeholders until their milestones ([`docs/dev-plan.md`](docs/dev-plan.md)). The serial-number source still needs its on-device spike ([ADR-0002](docs/adr/0002-device-serial.md)).
 
 | Start here | |
 |---|---|

@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | Product | Hitachi Kiosk (Android self-ordering kiosk app) |
-| Document version | 1.6 (2026-10-23), see the [revision history](#revision-history) |
+| Document version | 1.7 (2026-10-24), see the [revision history](#revision-history) |
 | Target release | `1.0.0` |
 | Companion documents | [`technical-requirement.md`](technical-requirement.md), [`technical-design.md`](technical-design.md), [`technology-stack.md`](technology-stack.md), [`architecture.md`](architecture.md), [`dev-plan.md`](dev-plan.md), [`testing-plan.md`](testing-plan.md) |
 | Design source of truth | [`ui-design/`](ui-design/) — the final light design "Linen & Paprika": 20 screen artboards, 33 state boards (`S_<Screen>_<scenario>`), the `Photo` component, `canvas.json` and `README.md`. It is mirrored from https://claude.ai/artifact/Lv6W9bttmG8fH4ho4CkWMg |
@@ -17,6 +17,7 @@
 | 1.3 | 2026-10-23 | DEP-1 owner: the PO builds the mock and the backend from `api/api-spec.md`. |
 | 1.4 | 2026-10-23 | A-42: option choice for planned items. The api-spec sample menu is complete and adds required choices on c4, r1 and d2. |
 | 1.5 | 2026-10-23 | 0.2.0 decisions (PO): a closed merchant's opening time comes from the new optional E1/E2 field `opensAt` ("Closed" when unknown); SCR-03 lists **every** coming-soon merchant and scrolls; copy for a sign-in failure outside FR-003's three cases and for a merchant-list failure; while a bind runs the chosen card shows a spinner. Design colours used by the 0.2.0 screens added to §11.1. |
+| 1.7 | 2026-10-24 | 0.4.0 decisions: the PO decided that the first "View order" on the Menu in every order goes through SCR-09 when "Suggest add-ons" is on, with the "Nothing more to suggest" state when nothing is left (FR-014, TC-172); A-43 (a plan is added to the cart whole, next to what is already there; SCR-19 opens empty) and A-44 (children's drinks, combo `serves`, shared extras) record how the planner reads FR-032; SCR-09's strip and "Continue" both show the cart subtotal as drawn; design colours used by the 0.4.0 screens added to §11.1. |
 | 1.6 | 2026-10-23 | 0.3.0 decisions (PO): a product needs a choice ("Choose ›", no quick add) only when a required group has **no default** option, so s1 and d1 quick-add with their defaults (FR-009, A-08); OQ-08 closed, sold-out products stay hidden (A-09); A-29 is kept strictly, so Item detail shows "No longer available" from the catalog the order started with (FR-010); a combo side or drink can be sold out (new optional E6 field `available`, FR-011); the offline banner is driven by the validated network until the E14 probe of 0.5.0 (FR-028). Banner and toast colours added to §11.1. |
 
 ## 0. How to read this document
@@ -458,14 +459,14 @@ Priority: **MVP** = required for 1.0.0. **Post-1.0** = specified for later, not 
 
 ### FR-014 Upsell ("Suggest add-ons") — MVP
 - **Description:** Before payment, offer sides and desserts [V toggle text: "Offer sides and desserts before payment"] [D-16].
-- **Behavior [V, `Upsell.dc.html`]:** When enabled (FR-026) and the cart has no item from the configured upsell categories, the first "View order" tap of an order shows SCR-09. The eyebrow reads "Before you pay", the title "Anything on the side?" and the subtitle "A side or something sweet goes well with your order." A strip shows the current cart ("Your order", item count, total). A 2 × 2 grid lists up to 4 suggestions from the backend `upsell` list (default: Sides and Desserts categories), each with photo, name, note, price and a quick-add button. The dock holds "No thanks" and "Continue · Rp X" (→ SCR-10). It is shown at most once per order.
-- **Empty state:** with nothing to suggest, SCR-09 shows "You're all set" / "Your order already has everything it needs. Review it and pay when you're ready." with a single "Review order" button. Better: the app skips SCR-09 entirely when there are no suggestions, and the state exists as a fallback.
-- **Rules:** Suggestions exclude items already in the cart.
+- **Behavior [V, `Upsell.dc.html`]:** When enabled (FR-026), the first "View order" tap on the Menu in an order shows SCR-09, whatever the cart holds (PO, 2026-10-24). The eyebrow reads "Before you pay", the title "Anything on the side?" and the subtitle "A side or something sweet goes well with your order." A strip shows the current cart ("Your order", item count and the cart subtotal, as on the Menu dock). A 2 × 2 grid lists up to 4 suggestions from the backend `upsell` list (default: Sides and Desserts categories), each with photo, name, note, price and a quick-add button. The dock holds "No thanks" and "Continue · Rp X" (→ SCR-10), where X is the same cart subtotal; promo, tax and rounding first appear on SCR-10. It is shown at most once per order.
+- **Empty state [V, `S_Upsell_noSuggestions`]:** with nothing left to suggest (every candidate is already in the cart or unavailable), SCR-09 is titled "You're all set" / "Nothing else to suggest with this order." and its panel reads "Nothing more to suggest" / "Your order already has everything it needs. Review it and pay when you're ready.", with a single "Review order" button (→ SCR-10). The screen is not skipped, so the offer stays once per order (PO, 2026-10-24).
+- **Rules:** Suggestions exclude items already in the cart and items that need a choice (they are added with their default options). The list is fixed when SCR-09 opens, so a card just added stays on screen.
 - **Acceptance criteria:**
   - AC1: With the toggle off, SCR-09 is never shown.
   - AC2: With it on, it shows once per order and never again after "No thanks".
   - AC3: Quick-added suggestions appear in the cart with default options, and the "Continue" total updates.
-  - AC4: With no suggestions the fallback state appears (or the screen is skipped) and never blocks payment.
+  - AC4: With no suggestions the "Nothing more to suggest" state appears and never blocks payment.
 
 ### FR-015 Payment method selection — MVP
 - **Behavior [V]:**
@@ -803,7 +804,7 @@ Priority: **MVP** = required for 1.0.0. **Post-1.0** = specified for later, not 
 | SCR-06 Menu | Tone placeholders per image | "Nothing here right now" + "See popular items" [V] | Quick-add feedback | "Maximum 20 per item" toast; required-option items show "Choose ›" | Amber banner "Ordering is paused — reconnecting…"; browse OK; add and View order disabled |
 | SCR-07 Combo | — | — | "Added" state | Required side/drink missing → disabled CTA ("Pick side & drink"); sold-out options | Browse OK |
 | SCR-08 Item | — | — | "Added" state | Required size missing → disabled CTA ("Choose a size to continue"); sold out → "No longer available"; "Maximum 20 per item" | Browse OK |
-| SCR-09 Upsell | — | "You're all set" fallback | → SCR-10 | — | Browse OK |
+| SCR-09 Upsell | — | "Nothing more to suggest" fallback | → SCR-10 | — | Browse OK |
 | SCR-10 Your order | — | "Your tray is empty" / "Back to menu" [V] | — | PRICE_CHANGED banner + "Review"; ITEM_UNAVAILABLE "No longer available" + "Remove"; no methods "No payment methods right now"; promo nudge banner | Banner, Pay disabled ("Pay unavailable while offline") |
 | SCR-11 Checkout | "Creating your payment…" before the QR or terminal prompt [A-34, V] | — | Processing → Complete | Failed variants: QR code expired, Payment cancelled, Card declined, Terminal not responding (FR-019) | "Ordering is paused" failure, "Reconnecting…"; checking status "Checking your payment…" |
 | SCR-12 Complete | — | — | Ticket (dine-in or takeaway copy) | "Receipt couldn't print" card | Unaffected (already paid) |
@@ -934,6 +935,9 @@ No backend exists yet [D-06]. The app **defines** the contract below, which the 
 | `closedDot`, `skeletonHighlight` | `#A39C92`, `#F6F3EE` | "Closed" badge dot; skeleton shimmer highlight |
 | `photoTone` | `#E9DED0` (`#E6DCD3` when the given tone is too dark) | Photo slot placeholder (`Photo.dc.html`, NFR-013) |
 | `warningBg` / `warningBorder` / `warningTrack` / `warningAccent` / `warningText` | `#FFF4DB` / `#EBD39A` / `#E2C877` / `#8A6A12` / `#4A3A08` | Amber offline banner and its spinner ("Ordering is paused — reconnecting…", `S_Menu_offline`) |
+| `dockChipText` / `dockRingOff` | `#D8D2C8` / `#4A453F` | The "Details" chip and an unselected method tile's ring on the Your order summary panel (`Payment.dc.html`) |
+| `shortText` / `shortBg` | `#A3401C` / `#F8E6DE` | "Need Rp X more" badge and "Group too large" (`BudgetPas.dc.html`) |
+| `rowDivider`, `switchOff`, `sheetScrim` | `#F4F0EA`, `#D9D3CA`, `ink` at 38 % | Lines inside white cards, a switch that is off, the Customize sheet scrim (`BudgetPas.dc.html`) |
 | Type | Schibsted Grotesk 400/500/600/700/800 (bundled font resource, SIL OFL) | All text |
 | Type scale (dpx / weight) | display 112/800, title 80/700, section 44/700, item 36/600, body 30/400, button 34/700, meta 26/500. Nothing below 24. | Headlines are tight (−0.02 to −0.035 em) |
 | Radii | 999 (pills), 48 (docks), 40 (cards), 32/28/24 (smaller) | — |
@@ -1110,6 +1114,8 @@ Sized for one developer. Features live as packages inside `:app` rather than sep
 | A-40 | The Budget Plan tag row on Your order ("Budget Plan · 2 adults · 1 child · Rp 150.000") shows while the cart still matches the plan, and is cleared as soon as a line is edited. | Cosmetic. |
 | A-41 | The kid-menu fallback note on a plan reads "Kids' menu not available" (the design has no UI for it). | Copy. |
 | A-42 | A planned item that has a required option group gets that group's default option, or its first option when it has none. The sample menu's choices for c4, r1 and d2 (api-spec §4) cost Rp 0, so they never change a plan total. | Budget Plan (FR-032). |
+| A-43 | "Add plan to order" adds the plan's lines to any lines already in the cart (it never removes what the customer chose). The plan lands whole or not at all: if it would break the 20-per-line or 30-line limit (BR-05), nothing is added and the event is logged (the design has no copy for it). SCR-19 opens with no budget, 1 adult and 0 children. | Budget Plan (FR-032, AC5 is checked with an empty cart). |
+| A-44 | Children's drinks come from kid-friendly drinks (any drink when none is tagged). A combo with `serves` other than 1 or 2 is not used in a plan in 1.0, like products with `servesAdults` > 1. Shared sides and desserts are not tied to a person, so they need no kid-friendly tag. | Budget Plan (FR-032). |
 
 ## 16. Open questions
 

@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Document version | 1.3 (2026-10-23) — 0.3.0: Room, WorkManager with Hilt workers, Coil loader with the 200 MB disk cache, work-testing and Robolectric in `:core:data` |
+| Document version | 1.4 (2026-10-24) — 0.4.0: kotest-property in use in `:core:domain` (no new libraries); 1.3: 0.3.0 Room, WorkManager with Hilt workers, Coil loader with the 200 MB disk cache, work-testing and Robolectric in `:core:data` |
 | Answers | *What technologies does the project use, at which version, and why?* |
 | Requirements | [`product-requirement.md`](product-requirement.md) (FR-/NFR-/D-) and [`technical-requirement.md`](technical-requirement.md) (TR-) |
 | Design | [`architecture.md`](architecture.md) (structure), [`technical-design.md`](technical-design.md) (implementation), [ADR-0001](adr/0001-architecture.md) (stack decision) |
@@ -164,7 +164,7 @@ Rules for test dependencies are in [testing-plan §1.3](testing-plan.md#13-test-
 | Truth | `com.google.truth:truth` | **1.4.5** | Assertions | all |
 | kotlinx-coroutines-test | `org.jetbrains.kotlinx:kotlinx-coroutines-test` | 1.11.0 | `runTest`, virtual time for the polling, timers and timeouts | JVM tests |
 | Turbine | `app.cash.turbine:turbine` | **1.2.1** | `Flow` and `StateFlow` assertions | JVM tests |
-| kotest-property | `io.kotest:kotest-property` | **6.2.6** | Property tests with generators and shrinking (TC-061 pricing over 1,000 random carts; FR-032 AC8 exact-match coverage). Used standalone (`checkAll`) inside JUnit 4 tests; the Kotest runner is not used. Not used until the first property test (0.4.0); check there that it runs in a JUnit 4 test. Fallback: the latest 5.x release. | `:core:domain` |
+| kotest-property | `io.kotest:kotest-property` | **6.2.6** | Property tests with generators and shrinking (TC-061 pricing over 1,000 random carts; FR-032 AC8 exact-match coverage). Used standalone (`checkAll` inside `runTest`) in JUnit 4 tests; the Kotest runner is not used. Confirmed in 0.4.0 (`PricingEngineTest`, `BudgetPlannerPropertiesTest`). Fallback: the latest 5.x release. | `:core:domain` |
 | MockWebServer 3 | `com.squareup.okhttp3:mockwebserver3`, `mockwebserver3-junit4` | 5.5.1 | HTTP contract and fault-injection tests that serve the fixtures from `api-spec.md` (NFR-010, DEV-006). `mockwebserver3-junit4` provides the JUnit 4 rule. | `:core:data` |
 | Room testing | `androidx.room:room-testing` | 2.8.5 | `MigrationTestHelper` from 1.0.0. The 0.3.0 DAO tests use `Room.inMemoryDatabaseBuilder` from the runtime, so this artifact is not declared yet | `:core:data` |
 | WorkManager testing | `androidx.work:work-testing` | 2.12.0 | `WorkManagerTestInitHelper`, `TestListenableWorkerBuilder` (DEV-023); the instrumented test runner installs a test WorkManager | `:core:data`, `:app` (androidTest) |

@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Document version | 1.3 (2026-10-23) — catalog cache and sync, order session holder, connectivity and image cache as built in 0.3.0 |
+| Document version | 1.4 (2026-10-24) — the full OrderSession machine, the Budget Plan hand-off and the inactivity controller as built in 0.4.0; 1.3: 0.3.0 |
 | Requirements | [`product-requirement.md`](product-requirement.md): this document explains *how*; the PRD decides *what*. Where they disagree, the PRD wins. Measurable technical requirements: [`technical-requirement.md`](technical-requirement.md). |
 | Implementation | [`technical-design.md`](technical-design.md) adds the implementation detail (build, schemas, algorithms, configuration) under this structure. [`technology-stack.md`](technology-stack.md) pins the libraries and versions. |
 | Contract | [`api/api-spec.md`](api/api-spec.md) (E1–E14) |
@@ -161,10 +161,10 @@ stateDiagram-v2
     TimedOut --> Idle
 ```
 
-- **Owner**: one `OrderSession` per order, held by an app-scoped `OrderSessionHolder` (Hilt `@Singleton`, `SessionModule`). Feature ViewModels read it and send intents to it. This is how Menu, Item, Combo, Budget Plan and Cart share one cart without passing it through navigation arguments; routes carry only IDs (`ItemDetailRoute(productId)`, `ComboRoute(comboId?)`). Idle is the holder holding no session. Built in 0.3.0 with the states up to Building (choose or change the order type, add to the cart); DEV-041 (0.4.0) completes the machine below.
-- **What the session holds**: cart lines, order type, catalog version, the `upsellShown` flag (Upsell appears once per order) and an optional `PlanTag(budget, adults, children)`. It does **not** hold a language: the 1.0 UI is English only (D-29), so there is no per-order language to reset.
-- **Budget Plan hand-off**: `BudgetPlanner` is pure. The two-step screen (step 1 "Your table", step 2 "Your plan") keeps its own state in `BudgetPlanViewModel`: the current step, the Just under / Just over choice, the Customize bottom sheet, swaps, the include-sides/desserts toggles and the Strict / Up to +10% tolerance. Only when the customer taps "Add plan to order" does it send the chosen plan's lines to the session, tagged with `PlanTag`. Payment reads the tag to show the "Budget Plan" row. Editing or removing those lines in the cart clears the tag.
-- **Inactivity** (FR-023) is a separate `InactivityController` that watches the session state and touch events. It is suspended in `Paying`, `Paid` and staff settings.
+- **Owner**: one `OrderSession` per order, held by an app-scoped `OrderSessionHolder` (Hilt `@Singleton`, `SessionModule`). Feature ViewModels read it and send intents to it. This is how Menu, Item, Combo, Budget Plan and Cart share one cart without passing it through navigation arguments; routes carry only IDs (`ItemDetailRoute(productId)`, `ComboRoute(comboId?)`). Idle is the holder holding no session. 0.3.0 built the states up to Building; DEV-041 (0.4.0) completed the machine above: every transition is a method that changes nothing (and returns `false`) when the current phase does not allow it, and the cart is locked from Submitting on (BR-08).
+- **What the session holds**: cart lines, order type, catalog version, the `upsellShown` flag (Upsell appears once per order) and an optional `PlanTag(budget, adults, children, lineIds)`. The E7 idempotency key joins it with `OrderRepository` in 0.5.0 (DEV-045). It does **not** hold a language: the 1.0 UI is English only (D-29), so there is no per-order language to reset.
+- **Budget Plan hand-off**: `BudgetPlanner` is pure. The two-step screen (step 1 "Your table", step 2 "Your plan") keeps its own state in `BudgetPlanViewModel`: the current step, the Just under / Just over choice, the Customize bottom sheet, swaps, the include-sides/desserts toggles and the Strict / Up to +10% tolerance. Only when the customer taps "Add plan to order" does it send the chosen plan's lines to the session (`OrderSession.addPlan`, all or nothing, added to any lines already in the cart), tagged with `PlanTag`. Payment reads the tag to show the "Budget Plan" row. Editing or removing those lines in the cart clears the tag.
+- **Inactivity** (FR-023) is a separate `InactivityController` that watches touch events, the current route and the session state. It runs only on the customer ordering routes and stops whenever the order can no longer be cancelled (from `Submitting` on, so in `Paying` and `Paid`); staff settings get their own instance in 0.7.0 (technical-design §10.3).
 - **Menu snapshot**: the session captures the catalog version at `TypeChosen`. A sync that lands mid-order is applied when the session returns to `Idle` (FR-028, A-29).
 
 ### 5.2 PaymentStateMachine (DEV-047)
