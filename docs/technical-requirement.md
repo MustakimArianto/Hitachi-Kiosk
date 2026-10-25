@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Document version | 1.2 (2026-10-24) — TR-NET-11, TR-INT-04 and TR-DAT-04 follow the 0.5.0 implementation (connectivity probe schedule, amount guards, Room migrations); the OQ-03 status; 1.1: TR-INT-07 and the open items follow the DEV-012 findings (ADR-0002, Proposed) |
+| Document version | 1.3 (2026-10-25) — 0.6.0: TR-PRF-08 wording follows the Budget Plan rework; the printing requirements (TR-PRF-12, TR-REL-08, TR-INT-08/09, TR-DAT-07 printer registry) are marked not built and not scheduled (D-36, OQ-19); 1.2: TR-NET-11, TR-INT-04 and TR-DAT-04 follow the 0.5.0 implementation (connectivity probe schedule, amount guards, Room migrations); the OQ-03 status; 1.1: TR-INT-07 and the open items follow the DEV-012 findings (ADR-0002, Proposed) |
 | Answers | *What must the system satisfy technically, and how is each requirement measured?* |
 | Derived from | [`product-requirement.md`](product-requirement.md) (NFR-, FR-, BR-, D-, A-) and [`api/api-spec.md`](api/api-spec.md) (E1–E14) |
 | Satisfied by | [`technical-design.md`](technical-design.md) (how), [`architecture.md`](architecture.md) (structure), [`technology-stack.md`](technology-stack.md) (with what) |
@@ -69,11 +69,11 @@ Rows verified by a benchmark TC (TC-142, TC-143, TC-144, TC-168) are measured on
 | TR-PRF-05 | Frame rate on customer screens during the scripted J1 journey | 60 fps, ≤ 1 % janky frames, P90 frame time ≤ 16 ms | NFR-003 | TC-143 (Macrobenchmark `FrameTimingMetric`, plus JankStats in the benchmark variant) |
 | TR-PRF-06 | Tap feedback (press state visible) | ≤ 100 ms | NFR-003 | TC-144 |
 | TR-PRF-07 | Cart quantity change updates the line and all summary values | within one frame | FR-012 AC1 | TC-050 |
-| TR-PRF-08 | Budget Plan: both plans, the exact-match search, and a Customize rebalance for the 10-person maximum on the sample menu (23 products + 4 combos) | ≤ 100 ms | FR-032 AC6 | TC-168 (benchmark) |
+| TR-PRF-08 | Budget Plan: both plans, the exact-match search, and the swap picker's alternatives (`BudgetPlanner.alternatives`) for the 10-person maximum on the sample menu (23 products + 4 combos) | ≤ 100 ms | FR-032 AC6 | TC-168 (benchmark) |
 | TR-PRF-09 | Activation round trip on a normal network | ≤ 3 s | FR-003 AC1 | TC-008 |
 | TR-PRF-10 | Merchant binding to Idle (menu ≤ 200 items, images lazy) | ≤ 10 s | FR-004 AC1 | TC-016 |
 | TR-PRF-11 | Backend `PAID` seen → Complete screen | ≤ 3 s | FR-017 AC3 | TC-075 |
-| TR-PRF-12 | Complete screen → receipt and kitchen ticket printed | ≤ 5 s per connection type | FR-021 AC1 | TC-091 |
+| TR-PRF-12 | Complete screen → receipt and kitchen ticket printed | ≤ 5 s per connection type. **Not built in 0.6.0, not scheduled (D-36, OQ-19).** | FR-021 AC1 | TC-091 |
 | TR-PRF-13 | Hardware or network status change visible in settings | ≤ 5 s | FR-024 AC4, FR-031 AC1 | TC-130 |
 | TR-PRF-14 | Offline detected → banner and Pay disabled | ≤ 5 s | FR-028 AC1 | TC-122 |
 | TR-PRF-15 | Network restored → Pay re-enabled | ≤ 10 s | FR-028 AC2 | TC-123 |
@@ -94,7 +94,7 @@ Rows verified by a benchmark TC (TC-142, TC-143, TC-144, TC-168) are measured on
 | TR-REL-05 | **(derived)** No disk or network I/O on the main thread. Debug builds enable `StrictMode` (thread and VM policies) with log penalties, and the debug instrumented journey suite (J1–J8) must show no violations from app code. The soak itself runs a release build (TC-149), where StrictMode is off. | NFR-010, NFR-004 | StrictMode log review in the soak |
 | TR-REL-06 | Corrupt or undecryptable local storage must be treated as "not activated" and logged locally. The app must never crash on it. | FR-001, architecture §6 | TC-004 |
 | TR-REL-07 | A failed or malformed menu sync must keep the previous cache intact. A sync must never change a cart in progress. | FR-028, DEV-021/022 | DAO and sync integration tests |
-| TR-REL-08 | A print failure must never block Complete or change the order's paid status. One retry, then a fallback message. | FR-020 AC4, FR-021 | TC-095 |
+| TR-REL-08 | A print failure must never block Complete or change the order's paid status. One retry, then a fallback message. **Not built in 0.6.0, not scheduled (D-36, OQ-19):** there is no printing, so no failure to handle. | FR-020 AC4, FR-021 | TC-095 |
 | TR-REL-09 | In-place upgrade from the previous milestone build must keep activation, binding and settings, and **(derived, from FR-016 recovery)** any pending order. | NFR-014 | TC-158 |
 
 ## 5. Security
@@ -152,8 +152,8 @@ Rows verified by a benchmark TC (TC-142, TC-143, TC-144, TC-168) are measured on
 | TR-INT-05 | Card terminal: the app must cancel on the terminal after 90 s with no response, on "Back to order", and whenever the backend ends the payment during a sale. The transport and protocol are decided in ADR-0003 (OQ-03) behind the `CardTerminal` interface. | FR-018, A-16 | TC-082, TC-181, TC-187 |
 | TR-INT-06 | Unknown payment status: show "Checking your payment…" and poll for up to 60 s. "Confirming payment" without a backend `PAID` also ends after 60 s. "You have not been charged" must only appear after a backend terminal non-paid status. | FR-019, A-17 | TC-085, TC-188 |
 | TR-INT-07 | Serial number: from the iMin system API (the system properties the iMin SDK reads, `ro.serialno` then `persist.sys.imin.sn`), falling back to `Build.getSerial()` as device owner. Must be identical across reinstall, data clear and reboot. | FR-002, A-02 | TC-005–TC-007 |
-| TR-INT-08 | Printers: built-in through the iMin SDK, USB through USB host bulk transfer, Bluetooth through Classic SPP to paired devices, all speaking ESC/POS. 58 mm and 80 mm paper, density Light, Normal and Dark. | FR-021, FR-022, NFR-016, A-21 | TC-096–TC-099 |
-| TR-INT-09 | Exactly one printer per role (Receipt, Kitchen). The receipt and ticket print within TR-PRF-12. The 58 mm layout wraps without truncating amounts. | FR-021 AC3, FR-022, BR-12 | TC-093, TC-099 |
+| TR-INT-08 | Printers: built-in through the iMin SDK, USB through USB host bulk transfer, Bluetooth through Classic SPP to paired devices, all speaking ESC/POS. 58 mm and 80 mm paper, density Light, Normal and Dark. **Not built in 0.6.0, not scheduled (D-36, OQ-19).** | FR-021, FR-022, NFR-016, A-21 | TC-096–TC-099 |
+| TR-INT-09 | Exactly one printer per role (Receipt, Kitchen). The receipt and ticket print within TR-PRF-12. The 58 mm layout wraps without truncating amounts. **Not built in 0.6.0, not scheduled (D-36, OQ-19).** | FR-021 AC3, FR-022, BR-12 | TC-093, TC-099 |
 | TR-INT-10 | Every external system (backend, gateway via backend, card terminal, printers, device identity, clock, connectivity) must sit behind a domain interface with a scriptable fake in `:core:testing`. | NFR-012 | TC-156 |
 | TR-INT-11 | Business timestamps (order time, expiry) come from the server. The device clock drives UI timers only, through the injected `Clock`. | NFR-017 | TC-160 |
 
@@ -167,7 +167,7 @@ Rows verified by a benchmark TC (TC-142, TC-143, TC-144, TC-168) are measured on
 | TR-DAT-04 | Room schema changes need an explicit `Migration`, an exported schema committed under `core/data/schemas/`, and a migration test. A destructive migration was allowed for cache tables only (never for `pending_order` or DataStore) until 0.4.0; since 0.5.0 (database version 2) there is no destructive fallback at all. | NFR-014, architecture §6 | `MigrationTestHelper` tests, TC-193 |
 | TR-DAT-05 | The image disk cache is capped at 200 MB. A cold start with no network must show cached images. | NFR-013, A-37 | TC-125, TC-157 |
 | TR-DAT-06 | The cart is in memory only, survives navigation and configuration change, and is cleared on Idle. Only the pending order/payment is persisted. | FR-012, A-11 | TC-023, TC-139 |
-| TR-DAT-07 | Device settings, printer registry and PIN lockout state persist locally and apply immediately without restart. | FR-022 AC3, FR-026 AC1 | TC-100, TC-115 |
+| TR-DAT-07 | Device settings, printer registry (not built, not scheduled: D-36, OQ-19) and PIN lockout state persist locally and apply immediately without restart. | FR-022 AC3, FR-026 AC1 | TC-100, TC-115 |
 
 ## 10. Accessibility and motion
 
@@ -218,7 +218,7 @@ Rows verified by a benchmark TC (TC-142, TC-143, TC-144, TC-168) are measured on
 
 | Item | Affects | Resolution |
 |---|---|---|
-| OQ-01 iMin model, Android version, SN and printer SDK | TR-PLT-04, TR-INT-07, TR-INT-08, all TR-PRF targets | ADR-0002 (0.2.0), ADR-0004 (0.9.0; the printing subsystem is built against fakes in 0.6.0, D-34) |
+| OQ-01 iMin model, Android version, SN and printer SDK | TR-PLT-04, TR-INT-07, TR-INT-08, all TR-PRF targets | ADR-0002 (0.2.0), ADR-0004 (only if printing is built, OQ-19; D-36 removed printing from 0.6.0, so D-34's fakes and 0.9.0 drivers are not scheduled) |
 | OQ-03 EDC transport and result path | TR-INT-05 | ADR-0003 is not written: the specs had not arrived at the 0.5.0 exit (R-1). It is the first step of DEV-091 (0.9.0) |
 | A-36 Pinning acceptable to infra | TR-SEC-03 | Confirm in DEV-094 |
 | The `Build.getSerial()` fallback (A-02) needs `READ_PHONE_STATE`, which is not in PRD §12.3 | TR-INT-07, TR-SEC-09 | ADR-0002 (DEV-012, Proposed; the on-device spike decides). Drop the fallback if a system property gives the label SN, or have the PO add the permission. Until then the permission is declared in the debug manifest only. |

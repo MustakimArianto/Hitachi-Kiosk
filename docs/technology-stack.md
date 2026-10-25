@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Document version | 1.5 (2026-10-24) — 0.5.0: ZXing core in `:app` at error-correction level H, Room at version 2 with a real migration, `room-testing` in use (no new libraries); 1.4: 0.4.0 kotest-property in use in `:core:domain`; 1.3: 0.3.0 Room, WorkManager with Hilt workers, Coil loader with the 200 MB disk cache, work-testing and Robolectric in `:core:data` |
+| Document version | 1.6 (2026-10-25) — 0.6.0: Room at version 3 (`MIGRATION_2_3`), no new libraries; the printer rows (iMin printer, USB, Bluetooth, `EscPosEncoder`) are not built and not scheduled (D-36, OQ-19); 1.5: 0.5.0: ZXing core in `:app` at error-correction level H, Room at version 2 with a real migration, `room-testing` in use (no new libraries); 1.4: 0.4.0 kotest-property in use in `:core:domain`; 1.3: 0.3.0 Room, WorkManager with Hilt workers, Coil loader with the 200 MB disk cache, work-testing and Robolectric in `:core:data` |
 | Answers | *What technologies does the project use, at which version, and why?* |
 | Requirements | [`product-requirement.md`](product-requirement.md) (FR-/NFR-/D-) and [`technical-requirement.md`](technical-requirement.md) (TR-) |
 | Design | [`architecture.md`](architecture.md) (structure), [`technical-design.md`](technical-design.md) (implementation), [ADR-0001](adr/0001-architecture.md) (stack decision) |
@@ -131,11 +131,11 @@ The modules column follows [architecture §3](architecture.md#3-modules). "BOM" 
 
 | Integration | Technology | Version | Purpose | Modules |
 |---|---|---|---|---|
-| iMin printer | `com.github.iminsoftware:IminPrinterLibrary` (JitPack) | V2.0.0.19 (newest tag) | Built-in printer driver and paper status (`IminPrinterDriver`, FR-022) | `:core:hardware` |
+| iMin printer | `com.github.iminsoftware:IminPrinterLibrary` (JitPack) | V2.0.0.19 (newest tag) | Built-in printer driver and paper status (`IminPrinterDriver`, FR-022) Not built, not scheduled (D-36, OQ-19). | `:core:hardware` |
 | iMin device | `com.github.iminsoftware:IminDeviceLibrary` (JitPack) | 3.0.0 (newest tag) | **Not used** (DEV-012): its `SystemPropManager.getSn()` only reads `ro.serialno` and `persist.sys.imin.sn`, which `:core:hardware` reads itself, and it would bring Gson and `allowBackup="true"`. The catalog entry is removed when ADR-0002 is accepted | — |
-| USB printers | Android USB host API (`android.hardware.usb.UsbManager`) | platform | ESC/POS over bulk transfer (NFR-016) | `:core:hardware` |
-| Bluetooth printers | Android Bluetooth Classic (`BluetoothSocket`, SPP UUID `00001101-0000-1000-8000-00805F9B34FB`) | platform | ESC/POS to paired printers (A-21) | `:core:hardware` |
-| ESC/POS encoding | In-house `EscPosEncoder` (pure Kotlin) | n/a | Text styles, alignment, raster logo, feed, cut. Tested against golden byte files (DEV-055). | `:core:hardware` |
+| USB printers | Android USB host API (`android.hardware.usb.UsbManager`) | platform | ESC/POS over bulk transfer (NFR-016) Not built, not scheduled (D-36, OQ-19). | `:core:hardware` |
+| Bluetooth printers | Android Bluetooth Classic (`BluetoothSocket`, SPP UUID `00001101-0000-1000-8000-00805F9B34FB`) | platform | ESC/POS to paired printers (A-21) Not built, not scheduled (D-36, OQ-19). | `:core:hardware` |
+| ESC/POS encoding | In-house `EscPosEncoder` (pure Kotlin) | n/a | Text styles, alignment, raster logo, feed, cut. Tested against golden byte files (DEV-055). **Not built, not scheduled (D-36, OQ-19).** | `:core:hardware` |
 | Card terminal (EDC) | `CardTerminal` adapter; vendor SDK or protocol per OQ-03 | TBD (ADR-0003 is not written: the specs had not arrived at the 0.5.0 exit; 0.9.0) | Sends the amount and reference to the EDC terminal and receives the result (FR-018). Until then `UnavailableCardTerminal` (release) and the fake | `:core:hardware` |
 | Kiosk lockdown | `DevicePolicyManager`, `DeviceAdminReceiver`, lock task | platform | Device owner, lock task, persistent home, keyguard and status bar disabled (FR-029) | `:app` |
 | Sound effects | `android.media.SoundPool` | platform | Three short sounds (FR-030) | `:app` |
@@ -274,7 +274,7 @@ timber = "5.0.1"
 leakcanary = "2.14"
 jankstats = "1.0.0"
 profileinstaller = "1.4.1"
-imin-printer = "V2.0.0.19"   # confirm in DEV-056 / ADR-0004
+imin-printer = "V2.0.0.19"   # not used: printing is not built (D-36, OQ-19); confirm in DEV-056 / ADR-0004 if it returns
 imin-device = "3.0.0"        # unused (ADR-0002); remove when the ADR is accepted
 junit4 = "4.13.2"
 truth = "1.4.5"

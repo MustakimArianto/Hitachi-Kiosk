@@ -1,12 +1,12 @@
 # To do after 1.0.0
 
-Open items from milestones 0.2.0–0.5.0 that were not done when the milestone was implemented. For the 0.2.0 and 0.3.0 items the PO decided on 2026-10-24 to run them **after the 1.0.0 implementation**; the 0.4.0 and 0.5.0 items in the first two sections still wait for that decision. Each item names the task or test case it belongs to, so its result goes back to that place in the docs.
+Open items from milestones 0.2.0–0.6.0 that were not done when the milestone was implemented. For the 0.2.0 and 0.3.0 items the PO decided on 2026-10-24 to run them **after the 1.0.0 implementation**; the 0.4.0, 0.5.0 and 0.6.0 items in the "Needs the PO" sections still wait for that decision. Each item names the task or test case it belongs to, so its result goes back to that place in the docs.
 
 ## Needs the PO (0.4.0 exit criteria, not yet deferred)
 
 These belong to the 0.4.0 exit criteria and manual testing requirements ([dev-plan 0.4.0](docs/dev-plan.md)). They need the PO, so they were not done when 0.4.0 was implemented. The PO decides whether they run now or join the after-1.0.0 list.
 
-- [ ] **Review of the built Upsell and Budget Plan screens** against `Upsell.dc.html` and `BudgetPas.dc.html` (exit criterion). *2026-10-25: the Upsell screen is replaced by the Your order strip in 0.6.0 [D-33], so review the Budget Plan screens and the strip together at DEV-113 and drop the Upsell screen part.* The goldens `Upsell*.png`, `S_Upsell_noSuggestions.png`, `BudgetPas_*.png` and `S_BudgetPas_*.png` in `app/src/test/screenshots/` are the starting point; the deviations are listed in `docs/test-reports/0.4.0.md`.
+- [ ] **Review of the built Upsell and Budget Plan screens** against `Upsell.dc.html` and `BudgetPas.dc.html` (exit criterion). *2026-10-25: the Upsell screen is gone (0.6.0, D-33), so this review became DEV-113 below and covers the strip and the reworked Budget Plan.* The 0.4.0 deviations are listed in `docs/test-reports/0.4.0.md`.
 - [ ] **Pricing spot check**: 20 carts from the design samples in a spreadsheet against the app (manual testing requirement; `docs/pricing-cases.md` is the automated part).
 - [ ] **Plan sanity review**: 10 budget and group combinations on SCR-19 (manual testing requirement; `docs/budget-plan-cases.md` is the automated part).
 
@@ -35,21 +35,28 @@ These belong to the 0.5.0 exit criteria and risks ([dev-plan 0.5.0](docs/dev-pla
 
 ## Needs more emulators or test data
 
-- [ ] **Instrumented suite on API 30 and API 34/35** (NFR-001, NFR-016, testing-plan §2.3). Create Kiosk-30 and Kiosk-34 with `scripts/create-avds.sh` and run `./gradlew connectedDebugAndroidTest` on each. Only API 37 has run so far, including the 0.5.0 `CheckoutUiTest`. On API 30 this also checks the inactivity overlay's scrim fallback (no blur below API 31, DEV-040).
+- [ ] **Instrumented suite on API 30 and API 34/35** (NFR-001, NFR-016, testing-plan §2.3). Create Kiosk-30 and Kiosk-34 with `scripts/create-avds.sh` and run `./gradlew connectedDebugAndroidTest` on each. Only API 37 has run so far, including the 0.5.0 `CheckoutUiTest`; the 0.6.0 edits to the instrumented tests have not run at all. On API 30 this also checks the inactivity overlay's scrim fallback (no blur below API 31, DEV-040).
 - [ ] **TC-157, filling the image cache** (NFR-013, A-37). The 200 MB cap and the placeholder on a failed image are covered. Still to do: load enough images to reach the cap and check that the cache never grows past 200 MB.
 
-## For 0.6.0 (the Complete screen)
+## Needs the PO (0.6.0 exit criteria, not yet deferred)
 
-- [ ] **Take over the payment hand-off.** The 0.5.0 Checkout calls `PaymentStateMachine.acknowledgePaid()` as it leaves for the Complete placeholder. The 0.6.0 Complete screen should take the paid details first and acknowledge itself, and it should take an order that a recovery found paid from `PendingOrderRecoveryCoordinator.recoveredPaid` (`consumeRecoveredPaid()`; totals and payment details, no order lines). Consider clearing the pending order only after Complete is shown, so a kill in between still leaves a receipt (a known limit, technical-design §8.6).
+These belong to the 0.6.0 exit criteria ([dev-plan 0.6.0](docs/dev-plan.md)). The instrumented tests of 0.6.0 were not run (no emulator), so the first item also needs one.
 
-## For 0.6.0 (the rework of 2026-10-25: printing with fakes, Upsell strip, Budget Plan UX)
+- [ ] **DEV-113: review the built strip and Budget Plan** against the synced boards (`S_Payment_upsell*`, `S_Payment_plan*`, `S_BudgetPas_*`, `S_Menu_drinksTab`, `S_Menu_planOff`), and do the plan sanity review of 10 budget and group combinations (it replaces the 0.4.0 item above; add the notes to `docs/test-reports/0.6.0.md`). Also look at Complete against `Complete.dc.html` and `S_Complete_takeaway`.
+- [ ] **DEV-104: sign off the boards.** Design v26 is synced in `docs/ui-design/` and the app is built from it; the PO's sign-off is not recorded yet.
+- [ ] **Decide OQ-19: printing.** D-36 took all printing and the Printer settings screen out of 0.6.0 and nothing was rescheduled. Build it later (DEV-055, 057, 058, 059, 061 then DEV-056; TC-091–TC-100; FR-021, FR-022, SCR-15) or drop it from 1.0 (then also settle the Receipt printer rows of Settings in FR-024 and FR-027, TC-130, DEP-4, DEP-7, R-5, and the `imin-printer` entry in the version catalog notes).
+- [ ] **Confirm the new copy** (A-49): the Complete dine-in line (`complete_info_dine_in` keeps the design wording "Take your receipt…" as a demo while nothing prints; change it if OQ-19 drops printing), the neutral line for a recovered order and "Back to the start in Ns". And A-50: the Budget Plan edit-mode dock copy. And the design deviation: the built strip re-ranks while the design freezes it.
+- [ ] **Confirm the meal marker with the backend team**: E6 `purpose` = `MEAL_UPGRADE` (OQ-17, resolved on our side). A menu cached before the upgrade shows no "Make it a meal" card until the next menu refresh.
+- [ ] **OQ-18** (an optional `source` on E7 order lines to measure attach rate without analytics) can wait until after 1.0.0.
 
-- [ ] **Sync the updated design files into `docs/ui-design/`** and add the new boards (DEV-104). The files in the repo were last changed on 2026-10-22, and the published canvas (link in `docs/ui-design/README.md`) is in another organization that the dev session could not open. Needed boards: the Your order strip and its states, Budget Plan Step 1 and Step 2 changes, the swap picker, the cart-limit message, the Menu header pill, and the printer boards. The PO signs them off before DEV-106–DEV-112 start.
-- [ ] **Decide OQ-15** (Budget Plan extras cap: the combo side rule and the design's cap of 4) and **OQ-16** (no preselected budget chip). Recommended answers are in the PRD.
-- [ ] **Decide OQ-17** with the backend: an optional `purpose` on modifier groups that marks "Make it a meal". Without it, DEV-114 and the "Make it a meal" strip card do not ship, and the gap check only recognises combo lines. **OQ-18** (an optional `source` on E7 order lines to measure attach rate without analytics) can wait until after 1.0.0.
-- [ ] **Confirm A-47**: the receipt for an order that a recovery found paid has no order lines (0.5.0 known limit). The alternative is storing the lines, which changes the 0.5.0 recovery rules.
-- [ ] **Printing on real printers moved to 0.9.0 (D-34, DEV-056):** the iMin, USB and Bluetooth drivers, ADR-0004 (Proposed until then), TC-096–TC-098 and the real runs of TC-091, TC-093, TC-095 and TC-159, the photographed output, and `docs/printers.md`. They need DEP-4 and DEP-7.
-- [ ] **P2 tasks of 0.6.0 that did not ship** go to 1.0.1 (the swap picker DEV-109, "Edit plan" DEV-111, the "Make it a meal" card DEV-114, the promo caption). List them here when 0.6.0 closes.
+## Manual and device runs of 0.6.0 (not run)
+
+- [ ] **Instrumented suite on an emulator.** `CheckoutUiTest`, `OrderingUiTest` and `NavigationEdgeWalkUiTest` were edited for the strip, the swap sheet, Edit plan and Complete, and compile only. Run `./gradlew connectedDebugAndroidTest` (Kiosk-34 or API 37) and record the result in `docs/test-reports/0.6.0.md`.
+- [ ] **TC-073 and TC-205 on a device**: kill the app after Checkout shows paid and before Complete is shown, and check that the next start still reaches Complete (the pending order is now cleared only after Complete is shown); and check the "Make it a meal" card after a menu refresh on a device that had the old cache.
+
+## For 1.0.1
+
+- [ ] The strip's promo caption ("Adds Rp X off", P2 of DEV-105), the only P2 item of 0.6.0 that did not ship.
 
 ## Evidence
 
@@ -57,4 +64,4 @@ These belong to the 0.5.0 exit criteria and risks ([dev-plan 0.5.0](docs/dev-pla
 
 ## When an item is done
 
-Tick it here, record the result in the matching test report (`docs/test-reports/0.2.0.md`, `0.3.0.md`, `0.4.0.md` or `0.5.0.md`) and, for DEV-012, in ADR-0002 and the dev-plan 0.2.0 status. Delete this file when every item is ticked.
+Tick it here, record the result in the matching test report (`docs/test-reports/0.2.0.md`, `0.3.0.md`, `0.4.0.md`, `0.5.0.md` or `0.6.0.md`) and, for DEV-012, in ADR-0002 and the dev-plan 0.2.0 status. Delete this file when every item is ticked.

@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Document version | 1.7 (2026-10-25) — 0.6.0 reworked: printing UI and logic against fakes only (real drivers move to 0.9.0 [D-34]) plus the Upsell strip and Budget Plan improvements [D-33, D-35]; 1.6: 0.5.0 implemented, exit criteria not all met (see the 0.5.0 status note); 1.5: 0.4.0 implemented; 1.4: 0.3.0 implemented and the benchmarks (DEV-031) moved to 1.0.0 |
+| Document version | 1.8 (2026-10-25) — 0.6.0 implemented without printing (PO decision D-36: no printing and no settings work; DEV-055/057/058/059/061 removed, not scheduled; OQ-19 asks whether to build it later or drop it); the exit criteria are not all met (see the 0.6.0 status note); 1.7: 0.6.0 reworked (Upsell strip and Budget Plan improvements [D-33, D-35]); 1.6: 0.5.0 implemented, exit criteria not all met; 1.5: 0.4.0 implemented; 1.4: 0.3.0 implemented and the benchmarks (DEV-031) moved to 1.0.0 |
 | Requirements | [`product-requirement.md`](product-requirement.md) (FR-xxx, NFR-xxx, D-xx, A-xx, OQ-xx), [`technical-requirement.md`](technical-requirement.md) (TR-) |
 | Implementation | [`technical-design.md`](technical-design.md), [`technology-stack.md`](technology-stack.md) (versions for DEV-001) |
 | Tests | [`testing-plan.md`](testing-plan.md) (TC-xxx) |
@@ -21,7 +21,7 @@ Everything below is therefore greenfield. No existing code is changed or migrate
 ## 2. Planning principles
 
 1. **Contract-first.** The backend does not exist [D-06]. 0.1.0 publishes the API contract and every feature is built against fakes. The real backend, gateway and EDC are wired in at 0.9.0.
-2. **Risk early, polish late.** Unknown hardware (SN, printers) gets spikes in the milestone that first needs it. Pricing and payment state logic land before UI polish.
+2. **Risk early, polish late.** Unknown hardware (SN, and printers if OQ-19 brings them back) gets spikes in the milestone that first needs it. Pricing and payment state logic land before UI polish.
 3. **Each milestone is testable on its own.** Every version ships an installable debug APK whose new journeys run end-to-end on an emulator with fakes.
 4. **Tests ship with features.** No milestone exits with untested new behavior. Testing-plan §7 lists the tests per version.
 5. **Design fidelity is built in.** Every screen is built from the design tokens and motion specs as it is created. 0.8.0 is a fidelity *audit*, not the first time animations are added. The `S_*` state boards are the visual spec for every error, empty and blocking state, and each one gets a screenshot test (DEV-084).
@@ -35,27 +35,27 @@ Everything below is therefore greenfield. No existing code is changed or migrate
 | 0.3.0 | Catalog: idle, order type, menu, item, combo | 1.5 | FR-006, FR-007, FR-009–011, FR-028 (sync), NFR-013 | — |
 | 0.4.0 | Cart, pricing, Budget Plan, upsell & inactivity | 2.75 | FR-012–015, FR-023, FR-032 | Menu role tags in mock (DEP-8) |
 | 0.5.0 | Order submission & payments (fakes) | 2 | FR-016–019, FR-028 (offline gate), NFR-017 | Gateway + EDC specs (DEP-2/3) |
-| 0.6.0 | Printing (UI, fakes), completion & ordering UX | 2.5 (P1; P2 adds about 1) | FR-014, FR-020–022 (with fakes), FR-032 | PO sign-off of the new boards (DEV-104) |
+| 0.6.0 | Complete, Upsell strip & Budget Plan UX | 2.5 | FR-014, FR-020, FR-032 | PO sign-off of the boards (DEV-104) and the PO review (DEV-113) |
 | 0.7.0 | Staff settings & kiosk lockdown | 1.5 | FR-024–027, FR-029–031 | MDM/provisioning answer (OQ-10) |
 | 0.8.0 | Accessibility, motion & performance | 0.75 | NFR-003/007/008/009 | — |
-| 0.9.0 | Release candidate: real integrations & pilot | 2 | FR-017/018 real, FR-022 real printers, NFR-004/005/006/014/015/016 | Real backend, gateway sandbox, EDC (DEP-1/2/3), printers (DEP-4, DEP-7), pilot content (DEP-6) |
+| 0.9.0 | Release candidate: real integrations & pilot | 1.5 | FR-017/018 real, NFR-004/005/006/014/015/016 | Real backend, gateway sandbox, EDC (DEP-1/2/3), pilot content (DEP-6); printers only if the PO answers OQ-19 with "build" (DEP-4, DEP-7) |
 | 1.0.0 | Performance benchmarks & release | 0.75 | NFR-003 benchmarks (DEV-031), all MVP | iMin device for the benchmarks, sign-off |
 
-Total ≈ 15.75 weeks (1 + 1 + 1.5 + 2.75 + 2 + 2.5 + 1.5 + 0.75 + 2 + 0.75) after the 0.6.0 rework of 2026-10-25: 0.6.0 grows from 1.5 to 2.5 weeks (the printer drivers leave it, the ordering UX comes in) and 0.9.0 grows from 1.5 to 2 weeks (the drivers and the physical print checks arrive there). These are estimates, not commitments. The P2 tasks of 0.6.0 would add about 1 more week; they are the first cut (below). Before that rework the total was ≈ 14.25 weeks. The benchmarks (DEV-031, ~0.25 week) moved from 0.3.0 to 1.0.0 on 2026-10-24 (PO), so the total is unchanged. That is about 1.25 weeks over the 13-week (3-month) target, shown on purpose: Budget Plan (D-26) adds ~1.25 weeks. Compared with the previous 14.75-week plan:
+Total ≈ 15.25 weeks (1 + 1 + 1.5 + 2.75 + 2 + 2.5 + 1.5 + 0.75 + 1.5 + 0.75). On 2026-10-25 the PO took printing out of 0.6.0 (D-36) and nothing was rescheduled, so 0.9.0 is back at 1.5 weeks and the drivers and printing logic have no slot: if OQ-19 is answered with "build", add about 1.5 weeks (the logic that D-34 had in 0.6.0, plus the three drivers and the physical checks). 0.6.0 stays at 2.5 weeks as an estimate: the printing share left and the P2 tasks, which were outside the estimate, shipped instead of being a cut. These are estimates, not commitments. Before the 0.6.0 rework the total was ≈ 14.25 weeks. The benchmarks (DEV-031, ~0.25 week) moved from 0.3.0 to 1.0.0 on 2026-10-24 (PO), so the total is unchanged by that. That is about 1.25 weeks over the 13-week (3-month) target, shown on purpose: Budget Plan (D-26) adds ~1.25 weeks. Compared with the previous 14.75-week plan:
 - 0.3.0 loses 0.25 week: runtime language switching (DEV-026) is removed and the Menu no longer has a promo carousel.
 - 0.8.0 loses 0.25 week: no Bahasa translation, native-speaker review or two-language screenshot matrix.
 - 0.4.0 is unchanged at 2.75 weeks: the Customize sheet and the swap-with-rebalancing (+0.25) are offset by the designs now existing (no interim Upsell/Budget Plan UI, no restyle task, no EN/ID strings) (−0.25).
 
 If the date is fixed, the first cuts (with PO approval) are:
-1. The P2 tasks of 0.6.0 (the Budget Plan swap picker DEV-109, "Edit plan" DEV-111, the "Make it a meal" strip card DEV-114 and the promo caption on strip cards) → 1.0.1. The Upsell strip, the two plan cards, the defaults, the discoverability and the no-silent-failure fixes still ship, and the existing Swap (cycling) with rebalancing stays.
-2. Bluetooth printers → 1.0.1.
+1. The promo caption on strip cards ("Adds Rp X off", the only P2 item of 0.6.0 that did not ship) → 1.0.1. The other P2 tasks (the swap picker DEV-109, "Edit plan" DEV-111, the "Make it a meal" card DEV-114) shipped.
+2. Printing (all of it, FR-021 and FR-022) → decided by the PO through OQ-19: build it later (Bluetooth printers first to go to 1.0.1) or drop it from 1.0.
 3. The `Photo` sheen and other non-essential motion polish → 1.0.1.
 
 ### 3.1 Dependency graph
 ```
 0.1.0 ─► 0.2.0 ─► 0.3.0 ─► 0.4.0 ─► 0.5.0 ─► 0.6.0 ─► 0.7.0 ─► 0.8.0 ─► 0.9.0 ─► 1.0.0
                     │                  │         │
-                    └─ sync/cache ─────┘         └─ print after PAID needs payment state
+                    └─ sync/cache ─────┘         └─ Complete takes the paid payment over from Checkout
 0.7.0 lock task needs 0.2.0 binding; 0.9.0 needs DEP-1/2/3 delivered.
 ```
 
@@ -316,7 +316,7 @@ Complete the ordering half of the journey:
 - the upsell step and the inactivity protection.
 
 ### Scope
-**Included:** PricingEngine, full cart management, the OrderSession state machine, the Budget Plan optimizer + SCR-19 + Menu entry row + menu data fields, SCR-10 Your order (totals, methods, empty state), SCR-09 Upsell, the SCR-13 inactivity overlay.
+**Included:** PricingEngine, full cart management, the OrderSession state machine, the Budget Plan optimizer + SCR-19 + Menu entry row + menu data fields, SCR-10 Your order (totals, methods, empty state), SCR-09 Upsell (removed in 0.6.0, D-33), the SCR-13 inactivity overlay.
 **Excluded:** Order submission and payment (0.5.0; Pay navigates to the 0.5.0 placeholder) and the E14-backed checkout gate (DEV-051). SCR-10 already disables Pay while the validated network is down (`S_Payment_offline`, built with DEV-037a).
 
 ### TODO checklist
@@ -325,7 +325,7 @@ Complete the ordering half of the journey:
   - *Verify:* table-driven unit tests TC-055–TC-061, including the Rp 172.700 sample, plus property-based tests (total ≥ 0, monotonic in qty).
 - [x] **DEV-036** `Cart` domain (FR-012): add/merge, increment, decrement-to-remove, the limits of 20 per line and 30 lines with error results, and the line description builder (e.g. "Fries · Cola · Extra cheddar · No onion"). *0.3.0 already has `Cart.add` with the merge, both limits and the structured `LineChoice` parts; this task adds increment, decrement, removal and the worded description.*
   - *Verify:* unit tests TC-050–TC-052.
-- [x] **DEV-041** `OrderSession` state machine (PRD §12.2) owning the cart, order type and the upsell-shown flag. Every transition to Idle resets it. *0.3.0 already has `OrderSessionHolder` and an `OrderSession` with the TypeChosen and Building states; this task adds the remaining states and transitions.*
+- [x] **DEV-041** `OrderSession` state machine (PRD §12.2) owning the cart, order type and the upsell-shown flag (the flag was removed in 0.6.0 with SCR-09, D-33). Every transition to Idle resets it. *0.3.0 already has `OrderSessionHolder` and an `OrderSession` with the TypeChosen and Building states; this task adds the remaining states and transitions.*
   - *Verify:* state-transition unit tests for every edge.
 - [x] **DEV-037** SCR-10 Your order per `Payment.dc.html` (FR-012). The order lines are the primary scroll area (at least 3½ rows visible above the summary panel), with roll animations and slide-out removal, the fade mask, the empty state, step label, item count plural, "Add more" and the order-type chip.
   - Lines that came from a Budget Plan carry a "Budget Plan plan" tag row above the list (`plan`), and the promo nudge "Add Rp X more to get Rp 10.000 off" appears as a banner with a progress bar while the subtotal is under the threshold.
@@ -369,13 +369,13 @@ Complete the ordering half of the journey:
   - Edge states in the same layout: budget too low ("Need Rp X more", closest complete plan), "More than enough", and a group over `maxGroupSize` ("Please order in smaller groups", "Set group to 10", dock disabled).
   - The entry is the slim "Plan by budget" row on the Menu's Popular view, hidden when `budgetPlanner.enabled` is false.
   - *Verify:* TC-167 and TC-169–TC-171 (Compose UI); screenshot tests of `S_BudgetPas_exact`, `S_BudgetPas_tooLow`, `S_BudgetPas_moreThanEnough`, `S_BudgetPas_group` and the two default steps; TC-168 benchmark on the device in 1.0.0 (DEV-031).
-- [x] **DEV-043a** Budget Plan "Customize" bottom sheet (prereq: DEV-043, DEV-042).
+- [x] **DEV-043a** Budget Plan "Customize" bottom sheet (prereq: DEV-043, DEV-042). *Superseded in 0.6.0: the sheet is deleted and the swap sheet of DEV-109 replaces it.*
   - Header with the live total; "Swap items" (per item, uses the rebalancing `swap`); toggles "Include sides" and "Include desserts"; "Strict" / "Up to +10 %" over-budget control; "Reset to suggested"; "Done". The sheet is closed by default so Step 2 stays simple.
   - *Verify:* TC-170. If time is short these options (not Swap) are the 1.0.1 cut in §3.
 
 ### 0.4.0 status (2026-10-24)
 - All twelve 0.4.0 tasks are done: `./gradlew verify` is green, and the instrumented suite (31 tests, including the new `OrderingUiTest`) passes on the API 37 emulator. Evidence: [`docs/test-reports/0.4.0.md`](test-reports/0.4.0.md).
-- PO decision (2026-10-24, PRD 1.7): the first "View order" on the Menu in every order goes through SCR-09 when "Suggest add-ons" is on; with nothing left to suggest SCR-09 shows "Nothing more to suggest" (FR-014, TC-172).
+- PO decision (2026-10-24, PRD 1.7): the first "View order" on the Menu in every order goes through SCR-09 when "Suggest add-ons" is on; with nothing left to suggest SCR-09 shows "Nothing more to suggest" (FR-014, TC-172). *Superseded on 2026-10-25 by D-33: SCR-09 is gone and Upsell is a strip on Your order.*
 - New in `:core:domain`: `KioskSettings` + `SettingsRepository` (the four keys the ordering screens read; `SettingsStore` on `settings.preferences_pb` in `:core:data`). The 0.7.0 settings screens (DEV-068, DEV-069) write through the same repository.
 - Built ahead of later tasks, so those tasks extend it: the Pay gate when offline on SCR-10 (DEV-051 adds the E14 probe and the checkout gate) and the `S_Payment_priceChanged` / `S_Payment_itemUnavailable` visuals and their Review / Remove actions (DEV-046 feeds them from E7). The SCR-10 Pay button only navigates to the Checkout placeholder; `OrderSession.submit()` is called by DEV-045. All of this was completed in 0.5.0 (see its status note).
 - Not in 0.4.0: the staff settings' own 120 s timeout of TC-104 (A-22) comes with the PIN gate (DEV-066, 0.7.0); TC-104 here covers Checkout, Complete and the staff placeholders (timer off).
@@ -409,7 +409,7 @@ Implement the full order and payment lifecycle, including every failure, retry, 
 
 ### Scope
 **Included:** Order creation with idempotency, price-mismatch/unavailable handling, QRIS flow, card flow via the `CardTerminal` interface, Processing/Failed states, method switch, debug simulate bar, the connectivity gate and offline banner, payment recovery after process death.
-**Excluded:** Real gateway/EDC adapters (0.9.0), printing on success (0.6.0; success goes to the Complete placeholder until then).
+**Excluded:** Real gateway/EDC adapters (0.9.0), printing on success (not built: D-36, OQ-19; success goes to the Complete placeholder until then).
 
 ### TODO checklist
 - [x] **DEV-045** `OrderRepository.create()` (FR-016).
@@ -448,9 +448,9 @@ Implement the full order and payment lifecycle, including every failure, retry, 
 - **Connectivity** (DEV-051): `ConnectivityEngine` probes E14 (`status` and `components.paymentGateway` both `OK`). A connected but unvalidated network is CHECKING for 4 s and then OFFLINE; it is not probed. Only OFFLINE blocks Pay and Add; CHECKING does not (TD-18).
 - **Checkout** (SCR-11) is built from `Checkout.dc.html` with the QR card, expiry ring and centre mark in `:core:designsystem` and the ZXing encoder in `:app` (level H, mark 96 dpx = 20 % of the width; the design's 104 dpx is 21.7 %). An E7 failure after the retries is a local Checkout failure ("Payment didn't go through", "Can't reach the restaurant system. Please try again."), with no "not charged" note (TD-20). The route carries the method as a `String` name (TD-19). The QR expiry uses the QRIS config default (only when it is in the allowed list, else 300 s) until the 0.7.0 Payment settings exist (FR-025).
 - **New copy and rules that need PO confirmation** (A-45): card `CANCELLED` shows "Payment cancelled" / "The payment was cancelled on the terminal. Try again or choose another method." (the design text is QR-only); the "Your order is saved" note shows only on the "Ordering is paused" variant.
-- **Debug only**: the "Prototype only · simulate the result" bar (`CheckoutSimulator`, optional `CheckoutDebugTools` binding), the Developer options "Card terminal" section (`SwitchableCardTerminal`), and 25 WebP demo images in `app/src/debug/assets/demo/` (20 product photos, the "Make it a meal" photo, 3 idle slides and the logo, padded so no slot crops the subject: `ui-design/photo-guidelines.md`) that `SwitchableBackendApi` puts on the fakes and the Prism mock when the sample has no image or the `cdn.example` placeholder. Release has none of them (`scripts/check-release-apk.sh`, whose quoting bug under bash 3.2 made it skip silently; fixed in this milestone). Two sample products, Ayam Geprek Bowl and Black Pepper Beef Bowl, have no photo.
-- **Built ahead or left for 0.6.0**: Complete is still the placeholder. Checkout calls `PaymentStateMachine.acknowledgePaid()` at the hand-over; the 0.6.0 Complete screen takes that over and prints from the paid payment. An order recovered as paid after a restart reaches Complete through `PendingOrderRecoveryCoordinator.recoveredPaid` (totals and payment details, but no order lines: they are not stored).
-- **Known limits**: the pending order is cleared before Complete is shown, so a kill in between leaves no receipt on the next start; a recovered receipt has no order lines; TC-073's real `adb shell am kill` check has not run.
+- **Debug only**: the "Prototype only · simulate the result" bar (`CheckoutSimulator`, optional `CheckoutDebugTools` binding), the Developer options "Card terminal" section (`SwitchableCardTerminal`), and 29 WebP demo images in `app/src/debug/assets/demo/` (23 product photos, the "Make it a meal" photo, the "Feast for Two" photo, 3 idle slides and the logo, padded so no slot crops the subject: `ui-design/photo-guidelines.md`) that `SwitchableBackendApi` puts on the fakes and the Prism mock when the sample has no image or the `cdn.example` placeholder. Release has none of them (`scripts/check-release-apk.sh`, whose quoting bug under bash 3.2 made it skip silently; fixed in this milestone). Ayam Geprek Bowl, Black Pepper Beef Bowl and the Family Bucket got their photos on 2026-10-25, so every sample product has one.
+- **Built ahead or left for 0.6.0**: Complete was still the placeholder. Checkout called `PaymentStateMachine.acknowledgePaid()` at the hand-over; 0.6.0 moved that into the Complete screen (DEV-060), which also reads an order recovered as paid after a restart (totals and payment details, but no order lines: they are not stored).
+- **Known limits** (as of 0.5.0): the pending order is cleared before Complete is shown, so a kill in between leaves no receipt on the next start (**fixed in 0.6.0**: Complete acknowledges the payment itself, so the pending order is cleared only once Complete is shown); a recovered receipt has no order lines; TC-073's real `adb shell am kill` check has not run.
 - Not run: TC-073 on a device, the airplane-mode checks (TC-085, TC-122, TC-123, TC-137), the J1–J3 recordings, the API 30 and API 34/35 emulators, and the PO review of Checkout against the design. FR-013 AC4 is covered only on the kiosk side (the E7 total guard in `SubmitOrderTest` and the MockWebServer fixtures); no run against the Prism mock is part of the suite, and Prism's canned total only matches the Rp 172.700 design cart. The contract check against the real backend is DEV-097 (0.9.0).
 - **Exit criteria**: the TCs that `verify` runs pass, and the instrumented result is in the test report (the manual ones above are open); the gateway/EDC spec status is recorded (not received); the PO acknowledgement that 0.9.0 is at risk is **open**; the one defect the first instrumented run found (recorded in the test report) is fixed, and no P1/P2 defect is known to be open.
 
@@ -473,93 +473,96 @@ All TCs pass. The gateway/EDC spec status is recorded. If the specs are missing,
 
 ---
 
-## Version 0.6.0 — Printing (UI, fakes), completion & ordering UX
+## Version 0.6.0 — Complete, Upsell strip and Budget Plan
 
 ### Objective
-1. Paid orders end on the Complete screen with the backend order number, and the receipt and kitchen ticket are produced and printed through the printer subsystem. **No real printer is involved**: everything is built and tested against `FakePrinterDriver` [D-34]. The built-in iMin, USB and Bluetooth drivers move to 0.9.0.
+1. Paid orders end on the Complete screen with the backend order number. **Nothing prints**: the PO removed printing and all settings work from 0.6.0 on 2026-10-25 (D-36). The receipt-printer picture on Complete is a decorative demo.
 2. Upsell and Budget Plan become easier and less confusing for customers, and Upsell sells better: the blocking Upsell screen is replaced by a smart suggestion strip on Your order [D-33], and Budget Plan gets findable, plainer steps [D-35].
 
 ### Scope
 **Included:**
-- Printing: the printer abstraction with `PrinterManager` and the ESC/POS encoder, `UnavailablePrinterDriver` for release, receipt and kitchen renderers (58/80 mm, density, logo, footer), print orchestration after PAID, the Complete screen, and the Printer settings screen with the printer list and role UI (reachable through a debug route until 0.7.0 adds the PIN gate).
-- Ordering UX: the PRD and design updates, the smart Upsell strip (retiring SCR-09), and the Budget Plan improvements (FR-014, FR-032).
+- The Complete screen (SCR-12), which also takes over the payment hand-off from Checkout.
+- Ordering UX: the PRD and design updates, the smart Upsell strip (retiring SCR-09), and the Budget Plan improvements (FR-014, FR-032), including the P2 tasks.
 
-**Excluded:** The three real printer drivers, ADR-0004, physical print checks and `docs/printers.md` (0.9.0, DEV-056). The settings PIN/home (0.7.0). Any change to the inactivity timer or its zones (FR-023 stays as it is).
+**Excluded (D-36):** all printing (`PrinterManager`, `EscPosEncoder`, renderers, orchestration, FR-021) and the Printer settings screen (FR-022, SCR-15): removed from 0.6.0 by the PO and not scheduled, pending OQ-19 (build later, or drop from 1.0). The three real printer drivers (DEV-056) stay in 0.9.0 on paper but have nothing to attach to until then. The settings PIN/home (0.7.0). Any change to the inactivity timer or its zones (FR-023 stays as it is).
 
-**Order of work:** DEV-104 first (the boards and the PO sign-off gate every UI task), then the domain tasks (DEV-105, DEV-109's planner part) test-first, then the screens. The printing tasks do not depend on DEV-104 except the Printer settings state boards.
+**Order of work:** DEV-104 first (the boards and the PO sign-off gate every UI task), then the domain tasks (DEV-105, DEV-109's planner part) test-first, then the screens.
 
-**Priorities** (the cut line if the date is fixed): **P1** must ship; **P2** ships only if time remains and otherwise moves to 1.0.1 (§3 first cuts).
+**Priorities** (the cut line if the date is fixed): **P1** must ship; **P2** ships only if time remains and otherwise moves to 1.0.1. All P2 tasks shipped except the promo caption.
 
 ### TODO checklist
 
 **Design and documents**
-- [ ] **DEV-104** Documents and design for the rework (P1). *Done on 2026-10-25:* PRD 1.9 (D-33–D-35, FR-014, FR-032, A-46–A-48, OQ-15–OQ-18), this plan and the testing plan. *Open:* sync the updated design files into `docs/ui-design/` (the published canvas could not be opened from the dev session, and the files in the repo were last changed on 2026-10-22), then add the boards: the Your order suggestion strip (`Payment.dc.html` plus `S_Payment_upsell*` states: normal, added with stepper, budget-limited, hidden), the Budget Plan Step 1 defaults and keypad errors, the Step 2 two-plan cards, the swap picker, the cart-limit message and the Menu header pill (`BudgetPas.dc.html`), the new photo slot in `photo-guidelines.md`, and printer boards (`SettingsPrinter.dc.html`: printer list, add printer, offline, out of paper, Bluetooth permission denied). Where the updated design differs from the PRD text, the design wins and the PRD is corrected. **The PO signs the boards off before DEV-106–DEV-112 start.**
+- [ ] **DEV-104** Documents and design for the rework (P1). *Done:* PRD 1.9 and 1.10 (D-33–D-36, FR-014, FR-032, A-46–A-50, OQ-15–OQ-19), this plan and the testing plan; the updated design (v26) is synced into `docs/ui-design/` with the boards the app was built from (`S_Payment_upsell*`, `S_Payment_planTag`, `_planAdded`, `_emptyTrayNoPlan`, `S_BudgetPas_*`, `S_Menu_drinksTab`, `_planOff`), the photo slot is in `photo-guidelines.md`, and where the design differed from the PRD text the PRD was corrected (PRD 1.10). *Open:* the PO's sign-off of the boards, to be recorded in `docs/test-reports/0.6.0.md`. The printer boards of the original task are dropped with printing (D-36).
   - *Verify:* sign-off recorded in `docs/test-reports/0.6.0.md`.
 
-**Printing (UI and logic, fakes only)**
-- [ ] **DEV-055** `PrinterManager` in `:core:hardware` (FR-022).
-  - Covers the printer registry (DataStore), role assignment (one printer per role), status flow (online/offline/paper %/last error), a print job queue with one retry, and an `EscPosEncoder` (text styles, alignment, raster image for the logo, cut, feed).
-  - Add `UnavailablePrinterDriver` (a release stand-in that reports the printer as unavailable, like `UnavailableCardTerminal`) and a `FakePrinterManager` in `:core:testing`.
-  - *Verify:* unit tests for the encoder byte output against golden files, and for the role reassignment rule (TC-099).
-- [ ] **DEV-056** *(moved to 0.9.0)* Drivers (NFR-016): iMin built-in (SDK), USB host bulk transfer and Bluetooth SPP, with ADR-0004. See Version 0.9.0.
-- [ ] **DEV-057** Receipt renderer (FR-021) with the content per FR-021/A-20 in English, 58/80 mm layouts and density mapping. The logo comes from the config `logoUrl` and is left out when it is missing or fails. A receipt for an order that a recovery found paid has no order lines [A-47].
-  - *Verify:* golden-text tests for both widths; TC-093.
-- [ ] **DEV-058** Kitchen ticket renderer (large order number, type, time, lines with options, no prices).
-  - *Verify:* golden-text test; TC-092.
-- [ ] **DEV-059** Print orchestration: on `PAID`, enqueue the receipt and/or ticket per toggles and roles, without blocking the UI. Failures surface on Complete and in status (FR-020 AC4, FR-021 AC4).
-  - *Verify:* TC-091, TC-094, TC-095 with fake drivers (offline, paper out, slow).
-- [ ] **DEV-060** SCR-12 Complete per `Complete.dc.html` (FR-020).
-  - Flood, badge, check draw, rings, confetti, digit cascade (first character in accent), order-type instruction copy, printer animation, 20 s ring and Done.
-  - Takeaway copy "Pick up at the counter when your number is called." (`S_Complete_takeaway`). When printing fails the printer animation is replaced by a card "Receipt couldn't print — Please show this screen at the counter." (`S_Complete_printFailed`).
-  - Takes over the payment hand-off from 0.5.0: Checkout calls `PaymentStateMachine.acknowledgePaid()` as it leaves, and Complete should take the paid details first and acknowledge itself. It also takes an order from `PendingOrderRecoveryCoordinator.recoveredPaid` (see `todo.md`, "For 0.6.0").
-  - Clear the session to Idle on exit.
-  - *Verify:* TC-088–TC-090, TC-095.
-- [ ] **DEV-061** SCR-15 Printer settings per `SettingsPrinter.dc.html`, extended with the printer list and add/role UI [D-18], against `FakePrinterManager`.
-  - Status meter (red < 15 %), last printed, Test page and Feed actions with busy/done labels, receipt toggles, footer input, paper width and density.
-  - Discovery is a fake device list in debug builds; a release build shows "No printers found" in the add flow until 0.9.0 [D-34]. Needs the printer state boards from DEV-104.
-  - *Verify:* TC-100 and a screenshot test per printer board.
+**Complete** (FR-020)
+- [x] **DEV-060** SCR-12 Complete per `Complete.dc.html` (FR-020), in `app/.../feature/complete`.
+  - Flood, badge, check draw, rings, confetti, digit cascade (first character in accent), order-type instruction line, countdown ring (20 s) and Done. The receipt-printer illustration is drawn as a decorative demo; nothing prints (D-36), so there is no print-failed card (`S_Complete_printFailed` and FR-020 AC4 do not apply). `S_Complete_takeaway` is built.
+  - **Takes over the payment hand-off from 0.5.0**: Checkout no longer calls `PaymentStateMachine.acknowledgePaid()`; Complete reads the paid details and acknowledges the payment itself when it is shown, so the pending order is cleared only after Complete is shown (TD-24). A new `RecoveredPaidSource`, implemented by `PendingOrderRecoveryCoordinator`, gives it an order that a restart recovery found paid (order number, total and method; no lines and no order type, so the instruction line is neutral, A-47, A-49).
+  - Clears the session to Idle on exit.
+  - *Verify:* TC-088–TC-090 (TC-095 is removed).
+
+**Printing and printer settings (removed from 0.6.0 by the PO, not scheduled: D-36, OQ-19)**
+- [ ] **DEV-055** `PrinterManager` in `:core:hardware`, the registry, roles, job queue and `EscPosEncoder` (FR-022). *Removed from 0.6.0 by the PO, not scheduled.*
+- [ ] **DEV-056** Printer drivers (NFR-016): iMin built-in (SDK), USB host bulk transfer and Bluetooth SPP, with ADR-0004. *Stays in 0.9.0 on paper; it has no scope until OQ-19 is answered and DEV-055 exists. See Version 0.9.0.*
+- [ ] **DEV-057** Receipt renderer (FR-021). *Removed from 0.6.0 by the PO, not scheduled.*
+- [ ] **DEV-058** Kitchen ticket renderer. *Removed from 0.6.0 by the PO, not scheduled.*
+- [ ] **DEV-059** Print orchestration after `PAID`. *Removed from 0.6.0 by the PO, not scheduled.*
+- [ ] **DEV-061** SCR-15 Printer settings per `SettingsPrinter.dc.html`. *Removed from 0.6.0 by the PO, not scheduled.*
+- *Dropped tests:* TC-091–TC-095, TC-099 and TC-100. TC-088–TC-090 stay.
 
 **Ordering UX: Upsell** (FR-014, D-33)
-- [ ] **DEV-105** Upsell suggestions in `:core:domain` (P1), tests first. `Upsell.suggestions` ranks one candidate per gap (drink, side, dessert) from what the order is missing, with `plannerWeight`, featured and menu order inside a gap, up to 3 cards. Combo lines count as a meal (no side or drink suggested). When the order came from a Budget Plan, only items that fit the remaining budget are returned. `shouldOffer` and `OrderSession.markUpsellShown()` / `upsellShown` are removed. The promo caption ("Adds Rp X off", from `promoHint`) is P2.
-  - *Verify:* unit tests: a main only gives a drink first; a combo only gives a dessert only; a plan order with Rp 400 left returns nothing priced above Rp 400; sold-out, in-cart and needs-a-choice items are excluded (TC-194, TC-195, TC-197).
-- [ ] **DEV-106** SCR-10 "Goes well with your order" strip (P1), per the DEV-104 boards: up to 3 cards, "+" becomes a "− 1 +" stepper, re-ranked as the order changes, hidden when the toggle is off or nothing is suggestable, and reachable from every path. Remove the SCR-09 route, screen, ViewModel and its screenshot goldens; update `KioskNavHost`, `MenuViewModel.viewOrder` and the instrumented `OrderingUiTest`.
-  - *Verify:* TC-194–TC-197 (Compose UI), a screenshot test per strip board.
-- [ ] **DEV-114** "Make it a meal" strip card (P2): switches a main line's meal option on in one tap (a `LineChoice` change, price from the option's `priceDelta`), and lets a meal-upgraded line count as a meal in DEV-105. **Only when the API marks the meal-upgrade modifier group (OQ-17, A-48).** Edit `api-spec.md` first and regenerate `openapi.yaml`.
-  - *Verify:* TC-205.
+- [x] **DEV-105** Upsell suggestions in `:core:domain` (P1), tests first. `Upsell.suggestions` ranks one candidate per gap (drink, side, dessert) from what the order is missing, with `plannerWeight`, featured and menu order inside a gap, up to 3 cards. Combo lines count as a meal (no side or drink suggested), and so does a product line with the meal option on when the API marks the group (A-48). `Upsell.withinBudget` limits a Budget Plan order to what keeps the total at or under the budget. `shouldOffer` and `OrderSession.markUpsellShown()` / `upsellShown` are removed. The promo caption ("Adds Rp X off", from `promoHint`) did not ship (P2, moves to 1.0.1).
+  - *Verify:* TC-194, TC-195, TC-197 (unit tests: a main only gives a drink first; a combo only gives a dessert only; a plan order with Rp 400 left returns nothing priced above Rp 400; sold-out, in-cart and needs-a-choice items are excluded).
+- [x] **DEV-106** SCR-10 "Goes well with your order" strip (P1), built on Your order below the lines (`YourOrderSuggestions.kt`): up to 3 cards, "+" becomes a "− 1 +" stepper, hidden when the toggle is off, nothing is suggestable or while a Pay blocker shows, reachable from every path. `Upsell.cards` and `Upsell.strip` keep a card the customer already added in its slot while the others are re-ranked; plan orders show "Fits your budget". **Deviation:** the design freezes the strip, the built app re-ranks it (DEV-106 wording; recorded in `docs/ui-design/README.md`). The SCR-09 route, screen, ViewModel and screenshot goldens are removed, and `KioskNavHost`, `MenuViewModel.viewOrder` and the instrumented `OrderingUiTest` are updated.
+  - *Verify:* TC-194–TC-197 (Compose UI), a screenshot test per strip board (`S_Payment_upsell`, `_upsellAdded`, `_upsellBudget`, `_upsellMeal`, `_upsellMealOn`).
+- [x] **DEV-114** "Make it a meal" strip card (P2): `Upsell.mealSwitch` and `Cart.switchOne` / `OrderSession.switchOne` switch one unit of a main line's meal option on in one tap (price from the option's `priceDelta`; the line then counts as a meal), and "−" switches it back. The API marks the group with the optional modifier-group field `purpose` = `MEAL_UPGRADE` (OQ-17 resolved with that name): `api-spec.md`, `openapi.yaml` and the fixtures are updated, and Room is at **version 3** with `MIGRATION_2_3` adding `modifier_group.purpose`, so an already cached menu gets the marker only after a menu refresh (TD-25). The sample fixture's upsell categories now include `cat_drinks`. Plan orders are never meal-upgraded.
+  - *Verify:* TC-205, TC-193 (the 2→3 migration).
 
 **Ordering UX: Budget Plan** (FR-032, D-35)
-- [ ] **DEV-107** Step 1 (P1): adults start at 2, the "About Rp X per person" caption, the disabled-state message "Choose a budget to continue", and the keypad fixes (current amount shown, thousand separators, "Minimum Rp 1.000"). A-46.
-  - *Verify:* TC-198 (UI and screenshot tests).
-- [ ] **DEV-108** Step 2 (P1): the two visible plan cards, "What's included" open by default with one meal per person, the "Add sides" / "Add desserts" chips and the "Allow a little over budget" switch, the honest "More than enough" copy, and "Combo savings Rp X" in the price details. The planner and its golden cases (`docs/budget-plan-cases.md`) do not change.
-  - *Verify:* TC-199, and the golden cases still pass.
-- [ ] **DEV-109** Swap picker (P2): `BudgetPlanner.alternatives(plan, slot)` returns the same-role alternatives (a main plus a drink, a one-person combo, a shared two-person combo) with the price change and resulting total, and the picker UI lists them; the notes are recomputed after a swap. The existing `swap` stays. The combo side allowance rule of FR-032 (OQ-15) is applied in `BudgetPlanner.extraSlots`.
-  - *Verify:* TC-200 and TC-204; a property test that every alternative stays within the budget or cap rule; the existing swap tests.
-- [ ] **DEV-110** Discoverability (P1): the "Plan by budget" pill in the Menu header on every tab, the new entry copy, and the entry in the empty Your order state.
-  - *Verify:* TC-202.
-- [ ] **DEV-111** Failure and re-entry (the message is P1, "Edit plan" is P2): when the plan would break the cart limits, show "Your order has too many items to add this plan" with "Review order" (it logged and did nothing before). "Edit plan" on the plan tag reopens Step 2 with the saved budget and group and replaces the plan's lines (`OrderSession.replacePlan`).
-  - *Verify:* TC-201 (P1), TC-203 (P2).
-- [ ] **DEV-112** Hand-off (P1): "Added to order" for about 0.6 s, then Your order with a "Plan added" confirmation. The inactivity timer and zones do not change.
-  - *Verify:* a UI test with the test clock.
-- [ ] **DEV-113** PO review (P1): the strip and the Budget Plan against the signed-off boards, and the plan sanity review of 10 budget and group combinations (the open item in `todo.md`). Notes in `docs/test-reports/0.6.0.md`.
+- [x] **DEV-107** Step 1 (P1): adults start at 2, the "About Rp X per person" caption, the dock message "Choose a budget to continue", and the keypad fixes (opens on the current amount, thousand separators, "Minimum Rp 1.000" under the amount and as the disabled button label). A-46.
+  - *Verify:* TC-198 (UI and screenshot tests: `S_BudgetPas_step1`, `_step1Budget`, `_keypadMin`).
+- [x] **DEV-108** Step 2 (P1): the two visible plan cards, "What's included" open by default with one row per person and a Swap action, the chips "Add sides" / "Add desserts" and the switch "Allow a little over budget", "Reset to suggested", the honest "More than enough" copy and "Combo savings" in the price details. Hero copy follows the design (Under: tag "Within your budget", title "Best fit for your table"; Over: "A little extra" / "Slightly above your budget"; "More than enough": title "Our menu tops out at Rp X for your group, which is under your budget." with the badge "Rp X under your budget"). The Customize sheet is deleted. OQ-15 resolved: the combo rule is applied in `BudgetPlanner.extraSlots` (a combo diner gets no extra side, desserts are unaffected) but the "cap at min(people, 4)" half is not, because the golden cases in `docs/budget-plan-cases.md` need one extra per person; the planner and pricing suites are unchanged. OQ-16 resolved: no preselected chip.
+  - *Verify:* TC-199, TC-204 and the golden cases (`S_BudgetPas_twoPlans`, `_detailsOpen`, `_optionsOff`, `_moreThanEnough`, `_exact`, `_tooLow`, `_group`).
+- [x] **DEV-109** Swap sheet (P2): `BudgetPlanner.alternatives(request, plan, pickIndex)` returns the same-role alternatives (a main plus a drink, a one-person combo, a shared two-person combo or two separate meals, a kid-friendly pair, a shared side or dessert) with the price change and the resulting total, never below the current total and within the budget or the over cap. Everyone else's choices and the shared extras are kept, so the price change shown is the real one (the older `swap` with rebalancing stays in the planner, unused by the screen). `BudgetPlanSwapSheet` lists them; the notes are recomputed after a swap.
+  - *Verify:* TC-200 and TC-204; a property test that every alternative stays within the budget or cap rule; the existing swap tests (`S_BudgetPas_swapOpen`).
+- [x] **DEV-110** Discoverability (P1): the "Plan by budget" pill in the Menu category bar on every tab, hidden when `budgetPlanner.enabled` is false, the new entry copy, and the entry in the empty Your order state.
+  - *Verify:* TC-202 (`S_Menu_drinksTab`, `S_Menu_planOff`, `S_Payment_emptyTrayNoPlan`).
+- [x] **DEV-111** Failure and re-entry: when the plan would break the cart limits, show "Your order has too many items to add this plan" with the dock button "Review order" (P1; `S_BudgetPas_cartFull`). "Edit plan" on the plan row opens Step 2 through `BudgetPlanRoute(edit = true)` with the saved budget and group and replaces only the plan's own units (`OrderSession.replacePlan`, `PlanTag.quantities`; P2). Edit mode keeps the dock copy "Add plan to order" / "Added to order", which is invented and needs the PO (A-50).
+  - *Verify:* TC-201, TC-203.
+- [x] **DEV-112** Hand-off (P1): "Added to order" for 0.6 s, then Your order with a green "Plan added" pill for 2.6 s (`OrderState.planAdded`, `OrderSession.acknowledgePlanAdded`). The inactivity timer and zones do not change.
+  - *Verify:* a UI test with the test clock (`S_BudgetPas_added`, `S_Payment_planAdded`, `S_Payment_planTag`).
+- [ ] **DEV-113** PO review (P1): the strip and the Budget Plan against the signed-off boards, and the plan sanity review of 10 budget and group combinations (the open item in `todo.md`). Notes in `docs/test-reports/0.6.0.md`. **Open.**
+
+### 0.6.0 status (2026-10-25)
+- **PO scope decision D-36 (2026-10-25): no printing and no settings work in 0.6.0.** DEV-055, DEV-057, DEV-058, DEV-059 and DEV-061 and TC-091–TC-095, TC-099 and TC-100 are removed from 0.6.0 and **not scheduled**; they were not silently moved to 0.9.0. OQ-19 asks the PO to build printing later or drop it from 1.0, which also decides DEV-056, FR-021, FR-022, the risk R-5 and the dependencies DEP-4 and DEP-7. D-34 (printing against fakes in 0.6.0) is kept as history and superseded.
+- Implemented: DEV-060, DEV-105–DEV-112 and DEV-114, and the documentation and design part of DEV-104. `./gradlew verify`: **green** (2026-10-25). Evidence, the test-case table, the recorded goldens and the deviations: [`docs/test-reports/0.6.0.md`](test-reports/0.6.0.md). The exit criteria are **not all met**; the open parts are at the end of this note and in [`todo.md`](../todo.md).
+- **Complete** (DEV-060) takes over the payment hand-off (TD-24): the pending order is cleared only after Complete is shown, which fixes the 0.5.0 known limit. Its dine-in line and the neutral line for a recovered order are new copy that needs the PO (A-49). The instruction line of a recovered order is neutral because the order type is not stored.
+- **Upsell strip**: on Your order below the lines, hidden while a Pay blocker shows. It keeps a card the customer already added in its slot, so the stepper stays where it is; plan orders show "Fits your budget" and are never meal-upgraded. **Design deviation**: the design freezes the strip while the built app re-ranks it as the order changes (DEV-106). The "Make it a meal" card needs the new E6 field `purpose`; **Room is at version 3**, and a menu cached before the upgrade shows no meal card until the next menu refresh.
+- **Budget Plan** follows the design where it differed from the PRD text (the design wins, and PRD 1.10 is corrected): "Review order" is the dock button of the cart-limit message, the hero copy is the design's, "Added to order" shows for 0.6 s, and "Minimum Rp 1.000" is both the line under the keypad amount and the disabled button label. The Customize sheet is deleted. The Menu pill shows on every category tab.
+- **Debug only**: 28 WebP demo images in `app/src/debug/assets/demo/` (three more product photos than in 0.5.0); nothing else debug-only was added to release.
+- **Not run**: the instrumented tests were **not run** (no emulator); `CheckoutUiTest`, `OrderingUiTest` and `NavigationEdgeWalkUiTest` were edited for the new flow and compile only. The PO review (DEV-113), the plan sanity review of 10 combinations and the PO sign-off of the DEV-104 boards are open. The checks carried over from 0.2.0–0.5.0 stay open (`todo.md`).
+- **Exit criteria**: the TCs that `verify` runs pass (**lead to fill after `verify`**); the PO has **not yet** signed off the boards or reviewed the built strip and Budget Plan (**open**); the release build has no debug-only code (`verify` checks it; lead to confirm); no P1/P2 defect is known to be open (lead to confirm); the one P2 item that did not ship, the strip's promo caption, goes to 1.0.1. The "No printers found" criterion of the earlier plan is void with D-36.
 
 ### Acceptance criteria
-- FR-020 AC1–AC4, FR-021 AC1–AC4 and FR-022 AC1–AC4 pass **with the fakes** (AC1 "on each supported connection type" is checked on real printers in 0.9.0). J1 runs end-to-end with fakes, including the printed output (TC-132).
-- FR-014 AC1–AC6 pass. FR-032 AC1–AC16 pass (AC1–AC11 existed; AC12–AC16 are new). AC14 (swap picker) applies only if DEV-109 is built; until then the existing Swap stays and AC9 still applies.
+- FR-020 AC1–AC3 pass (AC4 does not apply: no printing, D-36). J1 runs end-to-end with fakes up to Complete.
+- FR-014 AC1–AC6 pass. FR-032 AC1–AC18 pass (AC1–AC11 existed; AC12–AC18 are new).
 - The existing planner and pricing suites still pass unchanged.
 
 ### Testing requirements
-- Unit: encoder, renderers, roles, `Upsell.suggestions`, `BudgetPlanner.alternatives`, `OrderSession.replacePlan`.
-- Integration: `PrinterManager` with fake drivers (offline, paper-out, slow).
-- UI: Complete, Printer settings (each board), the Your order strip, Budget Plan Step 1 and Step 2.
-- Manual: the PO review (DEV-113). Real-printer checks are not part of 0.6.0.
-- TCs: TC-088–TC-095, TC-099, TC-100, TC-194–TC-205; TC-062–TC-064 and TC-172 are retired with SCR-09. TC-096–TC-098 and TC-159 move to 0.9.0.
-- Regression: the payment suite, the 0.4.0 pricing and planner suites, the instrumented ordering tests.
+- Unit: `Upsell.suggestions` / `cards` / `strip` / `mealSwitch`, `Cart.switchOne`, `BudgetPlanner.alternatives`, `OrderSession.replacePlan`, the Complete and strip ViewModels.
+- UI: Complete, the Your order strip, Budget Plan Step 1, Step 2 and the swap sheet, the Menu pill.
+- Migration: Room 2 → 3 (TC-193).
+- Manual: the PO review (DEV-113).
+- TCs: TC-088–TC-090, TC-194–TC-205; TC-062–TC-064 and TC-172 are retired with SCR-09. TC-091–TC-095, TC-099 and TC-100 are removed (D-36). TC-096–TC-098 and TC-159 wait for OQ-19 (0.9.0).
+- Regression: the payment suite, the 0.4.0 pricing and planner suites, the instrumented ordering tests (not run in this milestone).
 
 ### Deliverables
-The printing subsystem working against fakes; the Your order suggestion strip; the improved Budget Plan; PRD 1.9 and the updated design boards; `docs/test-reports/0.6.0.md`.
+The Complete screen; the Your order suggestion strip; the improved Budget Plan; PRD 1.10 and the synced design boards; `docs/test-reports/0.6.0.md`.
 
 ### Exit criteria
-All TCs listed above pass. The PO has signed off the new boards and reviewed the built strip and Budget Plan. The release build has no debug-only code and shows "No printers found" for printers. There are no P1/P2 defects. P2 tasks that did not ship are listed in `todo.md` for 1.0.1.
+All TCs listed above pass. The PO has signed off the new boards and reviewed the built strip and Budget Plan. The release build has no debug-only code. There are no P1/P2 defects. P2 tasks that did not ship (the promo caption) are listed in `todo.md` for 1.0.1.
 
 ---
 
@@ -668,10 +671,10 @@ All targets are met, or variances are formally accepted by the PO with a tracked
 Replace the fakes with the real backend, company payment gateway and EDC terminal. Prove stability and security, and run a pilot at one merchant on the target device.
 
 ### Scope
-**Included:** Real API environment wiring and contract verification, the QRIS gateway adapter, the EDC adapter, the three real printer drivers (moved from 0.6.0 [D-34]) with the physical print checks, the device matrix, a 72 h soak, security and privacy review, release signing and build config, pilot operations, and the bug-fix buffer.
+**Included:** Real API environment wiring and contract verification, the QRIS gateway adapter, the EDC adapter, the device matrix, a 72 h soak, security and privacy review, release signing and build config, pilot operations, and the bug-fix buffer. The three real printer drivers with the physical print checks are in only if the PO answers OQ-19 with "build" (DEV-056, D-36).
 **Excluded:** Any feature from the PRD §3.2 non-goals.
 
-**Hard entry dependencies:** DEP-1 (staging backend implementing the contract), DEP-2 (gateway sandbox), DEP-3 (EDC unit + protocol), DEP-4 and DEP-7 (the iMin device with its printer SDK and the USB and Bluetooth test printers, for DEV-056), DEP-6 (pilot menu content). If any is missing at the planned start, the PO decides whether to slip 0.9.0, or (for the card path only) to ship card in 1.0.1 [R-1].
+**Hard entry dependencies:** DEP-1 (staging backend implementing the contract), DEP-2 (gateway sandbox), DEP-3 (EDC unit + protocol), DEP-6 (pilot menu content). DEP-4 and DEP-7 (the iMin device with its printer SDK and the USB and Bluetooth test printers) apply only to DEV-056, if OQ-19 brings printing back. If any is missing at the planned start, the PO decides whether to slip 0.9.0, or (for the card path only) to ship card in 1.0.1 [R-1].
 
 ### TODO checklist
 - [ ] **DEV-097** Point `staging` at the real backend. Run the contract test suite (generated from `openapi.yaml`) against it, and fix or record any mismatches with the backend team (FR-013 AC4).
@@ -679,13 +682,13 @@ Replace the fakes with the real backend, company payment gateway and EDC termina
 - [ ] **DEV-090** QRIS against the gateway sandbox (FR-017): real `qrString`, status updates (polling or push as provided), cancel and expiry. Run the full TC-074–TC-079 set against the sandbox with real e-wallet test apps where the sandbox allows.
 - [ ] **DEV-091** EDC adapter implementing `CardTerminal` per ADR-0003 (USB/LAN/cloud per OQ-03; ADR-0003 was not written in 0.5.0 because the specs had not arrived, so it is the first step here): sale, cancel, timeout, result relay (E12 if required), TID display, and the Test terminal action.
   - *Verify:* TC-080–TC-083 with test cards on the real terminal.
-- [ ] **DEV-056** *(moved here from 0.6.0 [D-34])* Printer drivers (NFR-016) behind the `PrinterDriver` port that 0.6.0 built against fakes. Write findings in `docs/adr/0004-printers.md`.
+- [ ] **DEV-056** *(waits for OQ-19; D-36 removed printing from 0.6.0 and did not reschedule it)* Printer drivers (NFR-016). Without OQ-19 answered "build" there is nothing to attach them to: `PrinterManager`, the encoder, the renderers and Printer settings (DEV-055, 057, 058, 059, 061) were never built. If the PO says build, those tasks come first. Write findings in `docs/adr/0004-printers.md`.
   - **iMin built-in:** via the iMin printer SDK, from a spike on the device, using SDK paper status.
   - **USB:** USB host bulk transfer with the permission flow.
   - **Bluetooth:** SPP to paired devices, with `BLUETOOTH_CONNECT`/`SCAN` runtime permission and rationale.
-  - Replace `UnavailablePrinterDriver` and the "No printers found" release state with real discovery in Printer settings. Produce `docs/printers.md` (the certified printer list) and photographed 58 mm, 80 mm and built-in output as evidence.
+  - Real discovery in Printer settings. Produce `docs/printers.md` (the certified printer list) and photographed 58 mm, 80 mm and built-in output as evidence.
   - *Verify:* TC-096–TC-099 on real printers (DEP-7) and the iMin device (DEP-4); FR-021 AC1 and FR-022 AC1–AC4 on at least one printer of each connection type.
-- [ ] **DEV-092** Device compatibility matrix (NFR-016) per testing-plan §2.3: emulators API 30/33/34/35/36/37 and the iMin target, plus 2 USB and 2 Bluetooth printer models.
+- [ ] **DEV-092** Device compatibility matrix (NFR-016) per testing-plan §2.3: emulators API 30/33/34/35/36/37 and the iMin target, plus 2 USB and 2 Bluetooth printer models if printing is built (OQ-19).
   - *Verify:* TC-159.
 - [ ] **DEV-093** A 72 h soak on the iMin device with a scripted journey via UI Automator every 3 min, against staging. Collect memory, crashes, ANRs, temperature and log size (NFR-004, NFR-015).
   - *Verify:* TC-145.
@@ -708,7 +711,7 @@ Replace the fakes with the real backend, company payment gateway and EDC termina
 - TCs: all MVP TCs, with emphasis on TC-074–TC-087, TC-096–TC-098, TC-145–TC-149, TC-158, TC-159.
 
 ### Deliverables
-Release-candidate APK `0.9.0`; soak report; security review; pilot report; final contract version; ADR-0004 and `docs/printers.md` (the certified printer list).
+Release-candidate APK `0.9.0`; soak report; security review; pilot report; final contract version; ADR-0004 and `docs/printers.md` (the certified printer list) only if printing is built (OQ-19).
 
 ### Exit criteria
 The release checklist (testing-plan §9) is complete except for the final sign-off items. The PO approves going to 1.0.0.
@@ -820,13 +823,13 @@ Rolled out to pilot kiosks with no P1/P2 issues in 48 h. The full rollout is app
 | DEV-051 | 0.5.0 | FR-028, NFR-010 |
 | DEV-052 | 0.5.0 | FR-016 |
 | DEV-053 | 0.5.0 | DEP-2, DEP-3 |
-| DEV-055 | 0.6.0 | FR-022 |
-| DEV-056 | 0.9.0 (moved from 0.6.0) | FR-022, NFR-016 |
-| DEV-057 | 0.6.0 | FR-021 |
-| DEV-058 | 0.6.0 | FR-021 |
-| DEV-059 | 0.6.0 | FR-021, FR-020 |
+| DEV-055 | removed from 0.6.0 (D-36), not scheduled | FR-022 |
+| DEV-056 | 0.9.0 (waits for OQ-19) | FR-022, NFR-016 |
+| DEV-057 | removed from 0.6.0 (D-36), not scheduled | FR-021 |
+| DEV-058 | removed from 0.6.0 (D-36), not scheduled | FR-021 |
+| DEV-059 | removed from 0.6.0 (D-36), not scheduled | FR-021, FR-020 |
 | DEV-060 | 0.6.0 | FR-020 |
-| DEV-061 | 0.6.0 | FR-022 |
+| DEV-061 | removed from 0.6.0 (D-36), not scheduled | FR-022 |
 | DEV-104 | 0.6.0 | FR-014, FR-032 |
 | DEV-105 | 0.6.0 | FR-014 |
 | DEV-106 | 0.6.0 | FR-014 |
@@ -837,7 +840,7 @@ Rolled out to pilot kiosks with no P1/P2 issues in 48 h. The full rollout is app
 | DEV-111 | 0.6.0 | FR-032 |
 | DEV-112 | 0.6.0 | FR-032 |
 | DEV-113 | 0.6.0 | FR-014, FR-032 |
-| DEV-114 | 0.6.0 (P2) | FR-014 |
+| DEV-114 | 0.6.0 (P2, shipped) | FR-014 |
 | DEV-065 | 0.7.0 | FR-024–FR-027 |
 | DEV-066 | 0.7.0 | FR-024 |
 | DEV-067 | 0.7.0 | FR-024, FR-031 |

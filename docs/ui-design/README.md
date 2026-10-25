@@ -6,8 +6,9 @@ Published design: https://claude.ai/artifact/Lv6W9bttmG8fH4ho4CkWMg (Claude Desi
 - Main flow: `Main` (splash) → `Login` → `Merchants` → `OrderType` → `Menu` (→ `Combo`, `ItemDetail`, `BudgetPas`) → `Payment` ("Your order", with the "Goes well with your order" suggestion strip) → `Checkout` → `Complete` → `Idle`; `StillThere` is the inactivity overlay.
 - Staff area: `Settings`, `SettingsPrinter`, `SettingsPayment`, `SettingsKiosk`, `SettingsDevice`, `ChangePin`.
 - `S_<Screen>_<scenario>.dc.html` — state boards. Each imports the real screen with a `scenario` prop (for example `S_Checkout_expired` = `Checkout` with `scenario="expired"`). Every screen with states exposes the same `scenario` prop, so the list of valid values is in that screen's `data-props`.
-- `Upsell.dc.html` and `S_Upsell_noSuggestions` are retired (PRD v1.9 D-33: the Upsell screen became the strip on `Payment`). They stay on the canvas in the "Retired" row for reference only.
-- `BudgetPas` is a two-step flow (Step 1 "Your table", Step 2 "Your plan"); its states are the `S_BudgetPas_*` boards.
+- `Upsell.dc.html` and `S_Upsell_noSuggestions` are retired (PRD v1.9 D-33: the Upsell screen became the strip on `Payment`). They stay on the canvas in the "Retired" row for reference only; the app has no Upsell screen, route or goldens. The strip boards are `S_Payment_upsell`, `_upsellAdded`, `_upsellBudget`, `_upsellMeal` and `_upsellMealOn`.
+- `S_Complete_printFailed` is not built: nothing prints in 0.6.0 (D-36), so there is no print-failed card.
+- `BudgetPas` is a two-step flow (Step 1 "Your table", Step 2 "Your plan"); its states are the `S_BudgetPas_*` boards. Design v26 (0.6.0 rework) is synced here. The boards the app is built from: `S_BudgetPas_step1`, `_step1Budget`, `_keypadMin`, `_twoPlans`, `_detailsOpen`, `_optionsOff`, `_swapOpen`, `_added`, `_cartFull`, `_exact`, `_tooLow`, `_moreThanEnough`, `_group`; `S_Payment_planTag`, `_planAdded`, `_emptyTrayNoPlan`; `S_Menu_drinksTab`, `_planOff`; and `S_Complete_takeaway`.
 - `Photo.dc.html` — image slot component used by other artboards (not a screen).
 
 ## Tokens
@@ -27,3 +28,9 @@ The design files stay as they are. Each milestone's deviations are in `docs/test
 - A card payment cancelled on the terminal shows "Payment cancelled" / "The payment was cancelled on the terminal. Try again or choose another method." The design text for `S_Checkout_cancelled` is QR-only (A-45).
 - The "Your order is saved" note (without "You have not been charged") shows only on the "Ordering is paused" failure (`S_Checkout_offline`). The other failures show the green "You have not been charged · your order is saved" note only when the backend reported a terminal non-paid status (A-45).
 - The method switcher's thumb shadow bleeds slightly, and the entrance and shake animations are approximated.
+
+For Complete, the strip and the Budget Plan (0.6.0; the full list is in `docs/test-reports/0.6.0.md`):
+- The receipt-printer picture on Complete is a decorative **demo** only (PO: "only a demo, the receipt UI is still there"). Nothing prints, and there is no print-failed board (D-36).
+- The design freezes the suggestion strip. The built app re-ranks the cards as the order changes, but keeps a card the customer already added in its slot so its stepper does not move (FR-014, DEV-106).
+- The dine-in line and the neutral line of Complete, and the Budget Plan edit-mode dock copy, are copy the design has no board for (A-49, A-50). The neutral line is shown for an order a restart recovery found paid, because its order type is not stored.
+- Where the design differed from the 1.9 PRD text the design won and the PRD was corrected: the dock button "Review order" of the cart-limit message, the hero copy of the plans, "Added to order" for 0.6 s, and "Minimum Rp 1.000" under the keypad amount and on the disabled button.

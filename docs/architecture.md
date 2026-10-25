@@ -30,8 +30,8 @@ flowchart LR
     subgraph Store["Store counter"]
         K["Kiosk app<br/>(iMin, device owner, lock task)"]
         EDC["EDC card terminal"]
-        P1["Built-in printer<br/>(iMin SDK)"]
-        P2["USB / Bluetooth<br/>ESC/POS printers"]
+        P1["Built-in printer<br/>(iMin SDK; not built, OQ-19)"]
+        P2["USB / Bluetooth<br/>ESC/POS printers (not built, OQ-19)"]
     end
     BE["Kiosk backend<br/>E1–E14"]
     GW["Company payment gateway<br/>(QRIS, card)"]
@@ -80,10 +80,10 @@ flowchart TD
 | `:core:designsystem` | Tokens, `DesignUnit`, typography, motion specs, shared components (PRD §11.3), CompositionLocals | Compose only | Know about domain models; components take plain parameters |
 | `:core:domain` | Models (including `DeviceState`), `PricingEngine`, `Cart`, `BudgetPlanner`, `OrderSession`, `PaymentStateMachine`, repository and device interfaces, use cases that combine repositories or ports (`setup/ActivateKiosk`, `order/SubmitOrder`, `order/RecoverPendingOrder`), `Clock` | Kotlin stdlib, coroutines | Import `android.*`, Retrofit, Room or Hilt. Enforced by being a JVM module |
 | `:core:data` | Retrofit API, DTOs + mappers, Room, DataStore, token store, repositories, sync worker, the connectivity logic (`ConnectivityEngine`) and its Android adapter `DefaultConnectivityMonitor` | `:core:domain` | Leak DTOs or Room entities out of the module |
-| `:core:hardware` | `DeviceIdentityProvider`, `PrinterManager` + drivers, receipt/ticket renderers, `CardTerminal` impls (`UnavailableCardTerminal` until the 0.9.0 adapter) | `:core:domain` | Depend on `:core:data` |
+| `:core:hardware` | `DeviceIdentityProvider`, `CardTerminal` impls (`UnavailableCardTerminal` until the 0.9.0 adapter). `PrinterManager`, its drivers and the receipt/ticket renderers are designed (technical-design §9.2) but not built and not scheduled (D-36, OQ-19) | `:core:domain` | Depend on `:core:data` |
 | `:core:testing` | Scriptable fakes, fixtures (menu sample from `api-spec.md` §4), test rules | `:core:domain` | Ship in release (used by `testImplementation`, `androidTestImplementation` and the `debug` source set only) |
 
-**Feature packages in `:app`** (`com.hitachi.kiosk.feature.*`): `splash`, `activation`, `merchant`, `idle`, `ordertype`, `menu`, `item`, `combo`, `budgetplan`, `upsell`, `order` (Your order, SCR-10), `checkout`, `complete` (0.6.0), `settings` (0.7.0, includes Change PIN). `inactivity` is not a feature package: it is the top-level `inactivity/` package of `:app` (the overlay and its controller). The planner itself is `BudgetPlanner` in `:core:domain` (`planner/`), and the `budgetplan` package is only its UI. Two app-level packages are not features: `recovery` (the process-death coordinator, §5.3) and `ui/qr` (the ZXing encoder behind the QR card, §12). A feature package never imports another feature package. Shared flow state goes through the domain session (§5), not through ViewModel-to-ViewModel calls.
+**Feature packages in `:app`** (`com.hitachi.kiosk.feature.*`): `splash`, `activation`, `merchant`, `idle`, `ordertype`, `menu`, `item`, `combo`, `budgetplan`, `order` (Your order, SCR-10, with the suggestion strip; the `upsell` package of SCR-09 was removed in 0.6.0), `checkout`, `complete` (SCR-12, 0.6.0), `settings` (0.7.0, includes Change PIN). `inactivity` is not a feature package: it is the top-level `inactivity/` package of `:app` (the overlay and its controller). The planner itself is `BudgetPlanner` in `:core:domain` (`planner/`), and the `budgetplan` package is only its UI. Two app-level packages are not features: `recovery` (the process-death coordinator, §5.3) and `ui/qr` (the ZXing encoder behind the QR card, §12). A feature package never imports another feature package. Shared flow state goes through the domain session (§5), not through ViewModel-to-ViewModel calls.
 
 ## 4. Layering and data flow
 
@@ -109,7 +109,6 @@ sequenceDiagram
     participant OR as OrderRepository
     participant PSM as PaymentStateMachine
     participant BE as Backend
-    participant PM as PrinterManager
 
     UI->>S: addLine(product, options)
     S->>PE: price(cart, config)
@@ -127,7 +126,7 @@ sequenceDiagram
     end
     BE-->>PSM: PAID
     PSM-->>S: paid()
-    S->>PM: print(receipt, kitchen ticket) (0.6.0)
+    Note over S: Complete acknowledges the payment when shown (TD-24); printing is not built (D-36, OQ-19)
     S-->>UI: Completed(orderNumber)
 ```
 
@@ -162,9 +161,9 @@ stateDiagram-v2
 ```
 
 - **Owner**: one `OrderSession` per order, held by an app-scoped `OrderSessionHolder` (Hilt `@Singleton`, `SessionModule`). Feature ViewModels read it and send intents to it. This is how Menu, Item, Combo, Budget Plan and Cart share one cart without passing it through navigation arguments; routes carry only IDs (`ItemDetailRoute(productId)`, `ComboRoute(comboId?)`). Idle is the holder holding no session. 0.3.0 built the states up to Building; DEV-041 (0.4.0) completed the machine above: every transition is a method that changes nothing (and returns `false`) when the current phase does not allow it, and the cart is locked from Submitting on (BR-08).
-- **What the session holds**: cart lines, order type, catalog version, the `upsellShown` flag (**removed in 0.6.0**: the suggestion strip on Your order has no once-per-order rule, PRD D-33) and an optional `PlanTag(budget, adults, children, lineIds)`. The review `issues` (re-priced and unavailable lines that E7 asked the customer to review, which block Pay until reviewed or removed) and the `submission` (the last E7 body with its `Idempotency-Key`). The same body reuses the key, also after a network failure; a changed body or re-pricing gets a new key; "Back to order" forgets it (BR-08). It does **not** hold a language: the 1.0 UI is English only (D-29), so there is no per-order language to reset.
+- **What the session holds**: cart lines, order type, catalog version, no Upsell flag (`upsellShown` was removed in 0.6.0: the suggestion strip on Your order has no once-per-order rule, PRD D-33), a `planAdded` flag that makes Your order show "Plan added" once, and an optional `PlanTag(budget, adults, children, lineIds, quantities)` (`quantities` = the units the plan put into each line). The review `issues` (re-priced and unavailable lines that E7 asked the customer to review, which block Pay until reviewed or removed) and the `submission` (the last E7 body with its `Idempotency-Key`). The same body reuses the key, also after a network failure; a changed body or re-pricing gets a new key; "Back to order" forgets it (BR-08). It does **not** hold a language: the 1.0 UI is English only (D-29), so there is no per-order language to reset.
 - **Submitting** (FR-016, DEV-045, DEV-046): the `SubmitOrder` use case calls `OrderSession.submit(...)`, which moves Reviewing → Submitting and settles the body and key atomically, so rapid taps send one E7. `OrderRepository.create` saves the pending order before it returns. On `PRICE_CHANGED` the use case refreshes the catalog at once (`CatalogSyncRepository.syncNow`, the one exception to the held-back sync below, which also applies a catalog held back during the order), re-prices the cart and returns to Reviewing with the review issues. On `ITEM_UNAVAILABLE` it flags the lines. If the backend order total differs from the total the kiosk sent, it cancels the order (E8) and fails: another total is never paid. Any other failure returns to Reviewing with the cart and key unchanged.
-- **Budget Plan hand-off**: `BudgetPlanner` is pure. The two-step screen (step 1 "Your table", step 2 "Your plan") keeps its own state in `BudgetPlanViewModel`: the current step, the Just under / Just over choice, the Customize bottom sheet, swaps, the include-sides/desserts toggles and the Strict / Up to +10% tolerance. Only when the customer taps "Add plan to order" does it send the chosen plan's lines to the session (`OrderSession.addPlan`, all or nothing, added to any lines already in the cart), tagged with `PlanTag`. Payment reads the tag to show the "Budget Plan" row. Editing or removing those lines in the cart clears the tag.
+- **Budget Plan hand-off**: `BudgetPlanner` is pure. The two-step screen (step 1 "Your table", step 2 "Your plan") keeps its own state in `BudgetPlanViewModel`: the current step, the Just under / Just over choice, the swap sheet (`BudgetPlanSwapSheet`, rows from `BudgetPlanner.alternatives`), the "Add sides" / "Add desserts" chips and the "Allow a little over budget" switch (the Strict / Up to +10% tolerance). Only when the customer taps "Add plan to order" does it send the chosen plan's lines to the session (`OrderSession.addPlan`, all or nothing, added to any lines already in the cart), tagged with `PlanTag`. "Edit plan" on Your order opens the route with `edit = true` on step 2 and applies the result with `OrderSession.replacePlan`, which removes only the plan's own units. Payment reads the tag to show the "Budget Plan" row. Editing or removing those lines in the cart clears the tag.
 - **Inactivity** (FR-023) is a separate `InactivityController` that watches touch events, the current route and the session state. It runs only on the customer ordering routes and stops whenever the order can no longer be cancelled (from `Submitting` on, so in `Paying` and `Paid`); staff settings get their own instance in 0.7.0 (technical-design §10.3).
 - **Menu snapshot**: the session captures the catalog version at `TypeChosen`. A sync that lands mid-order is applied when the session returns to `Idle` (FR-028, A-29).
 
@@ -198,7 +197,7 @@ The code's `Checking` is the diagram's earlier `Unknown`, and `Waiting` is `Wait
 - **Not charged**: "You have not been charged" only renders from a backend terminal non-paid status or an E11 the backend accepted, never from `Checking`, a timeout or a lost connection (FR-019). `Checking` and `Processing` both end after `unknownLimit` (60 s) without `PAID` as `Failed(notCharged = false)`; "Try again" cancels the payment first, and `PAID` still wins.
 - **Time**: QR expiry is `expiresAt` minus the server offset measured on the E9 `Date` header (NFR-017, technical-design §5.4). At expiry the machine sends E11 `EXPIRED_ON_KIOSK`; on 409 it reads E10 again (PAID wins; PROCESSING keeps waiting and polling). The deadline is cleared on entering Processing. Polling is every 2 s and stops on any final status (FR-017 AC5). The card timeout is a fixed 90 s (A-16), then terminal cancel and E11 `TIMEOUT`.
 - **Leaving**: `backToOrder` = terminal cancel, E11 `CUSTOMER_BACK`, E8, then `OrderSession.backToOrder()`. `cancelOrder` = E11 if the payment may be live, then E8 `PAYMENT_FAILED`. E8 must answer `CANCELLED` to count as left.
-- **Reset**: when `OrderSessionHolder.current` becomes `null` (a 401 wipe, an order that ended outside the machine) the machine `reset()`s: no backend call, the pending order is kept, except at `Paid`, which waits for `acknowledgePaid()`. `CheckoutViewModel.begin()` also clears a stale `Failed` or `Paid` of an earlier order.
+- **Reset**: when `OrderSessionHolder.current` becomes `null` (a 401 wipe, an order that ended outside the machine) the machine `reset()`s: no backend call, the pending order is kept, except at `Paid`, which waits for `acknowledgePaid()` from the Complete screen (since 0.6.0, not Checkout). `CheckoutViewModel.begin()` also clears a stale `Failed` or `Paid` of an earlier order.
 - **Checkout screen states** map from this machine plus Checkout's own local state: "Creating your payment…" (`Creating`, also while E7 runs), the QR or card prompt, "Checking your payment…" (`Checking`), "Confirming payment" (`Processing`, and `Paid` until Complete), and the failure variants expired, cancelled, declined, terminal timeout, unreachable and "Ordering is paused" while offline. Every failure offers Try again, Pay by other method and Cancel order; Try again is disabled and reads "Reconnecting…" while offline. A failure of E7 after its retries (no payment exists) and a QR that cannot be drawn are local Checkout failures; the machine only knows payments. The screen has no step list, no "Step 3 of 3" indicator and no scan-line animation. Only QRIS and Card are offered (`COUNTER` hidden in 1.0, D-12a).
 
 ### 5.3 Process-death recovery (FR-016, DEV-052)
@@ -218,7 +217,7 @@ The code's `Checking` is the diagram's earlier `Unknown`, and `Waiting` is `Wait
 - A 409 on E11 or an E8 answer that is not `CANCELLED` sends the run back to E10 first; `PAID` always wins (A-15). A `PAID` found by E8 (`ORDER_ALREADY_PAID`) goes to Complete.
 - **Failures never drop the order.** A network or server failure (after the calls' own retries) ends the run as `Deferred` with the pending order untouched. The coordinator runs again at every next ONLINE (CHECKING sits between OFFLINE and ONLINE, so OFFLINE does not have to come first) and by a 30 s timer while the kiosk stays online. A run waits until no customer order is in progress.
 - A new order is never created over a pending order that has an unsettled payment: `OrderRepository.create` refuses it with `Conflict("PENDING_PAYMENT_UNRESOLVED")` and sends no E7, so the customer sees the "Can't reach the restaurant system" failure on Checkout. While a run is asking the backend, Idle ignores "tap to order" (`RecoveryGate`, at most a few seconds, up to 60 s for `PROCESSING`; the gate always lifts).
-- A recovered paid order waits in the coordinator (`recoveredPaid`) and `KioskRoot` navigates to Complete once, only when Idle is on screen. The pending order is cleared before Complete is shown, so a kill in between leaves no receipt on the next start.
+- A recovered paid order waits in the coordinator (`recoveredPaid`) and `KioskRoot` navigates to Complete once, only when Idle is on screen. Complete takes it through `RecoveredPaidSource` (implemented by the coordinator). Since 0.6.0 the pending order is cleared only after Complete is shown (technical-design TD-24), so a kill before that still finds the paid order on the next start; a recovered order has no lines and no order type.
 
 Everything else in a customer session is deliberately lost on process death [A-11].
 
@@ -237,7 +236,7 @@ Everything else in a customer session is deliberately lost on process death [A-1
 | Images | Coil disk cache, 200 MB [A-37] | |
 | Logs | Rotating files in `filesDir/logs`, 10 MB / 7 days (FR-031) | Redacted (§13.2) |
 
-Upgrades (NFR-014): Room uses explicit `Migration`s with `exportSchema = true` and schemas committed under `core/data/schemas/`. The database is at version 2 since 0.5.0 (`pending_order`, `Migration(1, 2)`), and there is no destructive fallback, not even for the cache tables, so an upgrade keeps the pending order and the cache. DataStore is never migrated destructively.
+Upgrades (NFR-014): Room uses explicit `Migration`s with `exportSchema = true` and schemas committed under `core/data/schemas/`. The database is at version 3 since 0.6.0: version 2 (0.5.0) added `pending_order` with `Migration(1, 2)`, version 3 adds `modifier_group.purpose` with `MIGRATION_2_3`. There is no destructive fallback, not even for the cache tables, so an upgrade keeps the pending order and the cache. DataStore is never migrated destructively.
 
 ## 7. Networking
 
@@ -267,7 +266,7 @@ All interfaces live in `:core:domain`. Real implementations live in `:core:hardw
 | Interface | Real implementations | Fake can simulate |
 |---|---|---|
 | `DeviceIdentityProvider` | `IminDeviceIdentityProvider`: the system properties the iMin SDK reads (`ro.serialno`, `persist.sys.imin.sn`) and other candidates → `Build.getSerial()` (device owner + `READ_PHONE_STATE`, pending PO approval), cached (FR-002, ADR-0002) | success, unavailable, slow |
-| `PrinterManager` / `PrinterDriver` | `IminPrinterDriver`, `UsbEscPosDriver` (bulk transfer), `BtEscPosDriver` (SPP) (FR-022, ADR-0004) | ready, offline, out of paper, fails mid-job |
+| `PrinterManager` / `PrinterDriver` (not built, not scheduled: D-36, OQ-19) | `IminPrinterDriver`, `UsbEscPosDriver` (bulk transfer), `BtEscPosDriver` (SPP) (FR-022, ADR-0004) | ready, offline, out of paper, fails mid-job |
 | `ReceiptRenderer` | Pure Kotlin: domain order → ESC/POS command list (58/80 mm) | n/a (unit-tested directly) |
 | `CardTerminal` | `UnavailableCardTerminal` (every sale fails) until the adapter per OQ-03 (ADR-0003, not written yet, 0.9.0) | approved, declined, timeout, cancelled, error, no answer |
 | `ConnectivityMonitor` | `DefaultConnectivityMonitor` over `ConnectivityEngine` (`:core:data`, built in `:app`), §8 | online, offline, checking, flapping |
@@ -275,7 +274,7 @@ All interfaces live in `:core:domain`. Real implementations live in `:core:hardw
 
 The receipt renderer produces a device-independent command list, and each driver only transports bytes. That way receipts can be checked in unit tests without hardware.
 
-**Real vs fake selection**: Hilt modules in `:app` bind real implementations. They also declare optional `BindingOverrides`, which only the `debug` source set provides: it wraps the real implementations in switchable wrappers (`SwitchableBackendApi` in 0.1.0, `SwitchableDeviceIdentityProvider` in 0.2.0, `SwitchableCardTerminal` in 0.5.0, later `PrinterManager`; `ConnectivityMonitor` has an override since 0.3.0 that debug builds leave real and instrumented tests replace with a fake). A third optional binding, `CheckoutDebugTools`, draws the debug-only simulate bar on Checkout (0.5.0) that delegate to either the real implementation or the fake, based on the Developer options choice (DEV-009, technical-design §4.3 TD-11). Release builds contain neither the wrappers nor the fakes (checked in the dex files and the R8 mapping by `scripts/check-release-apk.sh`, part of `./gradlew verify`).
+**Real vs fake selection**: Hilt modules in `:app` bind real implementations. They also declare optional `BindingOverrides`, which only the `debug` source set provides: it wraps the real implementations in switchable wrappers (`SwitchableBackendApi` in 0.1.0, `SwitchableDeviceIdentityProvider` in 0.2.0, `SwitchableCardTerminal` in 0.5.0, and `PrinterManager` if printing is built (D-36, OQ-19); `ConnectivityMonitor` has an override since 0.3.0 that debug builds leave real and instrumented tests replace with a fake). A third optional binding, `CheckoutDebugTools`, draws the debug-only simulate bar on Checkout (0.5.0) that delegate to either the real implementation or the fake, based on the Developer options choice (DEV-009, technical-design §4.3 TD-11). Release builds contain neither the wrappers nor the fakes (checked in the dex files and the R8 mapping by `scripts/check-release-apk.sh`, part of `./gradlew verify`).
 
 ## 10. Dependency injection
 
@@ -291,7 +290,7 @@ Tests: unit tests construct classes by hand with fakes. Instrumented tests use `
 ## 11. Navigation
 
 - Single `MainActivity`, portrait-locked, `FLAG_KEEP_SCREEN_ON`, edge-to-edge with system bars hidden in lock task.
-- Navigation Compose with type-safe `@Serializable` route objects, one per screen SCR-01…SCR-20 (PRD §4), including Upsell and Budget Plan (SCR-19, one route with an internal step state, so Back from step 2 returns to step 1 and Back from step 1 returns to Menu). Change PIN (SCR-20) is a route inside the staff settings graph. SCR-13 ("Still there?") is an overlay hosted above the `NavHost`, not a route. The design shows it as its own board with Menu blurred behind it.
+- Navigation Compose with type-safe `@Serializable` route objects, one per screen SCR-01…SCR-20 (PRD §4), including Budget Plan (SCR-19, one route with an internal step state, so Back from step 2 returns to step 1 and Back from step 1 returns to Menu). Change PIN (SCR-20) is a route inside the staff settings graph. SCR-13 ("Still there?") is an overlay hosted above the `NavHost`, not a route. The design shows it as its own board with Menu blurred behind it.
 - The **start destination is always Splash**. `StartupRouter` (DEV-011) waits for both the 3.9 s minimum and initialization (≤ 10 s cap), then replaces the back stack with SCR-02, SCR-03 or SCR-04 (FR-001). Activation, binding and Log out also replace the whole back stack, and the root returns to SCR-02 whenever the device state drops to `NotActivated` (HTTP 401).
 - The customer flow is a nested graph. Leaving it (Complete auto-return, timeout, cancel) pops to Idle and resets the session. `CheckoutRoute` carries only the chosen payment method, as its name (`String`); the order is in the session. An order that a recovery found paid goes to Complete from `KioskRoot`, once, when Idle is on screen.
 - Staff settings are a nested graph entered only through the PIN gate (SCR-14), with their own 120 s timeout [A-22].
@@ -325,7 +324,7 @@ Tests: unit tests construct classes by hand with fakes. Instrumented tests use `
 `Network` (offline/timeout), `Unauthorized`, `PriceChanged(details)`, `ItemUnavailable(ids)`, `Conflict`, `Server(code)`, `Hardware(device, reason)`, `Unknown`. ViewModels map each case to copy from the PRD. Exceptions never cross a module boundary.
 
 ### 13.4 Concurrency
-Coroutines and Flow only. `viewModelScope` for UI work. An app-scoped `@ApplicationScope CoroutineScope` for the session, sync and print jobs that must outlive a screen. No `GlobalScope`, no `runBlocking` outside tests.
+Coroutines and Flow only. `viewModelScope` for UI work. An app-scoped `@ApplicationScope CoroutineScope` for the session, sync and (if printing is built) print jobs that must outlive a screen. No `GlobalScope`, no `runBlocking` outside tests.
 
 ## 14. Kiosk lockdown (FR-029, DEV-071)
 
@@ -352,7 +351,7 @@ Contract tests: MockWebServer fixtures are loaded from the examples in `api-spec
 
 | Question | Affects | Resolution |
 |---|---|---|
-| OQ-01 iMin model, SN API, printer SDK | `DeviceIdentityProvider`, `IminPrinterDriver` | ADR-0002 (0.2.0, Proposed: awaiting the on-device spike), ADR-0004 (0.9.0, with the real drivers; 0.6.0 builds the printing subsystem against fakes, D-34) |
+| OQ-01 iMin model, SN API, printer SDK | `DeviceIdentityProvider`, `IminPrinterDriver` | ADR-0002 (0.2.0, Proposed: awaiting the on-device spike), ADR-0004 (only if printing is built, OQ-19; D-34 planned it for 0.9.0, D-36 removed printing from 0.6.0) |
 | OQ-03 EDC transport and result path | `CardTerminal` impl, whether E12 is used | ADR-0003 is not written: the specs had not arrived at the 0.5.0 exit (R-1). It is the first step of DEV-091 (0.9.0). Until then `PaymentPolicy.relayTerminalResults` is on and release has `UnavailableCardTerminal` |
 | OQ-02 Gateway spec | Backend only, unless push replaces polling | ADR-0003, same status |
 | OQ-10 Provisioning method | Lock task, install | `docs/provisioning.md` (DEV-101) |

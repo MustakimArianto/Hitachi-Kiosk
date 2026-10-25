@@ -4,9 +4,9 @@ The golden table of the `BudgetPlanner` (DEV-042, technical-design §8.3). `Budg
 
 **Data used for every row.** The tagged sample menu of `api-spec.md` §4 (kid-friendly mains b1, c3, r2; kid-friendly drinks d2, d4; c4 Family Bucket left out because `servesAdults` is 4) and the E5 sample config: promo Rp 10.000 off at Rp 100.000 or more, PB1 10 %, rounding None, `overCapPercent` 10, `maxGroupSize` 10. Each item keeps its default options or the first option of a group without one (A-42); combos keep their first side and drink at Regular size.
 
-**Plan rules.** Each adult has a main and a drink, or a one-person combo; two adults may share a two-person combo; each child has a kid-friendly main and a kid-friendly drink (BR-13, BR-14). The table may add one side or dessert per person. Plans compare on the final total (BR-15).
+**Plan rules.** Each adult has a main and a drink, or a one-person combo; two adults may share a two-person combo; each child has a kid-friendly main and a kid-friendly drink (BR-13, BR-14). The table may add one side or dessert per person. A person whose meal is a combo already has a side, so combo diners add no extra side and desserts are unaffected (OQ-15, applied in 0.6.0); the design prototype's cap at min(people, 4) extras is not applied, because these cases need one extra per person. Plans compare on the final total (BR-15).
 
-**Columns.** *Options* are the Customize choices that differ from the default (Include sides, Include desserts, Up to +10 %). *Hero* is the plan kind shown first (`EXACT`, `UNDER`, `TOO_LOW`, `MORE_THAN_ENOUGH`). *Just over* is the over plan's total, or `—` when there is none.
+**Columns.** *Options* are the Step 2 choices that differ from the default: the chips "Add sides" and "Add desserts" and the switch "Allow a little over budget" (off is `strict`, on is Up to +10 %). *Hero* is the plan kind shown first (`EXACT`, `UNDER`, `TOO_LOW`, `MORE_THAN_ENOUGH`). *Just over* is the over plan's total, or `—` when there is none.
 
 | Case | Budget | Adults | Children | Options | Hero | Hero total | Just over |
 |---|---|---|---|---|---|---|---|
