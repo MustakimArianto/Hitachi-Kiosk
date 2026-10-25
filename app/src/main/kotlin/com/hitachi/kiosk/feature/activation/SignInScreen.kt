@@ -1,12 +1,6 @@
 package com.hitachi.kiosk.feature.activation
 
 import androidx.annotation.StringRes
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.StartOffset
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.keyframes
-import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -19,12 +13,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.State
-import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
@@ -41,6 +31,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.em
 import com.hitachi.kiosk.R
 import com.hitachi.kiosk.core.designsystem.component.BrandLockup
+import com.hitachi.kiosk.core.designsystem.component.BrandMark
 import com.hitachi.kiosk.core.designsystem.component.KioskIcon
 import com.hitachi.kiosk.core.designsystem.component.KioskIcons
 import com.hitachi.kiosk.core.designsystem.component.KioskText
@@ -48,7 +39,6 @@ import com.hitachi.kiosk.core.designsystem.component.PrimaryCta
 import com.hitachi.kiosk.core.designsystem.motion.KioskEasing
 import com.hitachi.kiosk.core.designsystem.motion.KioskMotion.Common
 import com.hitachi.kiosk.core.designsystem.motion.KioskMotion.SignIn
-import com.hitachi.kiosk.core.designsystem.motion.LocalReduceMotion
 import com.hitachi.kiosk.core.designsystem.motion.animateEntrance
 import com.hitachi.kiosk.core.designsystem.motion.fadeIn
 import com.hitachi.kiosk.core.designsystem.motion.fadeUp
@@ -61,9 +51,6 @@ import com.hitachi.kiosk.core.designsystem.unit.spx
 /** `markIn` on Sign in: scale .7 → 1, rotate −6° → 0. */
 private const val MARK_START_SCALE = 0.7f
 private const val MARK_START_ROTATION = -6f
-
-/** `breathe`: the dot scales to 1.16 halfway through each loop. */
-private const val BREATHE_SCALE = 1.16f
 
 /** Letter spacing of panel titles (−0.02 em) and the serial number (+0.02 em). */
 private const val TIGHT_EM = -0.02f
@@ -127,7 +114,7 @@ private fun SignInHeader(versionName: String) {
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
-        BrandLockup(name = stringResource(R.string.brand_name))
+        BrandLockup(name = stringResource(R.string.brand_name), bellMark = true)
         Box(
             modifier =
                 Modifier
@@ -147,11 +134,9 @@ private fun SignInHeader(versionName: String) {
 
 @Composable
 private fun SignInMark() {
-    val colors = KioskTheme.colors
     val description = stringResource(R.string.sign_in_mark_description)
     val mark = animateEntrance(SignIn.MARK_IN_MILLIS, SignIn.MARK_IN_DELAY_MILLIS)
-    val breathe = breatheScale()
-    Box(
+    BrandMark(
         modifier =
             Modifier
                 .size(160.dpx)
@@ -163,44 +148,9 @@ private fun SignInMark() {
                     scaleX = scale
                     scaleY = scale
                     rotationZ = MARK_START_ROTATION * (1f - p)
-                }.background(colors.ink, RoundedCornerShape(48.dpx)),
-        contentAlignment = Alignment.Center,
-    ) {
-        Box(
-            modifier =
-                Modifier
-                    .size(52.dpx)
-                    .graphicsLayer {
-                        scaleX = breathe.value
-                        scaleY = breathe.value
-                    }.background(colors.accent, CircleShape),
-        )
-    }
+                },
+    )
 }
-
-/** The `breathe` loop (3.2 s ease-in-out after 1 s); still when reduce motion is on. */
-@Composable
-private fun breatheScale(): State<Float> =
-    if (LocalReduceMotion.current) {
-        remember { mutableFloatStateOf(1f) }
-    } else {
-        rememberInfiniteTransition(label = "breathe").animateFloat(
-            initialValue = 1f,
-            targetValue = 1f,
-            animationSpec =
-                infiniteRepeatable(
-                    animation =
-                        keyframes {
-                            durationMillis = SignIn.BREATHE_LOOP_MILLIS
-                            1f at 0 using KioskEasing.EaseInOut
-                            BREATHE_SCALE at SignIn.BREATHE_LOOP_MILLIS / 2 using KioskEasing.EaseInOut
-                        },
-                    repeatMode = RepeatMode.Restart,
-                    initialStartOffset = StartOffset(SignIn.BREATHE_DELAY_MILLIS),
-                ),
-            label = "breatheScale",
-        )
-    }
 
 @Composable
 private fun SignInIntro(showIntro: Boolean) {

@@ -254,7 +254,7 @@ Priority: **MVP** = required for 1.0.0. **Post-1.0** = specified for later, not 
 ### FR-001 Splash and startup routing — MVP
 - **Description:** Show the animated brand splash while initializing, then route by activation state.
 - **Rationale:** Masks startup work. A kiosk must recover to the correct screen after a reboot.
-- **Behavior:** The splash animations from `Main.dc.html` play: mark-in 900 ms @150 ms, dot pop 600 ms @700 ms, ring 1400 ms @900 ms, title rise, progress bar fill 2200 ms @1600 ms. "Preparing your kiosk" shows at the bottom [V]. During the splash the app loads the stored activation, merchant binding and cached config, and starts a background sync if bound. Navigation happens when **both** the minimum display time (3.9 s [V]) has elapsed **and** initialization has completed. Route: not activated → SCR-02. Activated without merchant → SCR-03. Bound → SCR-04.
+- **Behavior:** The splash animations from `Main.dc.html` play: logo tile in 800 ms @100 ms, bell up 700 ms @650 ms, wave draw 800 ms @1100 ms, wave echo 1400 ms @1900 ms, title rise, progress bar fill 2200 ms @1600 ms. "Preparing your kiosk" shows at the bottom [V]. During the splash the app loads the stored activation, merchant binding and cached config, and starts a background sync if bound. Navigation happens when **both** the minimum display time (3.9 s [V]) has elapsed **and** initialization has completed. Route: not activated → SCR-02. Activated without merchant → SCR-03. Bound → SCR-04.
 - **Inputs:** Stored device token, merchant binding, cached config.
 - **Outputs:** Navigation to the target screen.
 - **Rules:** The splash never waits on the network for more than 10 s. On timeout it routes using cached state.
@@ -989,8 +989,8 @@ Removed from earlier designs: the Menu promo carousel, the language segmented co
 ### 11.4 Motion inventory [V]
 | Screen | Key animations (duration @ delay, easing) |
 |---|---|
-| Splash | markIn 900 @150 (.16,1,.3,1); dotIn 600 @700 (.3,1.15,.4,1); ringOut 1400 @900; title rise 900 @900/1000; tagline up 800 @1350; bar fill 2200 @1600 (.65,0,.35,1); auto-advance 3.9 s |
-| Sign in | markIn 800 @80; breathe 3.2 s loop; title rise 900 @160/240; dock 800 @300; spinner 800 linear |
+| Splash | logo tile 800 @100 (.16,1,.3,1); base 600 @450; bell up 700 @650 (.3,1.25,.4,1); wave draw 800 @1100 (.65,0,.35,1); wave echo 1400 @1900; title rise 900 @900/1000; tagline up 800 @1350; bar fill 2200 @1600 (.65,0,.35,1); auto-advance 3.9 s |
+| Sign in | markIn 800 @80; title rise 900 @160/240; dock 800 @300; spinner 800 linear |
 | Merchants | title rise 900; card up 700 @220; soon rows stagger 60 ms from 360; open-now pulse 1.8 s loop; arrow nudge 1.8 s loop |
 | Idle | slide crossfade 1400; Ken Burns 8 s; progress 7 s linear; sheet up 900 @100; title rise 1000 @250; CTA ring 2.8 s loop; tap icon 1.8 s loop |
 | Order type | logo tile 1100 @100; cards in 900 @360/440; selection fill 600; check pop 500 @150; ring 800 @200; icon lift 600 @120; advance 950 |

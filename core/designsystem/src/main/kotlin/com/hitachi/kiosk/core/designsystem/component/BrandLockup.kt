@@ -21,12 +21,14 @@ import com.hitachi.kiosk.core.designsystem.unit.dpx
 /**
  * The header brand of Sign in, Merchants and the merchant screens (`Login.dc.html`, `Merchants.dc.html`): an 80 dpx
  * [BrandMarkTile], then [name] in the button style (34/700). Decorative tile; the name is the text. [logo] draws the
- * merchant's logo over the tile once it is loaded (the tile stays when there is none).
+ * merchant's logo over the tile once it is loaded (the tile stays when there is none). [bellMark] swaps the tile for the
+ * [BrandMark] (Sign in and Merchants, which show the Hitachi Kiosk logo itself).
  */
 @Composable
 fun BrandLockup(
     name: String,
     modifier: Modifier = Modifier,
+    bellMark: Boolean = false,
     logo: @Composable BoxScope.() -> Unit = {},
 ) {
     Row(
@@ -34,12 +36,16 @@ fun BrandLockup(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(20.dpx),
     ) {
-        BrandMarkTile(
-            modifier = Modifier.size(80.dpx),
-            shape = RoundedCornerShape(24.dpx),
-            dotSize = 26.dpx,
-            logo = logo,
-        )
+        if (bellMark) {
+            BrandMark(Modifier.size(80.dpx))
+        } else {
+            BrandMarkTile(
+                modifier = Modifier.size(80.dpx),
+                shape = RoundedCornerShape(24.dpx),
+                dotSize = 26.dpx,
+                logo = logo,
+            )
+        }
         KioskText(text = name, style = KioskTheme.typography.button)
     }
 }
@@ -67,5 +73,5 @@ fun BrandMarkTile(
 @Preview(widthDp = 500, heightDp = 120)
 @Composable
 private fun BrandLockupPreview() {
-    KioskTheme { BrandLockup(name = "Hitachi Kiosk") }
+    KioskTheme { BrandLockup(name = "Hitachi Kiosk", bellMark = true) }
 }

@@ -165,7 +165,7 @@ private fun MerchantsHeader(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
-        BrandLockup(name = stringResource(R.string.brand_name))
+        BrandLockup(name = stringResource(R.string.brand_name), bellMark = true)
         Row(
             modifier =
                 Modifier

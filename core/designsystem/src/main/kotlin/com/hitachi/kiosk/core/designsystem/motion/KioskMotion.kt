@@ -26,6 +26,9 @@ object KioskEasing {
     /** `(.55, 0, .75, .2)`: accelerating fly-to-cart. */
     val Fly: Easing = CubicBezierEasing(0.55f, 0f, 0.75f, 0.2f)
 
+    /** `(.3, 1.25, .4, 1)`: the logo bell lifting into place. */
+    val Bell: Easing = CubicBezierEasing(0.3f, 1.25f, 0.4f, 1f)
+
     /** `(.3, 1.4, .5, 1)`: bouncy pops (check marks, cart badge bumps, dock thumbnails). */
     val Pop: Easing = CubicBezierEasing(0.3f, 1.4f, 0.5f, 1f)
 
@@ -48,12 +51,16 @@ object KioskEasing {
 object KioskMotion {
     /** Splash. */
     object Splash {
-        const val MARK_IN_MILLIS: Int = 900
-        const val MARK_IN_DELAY_MILLIS: Int = 150
-        const val DOT_IN_MILLIS: Int = 600
-        const val DOT_IN_DELAY_MILLIS: Int = 700
-        const val RING_OUT_MILLIS: Int = 1400
-        const val RING_OUT_DELAY_MILLIS: Int = 900
+        const val MARK_IN_MILLIS: Int = 800
+        const val MARK_IN_DELAY_MILLIS: Int = 100
+        const val BASE_IN_MILLIS: Int = 600
+        const val BASE_IN_DELAY_MILLIS: Int = 450
+        const val BELL_UP_MILLIS: Int = 700
+        const val BELL_UP_DELAY_MILLIS: Int = 650
+        const val WAVE_DRAW_MILLIS: Int = 800
+        const val WAVE_DRAW_DELAY_MILLIS: Int = 1100
+        const val ECHO_MILLIS: Int = 1400
+        const val ECHO_DELAY_MILLIS: Int = 1900
         const val TITLE_RISE_MILLIS: Int = 900
         const val TITLE_RISE_DELAY_MILLIS: Int = 900
         const val TITLE_RISE_SECOND_DELAY_MILLIS: Int = 1000
@@ -99,7 +106,6 @@ object KioskMotion {
     object SignIn {
         const val MARK_IN_MILLIS: Int = 800
         const val MARK_IN_DELAY_MILLIS: Int = 80
-        const val BREATHE_LOOP_MILLIS: Int = 3200
         const val TITLE_RISE_MILLIS: Int = 900
         const val TITLE_RISE_DELAY_MILLIS: Int = 160
         const val TITLE_RISE_SECOND_DELAY_MILLIS: Int = 240
@@ -108,7 +114,6 @@ object KioskMotion {
 
         /** Distance the dock travels in, in design px. */
         const val DOCK_DISTANCE_PX: Int = 120
-        const val BREATHE_DELAY_MILLIS: Int = 1000
         const val WELCOME_UP_MILLIS: Int = 700
         const val WELCOME_UP_DELAY_MILLIS: Int = 160
         const val INTRO_UP_MILLIS: Int = 700

@@ -1,8 +1,6 @@
 package com.hitachi.kiosk.feature.splash
 
-import androidx.compose.animation.core.keyframes
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -16,7 +14,6 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -33,11 +30,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import com.hitachi.kiosk.R
+import com.hitachi.kiosk.core.designsystem.component.BrandMark
 import com.hitachi.kiosk.core.designsystem.component.KioskText
 import com.hitachi.kiosk.core.designsystem.motion.KioskEasing
 import com.hitachi.kiosk.core.designsystem.motion.KioskMotion.Splash
 import com.hitachi.kiosk.core.designsystem.motion.animateEntrance
-import com.hitachi.kiosk.core.designsystem.motion.animateOnEnter
 import com.hitachi.kiosk.core.designsystem.motion.fadeIn
 import com.hitachi.kiosk.core.designsystem.motion.fadeUp
 import com.hitachi.kiosk.core.designsystem.motion.riseIn
@@ -45,18 +42,6 @@ import com.hitachi.kiosk.core.designsystem.theme.KioskTheme
 import com.hitachi.kiosk.core.designsystem.unit.DesignFrame
 import com.hitachi.kiosk.core.designsystem.unit.dpx
 import com.hitachi.kiosk.core.designsystem.unit.spx
-
-/** `markIn`: scale .6 → 1, rotate −8° → 0. */
-private const val MARK_START_SCALE = 0.6f
-private const val MARK_START_ROTATION = -8f
-
-/** `dotIn`: 0 → 1.25 at 70 % → 1. */
-private const val DOT_OVERSHOOT = 1.25f
-private const val DOT_OVERSHOOT_AT = 0.7f
-
-/** `ringOut`: opacity .5 → 0, scale 1 → 1.9. */
-private const val RING_START_ALPHA = 0.5f
-private const val RING_GROWTH = 0.9f
 
 /** Test tag of the brand mark, which opens Developer options after 5 taps in debug builds (DEV-009). */
 const val SPLASH_MARK_TAG = "brand-mark"
@@ -88,7 +73,7 @@ fun SplashScreen(
         Column(
             modifier = Modifier.offset(y = (-40).dpx),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(64.dpx),
+            verticalArrangement = Arrangement.spacedBy(56.dpx),
         ) {
             SplashMark(onClick = onMarkClick)
             SplashTitle()
@@ -112,65 +97,25 @@ fun SplashScreen(
 
 @Composable
 private fun SplashMark(onClick: () -> Unit) {
-    val colors = KioskTheme.colors
-    val markShape = RoundedCornerShape(60.dpx)
     val description = stringResource(R.string.splash_brand_mark_description)
-    val mark = animateEntrance(Splash.MARK_IN_MILLIS, Splash.MARK_IN_DELAY_MILLIS)
-    val ring = animateEntrance(Splash.RING_OUT_MILLIS, Splash.RING_OUT_DELAY_MILLIS)
-    val dot =
-        animateOnEnter(
-            keyframes {
-                durationMillis = Splash.DOT_IN_MILLIS
-                delayMillis = Splash.DOT_IN_DELAY_MILLIS
-                0f at 0 using KioskEasing.Spring
-                DOT_OVERSHOOT at (Splash.DOT_IN_MILLIS * DOT_OVERSHOOT_AT).toInt() using KioskEasing.Spring
-            },
-        )
-    Box(
+    val tile = animateEntrance(Splash.MARK_IN_MILLIS, Splash.MARK_IN_DELAY_MILLIS)
+    val base = animateEntrance(Splash.BASE_IN_MILLIS, Splash.BASE_IN_DELAY_MILLIS)
+    val bell = animateEntrance(Splash.BELL_UP_MILLIS, Splash.BELL_UP_DELAY_MILLIS, KioskEasing.Bell)
+    val wave = animateEntrance(Splash.WAVE_DRAW_MILLIS, Splash.WAVE_DRAW_DELAY_MILLIS, KioskEasing.InOut)
+    val echo = animateEntrance(Splash.ECHO_MILLIS, Splash.ECHO_DELAY_MILLIS)
+    BrandMark(
         modifier =
             Modifier
-                .size(200.dpx)
+                .size(240.dpx)
                 .semantics { contentDescription = description }
                 .clickable(interactionSource = null, indication = null, onClick = onClick)
                 .testTag(SPLASH_MARK_TAG),
-        contentAlignment = Alignment.Center,
-    ) {
-        Box(
-            modifier =
-                Modifier
-                    .matchParentSize()
-                    .graphicsLayer {
-                        val p = ring.value
-                        alpha = RING_START_ALPHA * (1f - p)
-                        scaleX = 1f + RING_GROWTH * p
-                        scaleY = 1f + RING_GROWTH * p
-                    }.border(3.dpx, colors.accent, markShape),
-        )
-        Box(
-            modifier =
-                Modifier
-                    .matchParentSize()
-                    .graphicsLayer {
-                        val p = mark.value
-                        alpha = p
-                        val scale = MARK_START_SCALE + (1f - MARK_START_SCALE) * p
-                        scaleX = scale
-                        scaleY = scale
-                        rotationZ = MARK_START_ROTATION * (1f - p)
-                    }.background(colors.ink, markShape),
-            contentAlignment = Alignment.Center,
-        ) {
-            Box(
-                modifier =
-                    Modifier
-                        .size(64.dpx)
-                        .graphicsLayer {
-                            scaleX = dot.value
-                            scaleY = dot.value
-                        }.background(colors.accent, CircleShape),
-            )
-        }
-    }
+        tile = { tile.value },
+        bell = { bell.value },
+        base = { base.value },
+        wave = { wave.value },
+        echo = { echo.value },
+    )
 }
 
 @Composable

@@ -54,6 +54,7 @@ class ReduceMotionTest {
         assertThat(KioskEasing.Emphasized).isEqualTo(CubicBezierEasing(0.16f, 1f, 0.3f, 1f))
         assertThat(KioskEasing.Press).isEqualTo(CubicBezierEasing(0.2f, 0f, 0f, 1f))
         assertThat(KioskEasing.Spring).isEqualTo(CubicBezierEasing(0.3f, 1.15f, 0.4f, 1f))
+        assertThat(KioskEasing.Bell).isEqualTo(CubicBezierEasing(0.3f, 1.25f, 0.4f, 1f))
         assertThat(KioskEasing.InOut).isEqualTo(CubicBezierEasing(0.65f, 0f, 0.35f, 1f))
         assertThat(KioskEasing.Fly).isEqualTo(CubicBezierEasing(0.55f, 0f, 0.75f, 0.2f))
     }
@@ -61,11 +62,14 @@ class ReduceMotionTest {
     @Test
     fun `the splash timings match the motion inventory`() {
         with(KioskMotion.Splash) {
-            assertThat(listOf(MARK_IN_MILLIS, MARK_IN_DELAY_MILLIS, DOT_IN_MILLIS, DOT_IN_DELAY_MILLIS))
-                .containsExactly(900, 150, 600, 700)
+            assertThat(listOf(MARK_IN_MILLIS, MARK_IN_DELAY_MILLIS, BASE_IN_MILLIS, BASE_IN_DELAY_MILLIS))
+                .containsExactly(800, 100, 600, 450)
                 .inOrder()
-            assertThat(listOf(RING_OUT_MILLIS, RING_OUT_DELAY_MILLIS, TITLE_RISE_MILLIS, TITLE_RISE_DELAY_MILLIS))
-                .containsExactly(1400, 900, 900, 900)
+            assertThat(listOf(BELL_UP_MILLIS, BELL_UP_DELAY_MILLIS, WAVE_DRAW_MILLIS, WAVE_DRAW_DELAY_MILLIS))
+                .containsExactly(700, 650, 800, 1100)
+                .inOrder()
+            assertThat(listOf(ECHO_MILLIS, ECHO_DELAY_MILLIS, TITLE_RISE_MILLIS, TITLE_RISE_DELAY_MILLIS))
+                .containsExactly(1400, 1900, 900, 900)
                 .inOrder()
             assertThat(listOf(TITLE_RISE_SECOND_DELAY_MILLIS, TAGLINE_UP_MILLIS, TAGLINE_UP_DELAY_MILLIS))
                 .containsExactly(1000, 800, 1350)
