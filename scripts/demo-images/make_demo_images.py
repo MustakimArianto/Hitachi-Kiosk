@@ -35,6 +35,9 @@ PRODUCTS = {
     "nuggets_four": "Golden Crispy Nuggets on Black Plate",
     "sambal_bowl": "Urban Grill Sambal Chicken Bowl",
     "teriyaki_bowl": "Urban Grill Teriyaki Chicken Bowl",
+    "geprek_bowl": "Urban Grill Crispy Sambal Chicken Bowl",
+    "beef_bowl": "Urban Grill Beef Stir-Fry Bowl",
+    "chicken_bucket": "Urban Grill Crispy Chicken Bucket",
     "fries": "Urban Grill Golden Fries",
     "cheese_fries": "Cheesy Urban Grill Loaded Fries",
     "lychee_tea": "Iced Lychee Mint Tea on Ice",
@@ -49,6 +52,19 @@ PRODUCTS = {
 IDLE = {"idle_burger": "double_burger", "idle_wings": "wings_six", "idle_sundae": "caramel_sundae"}
 # The "Make it a meal" option adds fries and a drink: its photo shows those two side by side.
 MEAL_ADDON = ("meal_addon", ("fries", "cola"))
+# "Feast for Two" (2 burgers, 2 sides, 2 drinks): a tray seen straight on. Each part is cut to its own box (fractions of
+# the square original: left, top, right, bottom) and set on the flat studio colour: two burgers on the top row, the
+# fries and the cola under them. (key, box, height on the canvas, x centre, y of the bottom edge)
+FEAST = (
+    "feast_for_two",
+    (
+        ("cheeseburger", (0.06, 0.14, 0.93, 0.90), 350, 590, 425),
+        ("bbq_bacon_burger", (0.02, 0.14, 0.98, 0.90), 350, 1010, 425),
+        ("fries", (0.22, 0.09, 0.79, 0.93), 290, 590, 725),
+        ("cola", (0.28, 0.08, 0.73, 0.93), 290, 1010, 725),
+    ),
+    (24, 22, 21),
+)
 LOGO = ("logo", "Urban Grill Burger Emblem")
 
 CANVAS_W, CANVAS_H, SUBJECT_FILL = 1600, 800, 0.82
@@ -108,21 +124,39 @@ def product_photo(original: Image.Image) -> Image.Image:
     return extend_horizontal(column, CANVAS_W)
 
 
-def pair_original(left: Image.Image, right: Image.Image) -> Image.Image:
-    """Two photos with the same dark studio background side by side on one square. Each fades to black at its edges and
-    the two are merged by keeping the lighter pixel, so no rectangle shows."""
-    size = left.width
-    scaled = int(size * 0.7)
+def cluster_original(items, scale: float) -> Image.Image:
+    """Photos with the same dark studio background on one square, each at `scale` of the square and centred at its
+    (x, y) fraction. Each fades to black at its edges and they are merged by keeping the lighter pixel, so no rectangle
+    shows."""
+    size = items[0][0].width
+    scaled = int(size * scale)
     fade = scaled // 4
     mask = ImageChops.multiply(feather(scaled, scaled, fade, True), feather(scaled, scaled, fade, False))
     black = Image.new("RGB", (scaled, scaled))
     canvas = Image.new("RGB", (size, size))
-    for img, centre in ((left, 0.3), (right, 0.7)):
+    for img, (x, y) in items:
         layer = Image.new("RGB", (size, size))
         faded = Image.composite(img.resize((scaled, scaled), Image.LANCZOS), black, mask)
-        layer.paste(faded, (int(size * centre) - scaled // 2, (size - scaled) // 2))
+        layer.paste(faded, (int(size * x - scaled / 2), int(size * y - scaled / 2)))
         canvas = ImageChops.lighter(canvas, layer)
     return canvas
+
+
+def feast_photo(parts, studio) -> Image.Image:
+    """The parts on the 2:1 canvas, each cut to its box and faded into the flat studio colour at its edges."""
+    canvas = Image.new("RGB", (CANVAS_W, CANVAS_H), studio)
+    for original, box, height, centre_x, bottom in parts:
+        size = original.width
+        cut = original.crop(tuple(int(v * size) for v in box))
+        width = round(cut.width * height / cut.height)
+        cut = cut.resize((width, height), Image.LANCZOS)
+        mask = ImageChops.multiply(feather(width, height, 28, True), feather(width, height, 28, False))
+        canvas.paste(cut, (centre_x - width // 2, bottom - height), mask)
+    return canvas
+
+
+def pair_original(left: Image.Image, right: Image.Image) -> Image.Image:
+    return cluster_original(((left, (0.3, 0.5)), (right, (0.7, 0.5))), 0.7)
 
 
 def idle_slide(original: Image.Image) -> Image.Image:
@@ -144,10 +178,12 @@ def main(source: Path, target: Path) -> None:
         save(idle_slide(originals[base]), target / f"{name}.webp")
     name, (left, right) = MEAL_ADDON
     save(product_photo(pair_original(originals[left], originals[right])), target / f"{name}.webp")
+    name, parts, studio = FEAST
+    save(feast_photo([(originals[key], *rest) for key, *rest in parts], studio), target / f"{name}.webp")
     name, file = LOGO
     logo = Image.open(source / f"{file}.png").convert("RGB").resize((LOGO_SIZE, LOGO_SIZE), Image.LANCZOS)
     save(logo, target / f"{name}.webp")
-    print(f"wrote {len(PRODUCTS) + len(IDLE) + 2} images to {target}")
+    print(f"wrote {len(PRODUCTS) + len(IDLE) + 3} images to {target}")
 
 
 if __name__ == "__main__":

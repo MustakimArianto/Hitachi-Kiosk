@@ -28,9 +28,11 @@ object DemoImages {
             "c1" to "fried_chicken",
             "c2" to "wings_six",
             "c3" to "nuggets_nine",
-            "c4" to "fried_chicken",
+            "c4" to "chicken_bucket",
             "r1" to "sambal_bowl",
             "r2" to "teriyaki_bowl",
+            "r3" to "geprek_bowl",
+            "r4" to "beef_bowl",
             "s1" to "fries",
             "s2" to "cheese_fries",
             "s3" to "nuggets_four",
@@ -49,7 +51,7 @@ object DemoImages {
             "combo_burger" to "cheeseburger",
             "combo_chicken" to "fried_chicken",
             "combo_bowl" to "teriyaki_bowl",
-            "combo_feast" to "wings_six",
+            "combo_feast" to "feast_for_two",
         )
 
     private val slotOptions =
