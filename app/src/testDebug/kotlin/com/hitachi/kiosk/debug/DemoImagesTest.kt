@@ -32,7 +32,7 @@ class DemoImagesTest {
     fun `the sample sides drinks and combos all get a photo`() {
         assertThat(menu.combos.map { it.imageUrl }).doesNotContain(null)
         assertThat(menu.comboSlots.drinks.map { it.imageUrl }).doesNotContain(null)
-        assertThat(config.idlePromoImageUrls).hasSize(3)
+        assertThat(config.idlePromoImageUrls).hasSize(2)
         val meal = menu.modifierGroups.flatMap { it.options }.first { it.id == "opt_make_meal" }
         assertThat(meal.imageUrl).endsWith("/meal_addon.webp")
     }

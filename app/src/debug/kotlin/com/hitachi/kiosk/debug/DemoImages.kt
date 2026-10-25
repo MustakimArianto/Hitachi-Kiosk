@@ -67,7 +67,7 @@ object DemoImages {
 
     private val modifierOptions = mapOf("opt_make_meal" to "meal_addon")
 
-    private val idlePromos = listOf("idle_burger", "idle_wings", "idle_sundae")
+    private val idlePromos = listOf("promo_family_feast", "promo_feast_for_two")
 
     /** The menu with a photo on every product, combo and combo option the demo set covers. */
     fun apply(menu: Menu): Menu =
@@ -90,15 +90,19 @@ object DemoImages {
                 ),
         )
 
-    /** The config with the Urban Grill logo, the hero photo and three idle promo images. */
+    /** The config with the Urban Grill logo, the hero photo and the two idle promo posters. */
     fun apply(config: MerchantConfig): MerchantConfig =
         config.copy(
             logoUrl = config.logoUrl.orDemo(url("logo")),
             heroPhotoUrl = config.heroPhotoUrl.orDemo(url("bbq_bacon_burger")),
             idlePromoImageUrls =
-                config.idlePromoImageUrls
-                    .ifEmpty { idlePromos.map { null } }
-                    .mapIndexed { index, existing -> existing.orDemo(url(idlePromos[index % idlePromos.size])) },
+                if (config.idlePromoImageUrls.all { it == null || PLACEHOLDER_HOST in it }) {
+                    idlePromos.map(::url)
+                } else {
+                    config.idlePromoImageUrls.mapIndexed { index, existing ->
+                        existing.orDemo(url(idlePromos[index % idlePromos.size]))
+                    }
+                },
         )
 
     /** The merchant list with the logo and cover photo on the merchants that only have the `cdn.example` placeholder. */
