@@ -21,10 +21,19 @@ class BudgetPlanScreenScreenshotTest {
     val composeRule = createComposeRule()
 
     @Test
-    fun `BudgetPas step 1`() = capture("BudgetPas_step1", BudgetPlanTestStates.stepOne())
+    fun `S_BudgetPas_step1`() = capture("S_BudgetPas_step1", BudgetPlanTestStates.stepOneEmpty())
+
+    @Test
+    fun `S_BudgetPas_step1Budget`() = capture("S_BudgetPas_step1Budget", BudgetPlanTestStates.stepOne())
+
+    @Test
+    fun `S_BudgetPas_keypadMin`() = capture("S_BudgetPas_keypadMin", BudgetPlanTestStates.keypadMin())
 
     @Test
     fun `BudgetPas step 2`() = capture("BudgetPas_step2", BudgetPlanTestStates.stepTwo())
+
+    @Test
+    fun `S_BudgetPas_twoPlans`() = capture("S_BudgetPas_twoPlans", BudgetPlanTestStates.stepTwo())
 
     @Test
     fun `S_BudgetPas_exact`() = capture("S_BudgetPas_exact", BudgetPlanTestStates.exact())
@@ -39,16 +48,22 @@ class BudgetPlanScreenScreenshotTest {
     fun `S_BudgetPas_group`() = capture("S_BudgetPas_group", BudgetPlanTestStates.group())
 
     @Test
-    fun `BudgetPas with the rows open`() = capture("BudgetPas_expanded", BudgetPlanTestStates.expanded())
+    fun `S_BudgetPas_detailsOpen`() = capture("S_BudgetPas_detailsOpen", BudgetPlanTestStates.detailsOpen())
 
     @Test
-    fun `BudgetPas with Customize open`() = capture("BudgetPas_customize", BudgetPlanTestStates.customizeOpen())
+    fun `S_BudgetPas_optionsOff`() = capture("S_BudgetPas_optionsOff", BudgetPlanTestStates.optionsOff())
+
+    @Test
+    fun `S_BudgetPas_swapOpen`() = capture("S_BudgetPas_swapOpen", BudgetPlanTestStates.swapOpen())
+
+    @Test
+    fun `S_BudgetPas_cartFull`() = capture("S_BudgetPas_cartFull", BudgetPlanTestStates.cartFull())
+
+    @Test
+    fun `S_BudgetPas_added`() = capture("S_BudgetPas_added", BudgetPlanTestStates.added())
 
     @Test
     fun `BudgetPas with the keypad open`() = capture("BudgetPas_keypad", BudgetPlanTestStates.keypadOpen())
-
-    @Test
-    fun `BudgetPas after adding`() = capture("BudgetPas_added", BudgetPlanTestStates.added())
 
     @Test
     fun `BudgetPas step 1 with larger text`() =

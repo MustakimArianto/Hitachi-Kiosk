@@ -1,4 +1,4 @@
-package com.hitachi.kiosk.feature.upsell
+package com.hitachi.kiosk.feature.complete
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -8,24 +8,23 @@ import androidx.compose.ui.Modifier
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
-/** SCR-09 wired to its ViewModel (FR-014, DEV-039). Each lambda is one edge of PRD §5.1. */
+/** SCR-12 wired to its ViewModel (FR-020). [onNavigateToIdle] is the one edge: "Done" and the 20 s timer. */
 @Composable
-fun UpsellRoute(
-    onNavigateToYourOrder: () -> Unit,
-    onNavigateToMenu: () -> Unit,
+fun CompleteRoute(
+    onNavigateToIdle: () -> Unit,
     modifier: Modifier = Modifier,
-    viewModel: UpsellViewModel = hiltViewModel(),
+    viewModel: CompleteViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    val toYourOrder by rememberUpdatedState(onNavigateToYourOrder)
-    val toMenu by rememberUpdatedState(onNavigateToMenu)
+    val toIdle by rememberUpdatedState(onNavigateToIdle)
     LaunchedEffect(viewModel) {
+        // The screen is composed: the paid payment is handed over and the pending order forgotten.
+        viewModel.onEvent(CompleteEvent.Shown)
         viewModel.effect.collect { effect ->
             when (effect) {
-                UpsellEffect.OpenYourOrder -> toYourOrder()
-                UpsellEffect.BackToMenu -> toMenu()
+                CompleteEffect.ToIdle -> toIdle()
             }
         }
     }
-    UpsellScreen(state = state, onEvent = viewModel::onEvent, modifier = modifier)
+    CompleteScreen(state = state, onEvent = viewModel::onEvent, modifier = modifier)
 }

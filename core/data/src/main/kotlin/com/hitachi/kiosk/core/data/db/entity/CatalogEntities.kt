@@ -82,6 +82,8 @@ internal data class ModifierGroupEntity(
     val required: Boolean,
     val min: Int?,
     val max: Int?,
+    /** `MEAL_UPGRADE` or `null` (api-spec E6 `purpose`, added in schema version 3). */
+    val purpose: String? = null,
 )
 
 /** Option IDs are unique within their group only (api-spec E6). */

@@ -11,6 +11,7 @@ import com.hitachi.kiosk.core.domain.model.availableCombos
 import com.hitachi.kiosk.core.domain.model.toneOf
 import com.hitachi.kiosk.core.domain.pricing.PricingEngine
 import com.hitachi.kiosk.core.domain.pricing.PricingRules
+import kotlin.math.abs
 
 /**
  * The Budget Plan group meal planner (FR-032, BR-13–BR-15, technical-design §8.3, TD-06). Pure and deterministic:
@@ -79,12 +80,17 @@ class BudgetPlanner(
         if (request.people > config.maxGroupSize) return PlanResult.GroupTooLarge(config.maxGroupSize)
         if (!isAvailable) return PlanResult.NoPlan
 
-        val tables = (0..maxShared(request)).map { shared -> slots(request, shared).let { Table(it, reach(it)) } }
+        val tables = tables(request)
         val found = Selection(request.budget.value, cap(request))
+        val totals = LongArray(tables.maxOf { it.reach[0].size }) { UNPRICED }
         tables.forEachIndexed { index, table ->
             table.reach[0].forEachSetBit { units ->
                 val subtotal = units * unit
-                found.offer(Found(index, subtotal, total(subtotal)))
+                // The same subtotal comes up in many tables: price it once.
+                val total =
+                    totals[units.toInt()].takeIf { it != UNPRICED }
+                        ?: total(subtotal).also { totals[units.toInt()] = it }
+                found.offer(index, subtotal, total)
             }
         }
         val under = found.under
@@ -112,7 +118,52 @@ class BudgetPlanner(
         return PlanResult.Plans(plans, kidsMenuUnavailable && request.children > 0)
     }
 
-    private fun maxShared(request: PlanRequest): Int = if (sharedMeals.isEmpty()) 0 else request.adults / 2
+    /**
+     * One [Table] per [Shape]. The slots after the meals (pairs, children, extras) depend only on the number of combo
+     * diners, so their reachable sets are computed once per count and shared by the shapes that have it.
+     */
+    private fun tables(request: PlanRequest): List<Table> {
+        val size = subtotalBound(request) / unit.toInt() + 1
+        val done = SubtotalSet(size).apply { set(0) }
+        val tails = mutableMapOf<Int, Pair<List<Slot>, List<SubtotalSet>>>()
+        return shapes(request).map { shape ->
+            val (tail, tailReach) =
+                tails.getOrPut(shape.comboDiners) {
+                    val slots = tailSlots(request, shape)
+                    slots to reach(slots, size, listOf(done))
+                }
+            val head = headSlots(shape)
+            Table(head + tail, reach(head, size, tailReach), shape.shared)
+        }
+    }
+
+    /** The most a plan can cost before tax and promo, so every table can share one set size. */
+    private fun subtotalBound(request: PlanRequest): Int {
+        val adultMax =
+            maxOf(
+                (adultMains.maxOfOrNull { it.unitPrice.value } ?: 0L) +
+                    (drinks.maxOfOrNull { it.unitPrice.value } ?: 0L),
+                meals.maxOfOrNull { it.unitPrice.value } ?: 0L,
+                (sharedMeals.maxOfOrNull { it.unitPrice.value } ?: 0L) / 2,
+            )
+        val kidMax =
+            (kidMains.maxOfOrNull { it.unitPrice.value } ?: 0L) + (kidDrinks.maxOfOrNull { it.unitPrice.value } ?: 0L)
+        val extraMax = extras(request.options).maxOfOrNull { it.unitPrice.value } ?: 0L
+        return (adultMax * request.adults + kidMax * request.children + extraMax * request.people).toInt()
+    }
+
+    /**
+     * Every way to feed the adults with meals: [Shape.shared] two-person combos, [Shape.solo] one-person combos and
+     * pairs for the rest. The number of combo diners sets how many sides the table may add (OQ-15), so each shape is
+     * planned on its own.
+     */
+    private fun shapes(request: PlanRequest): List<Shape> {
+        val maxShared = if (sharedMeals.isEmpty()) 0 else request.adults / 2
+        return (0..maxShared).flatMap { shared ->
+            val alone = request.adults - shared * 2
+            (0..if (meals.isEmpty()) 0 else alone).map { solo -> Shape(shared, solo) }
+        }
+    }
 
     /**
      * "Swap" in the Customize sheet (FR-032): the item in [part] of `plan.picks[pickIndex]` becomes the next one of the
@@ -139,6 +190,123 @@ class BudgetPlanner(
                 if (part == SwapPart.EXTRA) reprice(plan.kind, picks, request) else rebalance(plan.kind, picks, request)
             if (swapped.total.value <= limit) return swapped
         }
+    }
+
+    /**
+     * The swap picker's rows for `plan.picks[pickIndex]` (FR-032, DEV-109, TC-200): the current choice first, then the
+     * alternatives in the same role, cheapest total first, at most [MAX_ALTERNATIVES] (the ones nearest the current
+     * price). An adult's main plus drink or one-person combo can become any other main plus drink or one-person combo,
+     * a child's main plus drink any other kid-friendly pair, a shared two-person combo another two-person combo or two
+     * separate meals, and a shared side or dessert another of its kind.
+     *
+     * Everyone else's choices and the table's extras stay as they are, so the price change shown is the real one; only
+     * sides that a new combo diner already has are dropped (OQ-15). An alternative that would take the plan past its
+     * limit (the budget, or the over cap for an over plan; never below the current total) is left out, so no row can
+     * break the budget or the cap rule. Unknown [pickIndex] gives an empty list.
+     */
+    fun alternatives(
+        request: PlanRequest,
+        plan: BudgetPlan,
+        pickIndex: Int,
+    ): List<PlanAlternative> {
+        val pick = plan.picks.getOrNull(pickIndex) ?: return emptyList()
+        val limit = maxOf(plan.total.value, if (plan.kind == PlanKind.OVER) cap(request) else request.budget.value)
+        val others =
+            replacements(pick, request.options)
+                .filter { it != listOf(pick) }
+                .mapNotNull { replacement ->
+                    val picks =
+                        plan.picks
+                            .toMutableList()
+                            .apply {
+                                removeAt(
+                                    pickIndex,
+                                )
+                            }.apply { addAll(pickIndex, replacement) }
+                    val next = reprice(plan.kind, withoutExtraSides(picks, request), request)
+                    next
+                        .takeIf { it.total.value <= limit }
+                        ?.let { PlanAlternative(replacement, it, it.total.value - plan.total.value, isCurrent = false) }
+                }.sortedWith(compareBy({ abs(it.change) }, { it.plan.total.value }))
+                .take(MAX_ALTERNATIVES)
+                .sortedWith(
+                    compareBy({ it.plan.total.value }, {
+                        it.replacement.joinToString { p ->
+                            p.items.joinToString { i -> i.id }
+                        }
+                    }),
+                )
+        return listOf(PlanAlternative(listOf(pick), plan, 0L, isCurrent = true)) + others
+    }
+
+    /** What may stand in for [pick], in preference order (not including [pick] itself, which is filtered later). */
+    private fun replacements(
+        pick: PlanPick,
+        options: PlanOptions,
+    ): List<List<PlanPick>> =
+        when (pick) {
+            is PlanPick.MainAndDrink -> {
+                if (pick.diner.isChild) {
+                    kidPairs().map { listOf(PlanPick.MainAndDrink(pick.diner, it.main, it.drink, it.kidFriendly)) }
+                } else {
+                    adultChoices(pick.diner)
+                }
+            }
+
+            is PlanPick.Meal -> {
+                adultChoices(pick.diner)
+            }
+
+            is PlanPick.SharedMeal -> {
+                sharedMeals.map { listOf(PlanPick.SharedMeal(pick.first, pick.second, it)) } +
+                    listOfNotNull(separateMeals(pick))
+            }
+
+            is PlanPick.Extra -> {
+                (extras(options).filter { it.role == pick.item.role }).map { listOf(PlanPick.Extra(it)) }
+            }
+        }
+
+    /** Every main plus drink and every one-person combo for an adult (BR-13). */
+    private fun adultChoices(diner: Diner): List<List<PlanPick>> =
+        adultMains.flatMap { main -> drinks.map { listOf<PlanPick>(PlanPick.MainAndDrink(diner, main, it, false)) } } +
+            meals.map { listOf<PlanPick>(PlanPick.Meal(diner, it)) }
+
+    private fun kidPairs(): List<Option.PairOption> =
+        kidMains.flatMap { main -> kidDrinks.map { Option.PairOption(main, it, !kidsMenuUnavailable) } }
+
+    /** A shared meal for two as two separate meals: the same main plus drink twice, the nearest in price. */
+    private fun separateMeals(pick: PlanPick.SharedMeal): List<PlanPick>? {
+        val pair =
+            adultMains
+                .flatMap { main -> drinks.map { main to it } }
+                .minByOrNull { (main, drink) ->
+                    abs(2 * (main.unitPrice.value + drink.unitPrice.value) - pick.combo.unitPrice.value)
+                }
+                ?: return null
+        return listOf(
+            PlanPick.MainAndDrink(pick.first, pair.first, pair.second, false),
+            PlanPick.MainAndDrink(pick.second, pair.first, pair.second, false),
+        )
+    }
+
+    /** Drops the last shared sides that a combo diner already has, so sides stay within people minus combo diners. */
+    private fun withoutExtraSides(
+        picks: List<PlanPick>,
+        request: PlanRequest,
+    ): List<PlanPick> {
+        val allowed = request.people - picks.sumOf { it.comboDiners }
+        var sides = picks.count { it is PlanPick.Extra && it.item.role == PlanRole.SIDE }
+        if (sides <= allowed) return picks
+        val kept = picks.toMutableList()
+        for (index in kept.indices.reversed()) {
+            val pick = kept[index]
+            if (sides > allowed && pick is PlanPick.Extra && pick.item.role == PlanRole.SIDE) {
+                kept.removeAt(index)
+                sides--
+            }
+        }
+        return kept
     }
 
     private fun swapPick(
@@ -176,11 +344,12 @@ class BudgetPlanner(
     ): BudgetPlan {
         val base = picks.filterNot { it is PlanPick.Extra }
         val baseSubtotal = base.sumOf { pick -> pick.items.sumOf { it.unitPrice.value } }
-        val table = extraSlots(request).let { Table(it, reach(it)) }
+        val comboDiners = base.sumOf { pick -> pick.comboDiners }
+        val table = extraSlots(request, comboDiners).let { Table(it, reach(it)) }
         val found = Selection(request.budget.value, cap(request))
         table.reach[0].forEachSetBit { units ->
             val extras = units * unit
-            found.offer(Found(0, extras, total(baseSubtotal + extras)))
+            found.offer(0, extras, total(baseSubtotal + extras))
         }
         val target =
             (if (kind == PlanKind.OVER) found.over ?: found.under else found.under) ?: checkNotNull(found.cheapest)
@@ -220,8 +389,23 @@ class BudgetPlanner(
         found: Found,
         kind: PlanKind,
     ): BudgetPlan {
-        val picks = pick(tables[found.table], found.subtotal)
+        // The same subtotal can come from several ways to feed the adults with the same number of shared meals (a
+        // main plus drink or a combo each): the one with the fewest repeats wins, and a tie keeps the fewest combos.
+        val first = tables[found.table]
+        val units = (found.subtotal / unit).toInt()
+        val picks =
+            tables
+                .filter { it.shared == first.shared && it.reach[0][units] }
+                .map { pick(it, found.subtotal) }
+                .minBy { repeats(it) }
         return BudgetPlan(kind, picks, PricingEngine.price(Rupiah(found.subtotal), rules))
+    }
+
+    /** How many mains and meals, and how many extras, a plan uses a second time (FR-032 variety). */
+    private fun repeats(picks: List<PlanPick>): Int {
+        val mains = picks.filter { it !is PlanPick.Extra }.map { pick -> pick.items.first().id }
+        val extras = picks.filterIsInstance<PlanPick.Extra>().map { it.item.id }
+        return (mains.size - mains.toSet().size) + (extras.size - extras.toSet().size)
     }
 
     /** Rebuilds [subtotal] slot by slot, preferring mains and extras not used yet (FR-032 variety). */
@@ -249,30 +433,53 @@ class BudgetPlanner(
         }
     }
 
-    private fun slots(
-        request: PlanRequest,
-        shared: Int,
-    ): List<Slot> {
-        val pairs = adultMains.flatMap { main -> drinks.map { Option.PairOption(main, it, kidFriendly = false) } }
-        val adult = pairs + meals.map(Option::MealOption)
-        val child = kidMains.flatMap { main -> kidDrinks.map { Option.PairOption(main, it, !kidsMenuUnavailable) } }
-        val adultsAlone = request.adults - shared * 2
+    /** The two-person combos and then the one-person combos, who come first in the plan. */
+    private fun headSlots(shape: Shape): List<Slot> {
+        val mealOptions = meals.map(Option::MealOption)
         return buildList {
-            repeat(
-                shared,
-            ) { add(Slot(listOf(adult(it * 2 + 1), adult(it * 2 + 2)), sharedMeals.map(Option::SharedOption))) }
-            repeat(adultsAlone) { add(Slot(listOf(adult(shared * 2 + it + 1)), adult)) }
-            repeat(request.children) { add(Slot(listOf(Diner(isChild = true, number = it + 1)), child)) }
-            addAll(extraSlots(request))
+            repeat(shape.shared) {
+                add(Slot(listOf(adult(it * 2 + 1), adult(it * 2 + 2)), sharedMeals.map(Option::SharedOption)))
+            }
+            repeat(shape.solo) { add(Slot(listOf(adult(shape.shared * 2 + it + 1)), mealOptions)) }
         }
     }
 
-    /** One optional side or dessert per person, shared by the table (FR-032). */
-    private fun extraSlots(request: PlanRequest): List<Slot> {
-        val options = extras(request.options)
-        if (options.isEmpty()) return emptyList()
-        val slot = Slot(emptyList(), listOf(Option.ExtraOption(null)) + options.map { Option.ExtraOption(it) })
-        return List(request.people) { slot }
+    /** The adults with a main and a drink, the children and the shared sides and desserts. */
+    private fun tailSlots(
+        request: PlanRequest,
+        shape: Shape,
+    ): List<Slot> {
+        val pairs = adultMains.flatMap { main -> drinks.map { Option.PairOption(main, it, kidFriendly = false) } }
+        val child = kidMains.flatMap { main -> kidDrinks.map { Option.PairOption(main, it, !kidsMenuUnavailable) } }
+        val first = shape.comboDiners + 1
+        return buildList {
+            repeat(request.adults - shape.comboDiners) { add(Slot(listOf(adult(first + it)), pairs)) }
+            repeat(request.children) { add(Slot(listOf(Diner(isChild = true, number = it + 1)), child)) }
+            addAll(extraSlots(request, shape.comboDiners))
+        }
+    }
+
+    /**
+     * One optional side or dessert per person, shared by the table (FR-032). A person whose meal is a combo already
+     * has a side, so sides get people minus [comboDiners] slots, and the combo diners' slots take desserts only
+     * (OQ-15). Without sides or desserts the slots shrink to what is left.
+     */
+    private fun extraSlots(
+        request: PlanRequest,
+        comboDiners: Int,
+    ): List<Slot> {
+        val options = request.options
+        val noExtra = listOf(Option.ExtraOption(null))
+        val any = Slot(emptyList(), noExtra + extras(options).map { Option.ExtraOption(it) })
+        val dessertsOnly =
+            Slot(
+                emptyList(),
+                noExtra + (if (options.includeDesserts) desserts else emptyList()).map { Option.ExtraOption(it) },
+            )
+        return when {
+            extras(options).isEmpty() -> emptyList()
+            else -> List(request.people - comboDiners) { any } + List(comboDiners) { dessertsOnly }
+        }.filter { it.options.size > 1 }
     }
 
     private fun extras(options: PlanOptions): List<PlannedItem> =
@@ -285,24 +492,34 @@ class BudgetPlanner(
             PlanTolerance.UP_TO_CAP -> request.budget.value + request.budget.value * config.overCapPercent / PERCENT
         }
 
-    /**
-     * `reach[i]` holds every subtotal (in [unit]s) that slots `i` to the end can make. Each option shifts the whole set
-     * a word at a time, so the cost depends on the price range, not on how many subtotals are reachable: a menu whose
-     * prices share only Rp 1 stays within the time budget (TR-PRF-08).
-     */
+    /** [reach] for [slots] alone, with a set size that fits them. */
     private fun reach(slots: List<Slot>): List<SubtotalSet> {
         val size = slots.sumOf { slot -> slot.options.maxOf { it.price } / unit }.toInt() + 1
-        val reach = arrayOfNulls<SubtotalSet>(slots.size + 1)
-        reach[slots.size] = SubtotalSet(size).apply { set(0) }
+        return reach(slots, size, listOf(SubtotalSet(size).apply { set(0) }))
+    }
+
+    /**
+     * The reachable subtotals of [slots] stacked in front of the slots that [tail] describes: entry `i` holds every
+     * subtotal (in [unit]s) that slots `i` to the end can make, and [tail] supplies the entries after [slots]. Each
+     * option shifts the whole set a word at a time, so the cost depends on the price range, not on how many subtotals
+     * are reachable: a menu whose prices share only Rp 1 stays within the time budget (TR-PRF-08).
+     */
+    private fun reach(
+        slots: List<Slot>,
+        size: Int,
+        tail: List<SubtotalSet>,
+    ): List<SubtotalSet> {
+        val reach = ArrayList<SubtotalSet>(slots.size + tail.size)
+        reach.addAll(tail)
         for (index in slots.indices.reversed()) {
-            val next = checkNotNull(reach[index + 1])
+            val next = reach[0]
             val current = SubtotalSet(size)
             slots[index].options.map { (it.price / unit).toInt() }.distinct().forEach { step ->
                 current.orShifted(next, step)
             }
-            reach[index] = current
+            reach.add(0, current)
         }
-        return reach.map { checkNotNull(it) }
+        return reach
     }
 
     /** The final total of [subtotal] (FR-013), the only number plans are compared on (BR-15). */
@@ -316,10 +533,20 @@ class BudgetPlanner(
 
     private fun product(item: PlannedItem): Product = products.first { it.id == item.id }
 
-    /** The slots of one plan shape (a number of shared meals) with their reachable subtotals. */
+    /** How the adults are fed: [shared] two-person combos, [solo] one-person combos, the rest main plus drink. */
+    private class Shape(
+        val shared: Int,
+        val solo: Int,
+    ) {
+        /** Adults whose meal is a combo, so they already have a side (OQ-15). */
+        val comboDiners: Int get() = shared * 2 + solo
+    }
+
+    /** The slots of one plan shape with their reachable subtotals. */
     private class Table(
         val slots: List<Slot>,
         val reach: List<SubtotalSet>,
+        val shared: Int = 0,
     )
 
     /** A reachable subtotal of [Table] number [table] and the final total it lands on. */
@@ -328,14 +555,6 @@ class BudgetPlanner(
         val subtotal: Long,
         val total: Long,
     ) {
-        /** A higher total wins; on the same total the higher subtotal does (FR-032 ranking 1). */
-        fun beats(other: Found?): Boolean =
-            other == null || total > other.total || (total == other.total && subtotal > other.subtotal)
-
-        /** For the over plan: a lower total wins; on the same total the higher subtotal does. */
-        fun closerOverThan(other: Found?): Boolean =
-            other == null || total < other.total || (total == other.total && subtotal > other.subtotal)
-
         fun sameAs(other: Found): Boolean = total == other.total && subtotal == other.subtotal
     }
 
@@ -349,25 +568,46 @@ class BudgetPlanner(
         var cheapest: Found? = null
         var top: Found? = null
 
-        fun offer(found: Found) {
-            if (found.total <= budget && found.beats(under)) under = found
-            if (found.total in (budget + 1)..cap && found.closerOverThan(over)) over = found
-            if (found.total < (cheapest?.total ?: Long.MAX_VALUE)) cheapest = found
-            if (found.beats(top)) top = found
+        fun offer(
+            table: Int,
+            subtotal: Long,
+            total: Long,
+        ) {
+            // A Found is only built when it takes a place, so the many subtotals that lose cost no allocation.
+            if (total <= budget && beats(total, subtotal, under)) under = Found(table, subtotal, total)
+            if (total in (budget + 1)..cap && closerOver(total, subtotal, over)) over = Found(table, subtotal, total)
+            if (total < (cheapest?.total ?: Long.MAX_VALUE)) cheapest = Found(table, subtotal, total)
+            if (beats(total, subtotal, top)) top = Found(table, subtotal, total)
         }
+
+        private fun beats(
+            total: Long,
+            subtotal: Long,
+            other: Found?,
+        ): Boolean = other == null || total > other.total || (total == other.total && subtotal > other.subtotal)
+
+        private fun closerOver(
+            total: Long,
+            subtotal: Long,
+            other: Found?,
+        ): Boolean = other == null || total < other.total || (total == other.total && subtotal > other.subtotal)
     }
 
     /** A fixed-size set of subtotals in price units, one bit per unit. */
     private class SubtotalSet(
-        size: Int,
+        val size: Int,
     ) {
         private val words = LongArray((size + WORD_BITS - 1) / WORD_BITS)
+
+        /** The last word that can hold a member, so a shift never walks the empty words above it. */
+        private var high = -1
 
         operator fun get(index: Int): Boolean =
             index >= 0 && index / WORD_BITS < words.size && words[index / WORD_BITS] and (1L shl index) != 0L
 
         fun set(index: Int) {
             words[index / WORD_BITS] = words[index / WORD_BITS] or (1L shl index)
+            high = maxOf(high, index / WORD_BITS)
         }
 
         /** Adds every member of [source] plus [shift]; members that would fall past the end are dropped. */
@@ -377,12 +617,16 @@ class BudgetPlanner(
         ) {
             val wordShift = shift / WORD_BITS
             val bitShift = shift % WORD_BITS
-            for (i in words.size - 1 downTo wordShift) {
+            val top = minOf(words.size - 1, source.high + wordShift + (if (bitShift != 0) 1 else 0))
+            for (i in top downTo wordShift) {
                 val from = i - wordShift
-                var word = source.words[from] shl bitShift
-                if (bitShift != 0 && from > 0) word = word or (source.words[from - 1] ushr (WORD_BITS - bitShift))
+                var word = if (from <= source.high) source.words[from] shl bitShift else 0L
+                if (bitShift != 0 && from > 0 && from - 1 <= source.high) {
+                    word = word or (source.words[from - 1] ushr (WORD_BITS - bitShift))
+                }
                 words[i] = words[i] or word
             }
+            if (source.high >= 0) high = maxOf(high, top)
         }
 
         inline fun forEachSetBit(action: (Long) -> Unit) {
@@ -465,7 +709,20 @@ class BudgetPlanner(
         private const val PERCENT = 100L
         private const val REPEAT_PENALTY = 1
 
+        /** Rows the swap picker shows besides the current choice (`BudgetPas.dc.html`). */
+        const val MAX_ALTERNATIVES = 15
+        private const val UNPRICED = -1L
+
         private fun adult(number: Int) = Diner(isChild = false, number = number)
+
+        /** Adults a pick feeds with a combo: they already have a side (OQ-15). */
+        private val PlanPick.comboDiners: Int
+            get() =
+                when (this) {
+                    is PlanPick.Meal -> 1
+                    is PlanPick.SharedMeal -> 2
+                    else -> 0
+                }
 
         private fun gcd(
             a: Long,

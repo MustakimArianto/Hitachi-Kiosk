@@ -185,6 +185,27 @@ data class Cart(
     }
 
     /**
+     * Moves one unit of [lineId] to [item] at [unitPrice] (DEV-114: "Make it a meal" changes an option of a line). A
+     * single unit with no identical line changes in place and keeps its position; otherwise the unit joins the
+     * identical line or becomes a new line. `null` when the cart has no such line or [item] is already the line's;
+     * [CartAddResult.LimitReached] and no change when the new line would break a limit.
+     */
+    fun switchOne(
+        lineId: String,
+        item: CartItem,
+        unitPrice: Rupiah,
+        choices: List<LineChoice>,
+    ): CartAddResult? {
+        val line = line(lineId)?.takeIf { it.item != item } ?: return null
+        if (line.quantity == 1 && lines.none { it.item == item }) {
+            val switched = line.copy(item = item, unitPrice = unitPrice, choices = choices)
+            val next = copy(lines = lines.map { if (it.lineId == lineId) switched else it })
+            return CartAddResult.Added(next, switched, merged = false, capped = false)
+        }
+        return decrement(lineId).add(item, 1, unitPrice, choices)
+    }
+
+    /**
      * "+" on Your order (FR-012): one more of [lineId]. A line at [MAX_PER_LINE] does not change and reports
      * [CartLimit.MAX_PER_LINE]; the result is [CartAddResult.Added] with `merged = true` otherwise. `null` when the
      * cart has no such line (for example a tap on a line that is sliding out).

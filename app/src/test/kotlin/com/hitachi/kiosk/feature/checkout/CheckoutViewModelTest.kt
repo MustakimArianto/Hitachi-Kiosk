@@ -634,7 +634,7 @@ class CheckoutViewModelTest {
     // Paid ----------------------------------------------------------------------------------------------------------
 
     @Test
-    fun `Paid goes to Complete after at least 800 ms of Confirming, and the machine is handed back (TC-075)`() =
+    fun `Paid goes to Complete after at least 800 ms of Confirming and stays Paid for Complete (TC-075)`() =
         checkoutTest {
             val h = harness(this)
             val vm = h.viewModel()
@@ -648,7 +648,8 @@ class CheckoutViewModelTest {
             h.pass(800.milliseconds)
 
             assertThat(h.effects).containsExactly(CheckoutEffect.ToComplete)
-            assertThat(h.machine.state.value).isEqualTo(PaymentUiState.Idle)
+            // DEV-060: Complete takes the paid details and acknowledges the payment itself.
+            assertThat(h.machine.state.value).isInstanceOf(PaymentUiState.Paid::class.java)
             assertThat(h.session.state.value.phase).isEqualTo(OrderPhase.PAID)
         }
 

@@ -68,6 +68,7 @@ internal data class ModifierGroupDto(
     val min: Int? = null,
     val max: Int? = null,
     val options: List<ModifierOptionDto> = emptyList(),
+    val purpose: String? = null,
 )
 
 @Serializable

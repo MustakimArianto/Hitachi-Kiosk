@@ -1,7 +1,6 @@
 package com.hitachi.kiosk.feature.budgetplan
 
 import com.hitachi.kiosk.core.domain.planner.PlanKind
-import com.hitachi.kiosk.core.domain.planner.SwapPart
 
 /**
  * Preview states mirroring the `BudgetPas.dc.html` scenarios (2 adults + 1 child at Rp 150.000, 4 items in the order).
@@ -17,6 +16,8 @@ internal object BudgetPlanSamples {
         BudgetPlanUiState(
             loaded = true,
             budget = "Rp 150.000",
+            hasBudget = true,
+            perPerson = "Rp 50.000",
             chips = chips,
             adults = 2,
             children = 1,
@@ -28,48 +29,43 @@ internal object BudgetPlanSamples {
         name: String,
         meta: PlanItemMeta,
         price: String,
-        swap: SwapTarget?,
-    ) = PlanItemUi(name, meta, price, imageUrl = null, tone = "#E9DED0", swap = swap)
+        index: Int,
+    ) = PlanItemUi(name, meta, price, imageUrl = null, tone = "#E9DED0", swap = SwapTarget(index))
 
     private val groups =
         listOf(
             PlanGroupUi(
                 PlanGroupLabel.Adult(1),
-                listOf(
-                    item("Smoky Double Burger", PlanItemMeta.Main, "Rp 52.000", SwapTarget(0, SwapPart.MAIN)),
-                    item("Iced Lychee Tea", PlanItemMeta.Drink, "Rp 16.000", SwapTarget(0, SwapPart.DRINK)),
-                ),
+                listOf(item("Smoky Double Burger + Iced Lychee Tea", PlanItemMeta.MainAndDrink, "Rp 68.000", 0)),
             ),
             PlanGroupUi(
                 PlanGroupLabel.Adult(2),
-                listOf(
-                    item(
-                        "Cheeseburger Meal",
-                        PlanItemMeta.Meal("Cheeseburger · fries · cola"),
-                        "Rp 56.000",
-                        SwapTarget(1, SwapPart.MEAL),
-                    ),
-                ),
+                listOf(item("Cheeseburger Meal", PlanItemMeta.Meal("fries, cola"), "Rp 56.000", 1)),
             ),
             PlanGroupUi(
-                PlanGroupLabel.Child(1),
-                listOf(
-                    item("Chicken Nuggets (9 pc)", PlanItemMeta.KidMain, "Rp 32.000", SwapTarget(2, SwapPart.MAIN)),
-                    item("Mineral Water 600 ml", PlanItemMeta.Drink, "Rp 8.000", SwapTarget(2, SwapPart.DRINK)),
-                ),
+                PlanGroupLabel.Child(1, kidFriendly = true),
+                listOf(item("Chicken Nuggets + Mineral Water", PlanItemMeta.MainAndDrink, "Rp 40.000", 2)),
             ),
         )
 
     private val plan =
         PlanUi(
             title = PlanTitle.TWO_PLANS,
-            options =
+            cards =
                 listOf(
-                    PlanOptionUi(PlanSide.UNDER, "Rp 149.600", selected = true),
-                    PlanOptionUi(PlanSide.OVER, "Rp 150.700", selected = false),
+                    PlanCardUi(PlanSide.UNDER, "Rp 149.600", "Rp 400", items = 5, selected = true),
+                    PlanCardUi(PlanSide.OVER, "Rp 150.700", "Rp 700", items = 6, selected = false),
                 ),
             hero = HeroUi(PlanKind.UNDER, "Rp 149.600", "Rp 400"),
             notes = emptyList(),
+            options =
+                PlanOptionsUi(
+                    includeSides = true,
+                    includeDesserts = true,
+                    allowOver = true,
+                    overCapPercent = 10,
+                    canReset = false,
+                ),
             groups = groups,
             itemCount = 5,
             price =
@@ -80,6 +76,7 @@ internal object BudgetPlanSamples {
                     taxLabel = "Restaurant tax (PB1 10%)",
                     tax = "Rp 13.600",
                     rounding = null,
+                    comboSavings = "Rp 14.000",
                     total = "Rp 149.600",
                 ),
         )
@@ -93,7 +90,7 @@ internal object BudgetPlanSamples {
             plan =
                 plan.copy(
                     title = PlanTitle.PERFECT_FIT,
-                    options = emptyList(),
+                    cards = emptyList(),
                     hero = HeroUi(PlanKind.EXACT, "Rp 99.000", "Rp 0"),
                     groups = groups.drop(1),
                     itemCount = 3,
@@ -106,7 +103,7 @@ internal object BudgetPlanSamples {
             plan =
                 plan.copy(
                     title = PlanTitle.YOUR_PLAN,
-                    options = emptyList(),
+                    cards = emptyList(),
                     hero = HeroUi(PlanKind.TOO_LOW, "Rp 116.600", "Rp 16.600"),
                     notes = listOf(PlanNote.TooLow),
                 ),

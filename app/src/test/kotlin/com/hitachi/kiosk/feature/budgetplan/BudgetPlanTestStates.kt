@@ -1,5 +1,6 @@
 package com.hitachi.kiosk.feature.budgetplan
 
+import androidx.lifecycle.SavedStateHandle
 import com.hitachi.kiosk.core.domain.cart.CartItem
 import com.hitachi.kiosk.core.domain.model.OrderType
 import com.hitachi.kiosk.core.domain.model.Rupiah
@@ -20,14 +21,27 @@ import kotlinx.coroutines.test.setMain
 internal object BudgetPlanTestStates {
     private const val BOARD_CART_COUNT = 4
 
-    fun build(vararg events: BudgetPlanEvent): BudgetPlanUiState {
+    /** Lines that leave room for 1 more, so a plan of 3 or more new lines cannot fit (`S_BudgetPas_cartFull`). */
+    private const val FULL_CART_LINES = 29
+
+    fun build(
+        vararg events: BudgetPlanEvent,
+        cartLines: Int = 1,
+    ): BudgetPlanUiState {
         val dispatcher = UnconfinedTestDispatcher()
         Dispatchers.setMain(dispatcher)
         try {
             val orders = DefaultOrderSessionHolder()
             val session = orders.chooseOrderType(OrderType.DINE_IN, "menu-118", "cfg-42")
-            session.add(CartItem.ProductItem("c1", emptyList()), BOARD_CART_COUNT, Rupiah(38_000), emptyList())
-            val vm = BudgetPlanViewModel(FakeCatalogRepository(), FakeSettingsRepository(), orders, dispatcher)
+            if (cartLines == 1) {
+                session.add(CartItem.ProductItem("c1", emptyList()), BOARD_CART_COUNT, Rupiah(38_000), emptyList())
+            } else {
+                repeat(cartLines) {
+                    session.add(CartItem.ProductItem("fill$it", emptyList()), 1, Rupiah(1_000), emptyList())
+                }
+            }
+            val handle = SavedStateHandle(mapOf("edit" to false))
+            val vm = BudgetPlanViewModel(handle, FakeCatalogRepository(), FakeSettingsRepository(), orders, dispatcher)
             events.forEach(vm::onEvent)
             return vm.state.value
         } finally {
@@ -35,7 +49,7 @@ internal object BudgetPlanTestStates {
         }
     }
 
-    /** Step 1 inputs: a chip, then the steppers. */
+    /** Step 1 inputs: a chip, then the steppers from the default 2 adults and 0 children. */
     private fun inputs(
         budget: Long,
         adults: Int,
@@ -43,14 +57,27 @@ internal object BudgetPlanTestStates {
     ): Array<BudgetPlanEvent> =
         (
             listOf(BudgetPlanEvent.PickBudget(budget)) +
-                List(adults - 1) { BudgetPlanEvent.IncreaseAdults } +
+                List(maxOf(adults - 2, 0)) { BudgetPlanEvent.IncreaseAdults } +
+                List(maxOf(2 - adults, 0)) { BudgetPlanEvent.DecreaseAdults } +
                 List(children) { BudgetPlanEvent.IncreaseChildren }
         ).toTypedArray()
 
-    /** The `default` scenario's step 1: Rp 150.000, 2 adults and 1 child. */
-    fun stepOne() = build(*inputs(150_000, 2, 1))
+    /** `S_BudgetPas_step1`: 2 adults, no budget. */
+    fun stepOneEmpty() = build()
 
-    /** The `default` scenario after "See plans": Just under Rp 149.600 and Just over Rp 150.700 (AC1). */
+    /** `S_BudgetPas_step1Budget`: Rp 150.000 for 2 adults. */
+    fun stepOne() = build(*inputs(150_000, 2, 0))
+
+    /** `S_BudgetPas_keypadMin`: the keypad with 500 typed. */
+    fun keypadMin() =
+        build(
+            BudgetPlanEvent.OpenKeypad,
+            BudgetPlanEvent.PressKey(KeypadKey.FIVE),
+            BudgetPlanEvent.PressKey(KeypadKey.ZERO),
+            BudgetPlanEvent.PressKey(KeypadKey.ZERO),
+        )
+
+    /** `S_BudgetPas_twoPlans`: 2 adults and 1 child at Rp 150.000 after "See plans" (AC1). */
     fun stepTwo(vararg more: BudgetPlanEvent) = build(*inputs(150_000, 2, 1), BudgetPlanEvent.SeePlans, *more)
 
     /** `S_BudgetPas_exact`: 1 adult and 1 child at Rp 99.000 (AC2). */
@@ -65,13 +92,25 @@ internal object BudgetPlanTestStates {
     /** `S_BudgetPas_group`: 8 adults and 4 children at Rp 200.000 (AC11). */
     fun group() = build(*inputs(200_000, 8, 4))
 
-    /** Step 2 with the Customize sheet open. */
-    fun customizeOpen() = stepTwo(BudgetPlanEvent.OpenCustomize)
+    /** `S_BudgetPas_detailsOpen`: Price details open and What's included closed. */
+    fun detailsOpen() = stepTwo(BudgetPlanEvent.ToggleIncluded, BudgetPlanEvent.TogglePriceDetails)
 
-    /** Step 2 with both rows open. */
-    fun expanded() = stepTwo(BudgetPlanEvent.ToggleIncluded, BudgetPlanEvent.TogglePriceDetails)
+    /** `S_BudgetPas_optionsOff`: no sides, no desserts, no over plan. */
+    fun optionsOff() =
+        stepTwo(
+            BudgetPlanEvent.SetIncludeSides(false),
+            BudgetPlanEvent.SetIncludeDesserts(false),
+            BudgetPlanEvent.SetAllowOver(false),
+        )
 
-    /** Step 2 after "Add plan to order". */
+    /** `S_BudgetPas_swapOpen`: the picker for Adult 1's meal. */
+    fun swapOpen() = stepTwo(BudgetPlanEvent.Swap(SwapTarget(0)))
+
+    /** `S_BudgetPas_cartFull`: the plan was refused. */
+    fun cartFull() =
+        build(*inputs(150_000, 2, 1), BudgetPlanEvent.SeePlans, BudgetPlanEvent.AddPlan, cartLines = FULL_CART_LINES)
+
+    /** `S_BudgetPas_added`: after "Add plan to order". */
     fun added() = stepTwo(BudgetPlanEvent.AddPlan)
 
     /** Step 1 with the keypad open and 123456 typed (TC-171). */
@@ -79,6 +118,7 @@ internal object BudgetPlanTestStates {
         build(
             *inputs(150_000, 2, 1),
             BudgetPlanEvent.OpenKeypad,
+            *Array(6) { BudgetPlanEvent.PressKey(KeypadKey.DELETE) },
             *listOf(KeypadKey.ONE, KeypadKey.TWO, KeypadKey.THREE, KeypadKey.FOUR, KeypadKey.FIVE, KeypadKey.SIX)
                 .map { BudgetPlanEvent.PressKey(it) }
                 .toTypedArray(),

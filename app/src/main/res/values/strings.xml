@@ -6,7 +6,6 @@
     <string name="placeholder_caption">Placeholder screen</string>
     <string name="placeholder_developer_mark">Brand mark</string>
     <string name="screen_checkout">Checkout</string>
-    <string name="screen_complete">Transaction complete</string>
     <string name="screen_staff_pin">Staff PIN</string>
     <string name="screen_settings_home">Settings</string>
     <string name="screen_settings_printer">Receipt printer</string>
@@ -130,8 +129,10 @@
         <item quantity="one">%d item</item>
         <item quantity="other">%d items</item>
     </plurals>
-    <string name="menu_budget_title">Plan by budget</string>
-    <string name="menu_budget_body">Set a budget and group size — we plan the meal</string>
+    <string name="menu_budget_title">Eating with a group?</string>
+    <string name="menu_budget_description">Plan by budget</string>
+    <string name="menu_budget_pill">Plan by budget</string>
+    <string name="menu_budget_body">Tell us your budget and we pick the meal</string>
     <string name="menu_badge_new">New</string>
     <string name="menu_badge_best_seller">Best seller</string>
     <string name="menu_badge_spicy">Spicy</string>
@@ -273,42 +274,21 @@
     <string name="checkout_reconnecting">Reconnecting…</string>
     <!-- end SCR-11 -->
 
-    <!-- SCR-09 Upsell (Upsell.dc.html, FR-014) -->
-    <string name="upsell_eyebrow">Before you pay</string>
-    <string name="upsell_title">Anything on the side?</string>
-    <string name="upsell_subtitle">A side or something sweet goes well with your order.</string>
-    <string name="upsell_title_none">You’re all set</string>
-    <string name="upsell_subtitle_none">Nothing else to suggest with this order.</string>
-    <string name="upsell_order_type_dine_in">Dine in</string>
-    <string name="upsell_order_type_takeaway">Takeaway</string>
-    <string name="upsell_back_to_menu">Menu</string>
-    <string name="upsell_strip_description">Your order so far</string>
-    <string name="upsell_your_order">Your order</string>
-    <plurals name="upsell_item_count">
-        <item quantity="one">%1$d item</item>
-        <item quantity="other">%1$d items</item>
-    </plurals>
-    <string name="upsell_kind_main">Main</string>
-    <string name="upsell_kind_side">Side</string>
-    <string name="upsell_kind_drink">Drink</string>
-    <string name="upsell_kind_dessert">Dessert</string>
-    <plurals name="upsell_kcal">
-        <item quantity="one">%1$d kcal</item>
-        <item quantity="other">%1$d kcal</item>
-    </plurals>
-    <string name="upsell_note">%1$s · %2$s</string>
-    <plurals name="upsell_added_count">
-        <item quantity="one">%1$d added</item>
-        <item quantity="other">%1$d added</item>
-    </plurals>
-    <string name="upsell_add_description">Add %1$s</string>
-    <string name="upsell_empty_title">Nothing more to suggest</string>
-    <string name="upsell_empty_body">Your order already has everything it needs. Review it and pay when you’re ready.</string>
-    <string name="upsell_no_thanks">No thanks</string>
-    <string name="upsell_continue">Continue</string>
-    <string name="upsell_review_order">Review order</string>
-    <string name="upsell_cta_description">%1$s, %2$s</string>
-    <!-- end SCR-09 -->
+    <!-- SCR-12 Complete (Complete.dc.html, S_Complete_takeaway, FR-020). Printing is not part of 0.6.0, so the dine-in
+         line is the print-failed wording of A-19 (it does not promise a receipt); the PO confirms the copy. -->
+    <string name="complete_success">Payment successful</string>
+    <string name="complete_thanks">Thank you!</string>
+    <string name="complete_paid_with">%1$s paid with %2$s</string>
+    <string name="complete_paid">%1$s paid</string>
+    <string name="complete_method_qris">QRIS</string>
+    <string name="complete_method_card">Card</string>
+    <string name="complete_order_number_label">Your order number</string>
+    <string name="complete_info_dine_in">Dine in · Take your receipt and watch the screen. We’ll call your number when your tray is ready.</string>
+    <string name="complete_info_takeaway">Takeaway · Pick up at the counter when your number is called.</string>
+    <string name="complete_info_neutral">Remember your number and watch the screen. We’ll call it when your order is ready.</string>
+    <string name="complete_countdown">Back to the start in %1$ds</string>
+    <string name="complete_done">Done</string>
+    <!-- end SCR-12 -->
 
     <!-- SCR-10 Your order (Payment.dc.html, FR-012, FR-013, FR-015) -->
     <string name="your_order_add_more">Add more</string>
@@ -327,6 +307,9 @@
         <item quantity="one">%d child</item>
         <item quantity="other">%d children</item>
     </plurals>
+    <string name="your_order_plan_edit">Edit plan</string>
+    <string name="your_order_plan_added">Plan added</string>
+    <string name="your_order_empty_plan">Plan by budget</string>
     <string name="your_order_plan_separator">" · "</string>
     <string name="your_order_empty_title">Your tray is empty</string>
     <string name="your_order_empty_body">Add something tasty to get started.</string>
@@ -348,6 +331,20 @@
     <string name="your_order_decrement_description">Remove one %1$s</string>
     <string name="your_order_increment_description">Add one %1$s</string>
     <string name="your_order_total">Total</string>
+<!-- Goes well with your order (Payment.dc.html suggestion strip, FR-014) -->
+<string name="your_order_suggestions_title">Goes well with your order</string>
+<string name="your_order_suggestions_budget">Fits your budget</string>
+<string name="your_order_suggestion_kind_main">Main</string>
+<string name="your_order_suggestion_kind_side">Side</string>
+<string name="your_order_suggestion_kind_drink">Drink</string>
+<string name="your_order_suggestion_kind_dessert">Dessert</string>
+<string name="your_order_suggestion_kind_upgrade">Upgrade</string>
+<string name="your_order_suggestion_price_plus">+%1$s</string>
+<string name="your_order_suggestion_add">Add</string>
+<string name="your_order_suggestion_add_description">Add %1$s</string>
+<string name="your_order_suggestion_quantity_description">Quantity for %1$s</string>
+<string name="your_order_suggestion_decrement_description">Remove one %1$s</string>
+<string name="your_order_suggestion_increment_description">Add one more %1$s</string>
     <string name="your_order_details">Details</string>
     <string name="your_order_details_description">Show price details</string>
     <string name="your_order_subtotal">Subtotal</string>
@@ -419,43 +416,34 @@
     <string name="budget_plan_reduce_group">Reduce group</string>
     <string name="budget_plan_add">Add plan to order</string>
     <string name="budget_plan_added">Added to order</string>
-    <string name="budget_plan_options">Plan options</string>
-    <string name="budget_plan_just_under">Just under</string>
-    <string name="budget_plan_just_over">Just over</string>
     <string name="budget_plan_tag_exact">Exact match</string>
     <string name="budget_plan_hero_exact">Right on your budget</string>
     <string name="budget_plan_badge_exact">Perfect fit! %1$s · Rp 0 left</string>
-    <string name="budget_plan_tag_under">Best fit</string>
-    <string name="budget_plan_hero_under">Just under budget</string>
+    <string name="budget_plan_tag_under">Within your budget</string>
+    <string name="budget_plan_hero_under">Best fit for your table</string>
     <string name="budget_plan_badge_under">%1$s left</string>
-    <string name="budget_plan_tag_over">Slightly above budget</string>
-    <string name="budget_plan_hero_over">Just over budget</string>
+    <string name="budget_plan_tag_over">A little extra</string>
+    <string name="budget_plan_hero_over">Slightly above your budget</string>
     <string name="budget_plan_badge_over">+%1$s over</string>
     <string name="budget_plan_tag_too_low">Need %1$s more</string>
     <string name="budget_plan_hero_too_low">Closest complete plan</string>
     <string name="budget_plan_badge_too_low">%1$s more needed</string>
     <string name="budget_plan_tag_generous">More than enough</string>
-    <string name="budget_plan_hero_generous">Everyone eats well</string>
-    <string name="budget_plan_badge_generous">Your budget covers more than enough</string>
+    <string name="budget_plan_hero_generous">Our menu tops out at %1$s for your group, which is under your budget.</string>
+    <string name="budget_plan_badge_generous">%1$s under your budget</string>
     <string name="budget_plan_meta">%1$s · %2$s · tax included</string>
     <string name="budget_plan_note_too_low">This is the lowest-priced complete meal for your group. Raise the budget or adjust the group.</string>
     <string name="budget_plan_note_generous">This is our most generous plan for your group, and it still fits.</string>
-    <string name="budget_plan_note_no_over">No plan fits within %1$d%% over your budget, so only the under-budget plan is shown.</string>
-    <string name="budget_plan_note_strict">Strict budget: only plans at or under your budget are shown.</string>
+    <string name="budget_plan_note_no_over">No plan fits within %1$d%% over your budget, so only the plan within your budget is shown.</string>
     <string name="budget_plan_note_kids_menu">Kids\' menu not available</string>
     <string name="budget_plan_whats_included">What\'s included</string>
     <string name="budget_plan_price_details">Price details</string>
     <string name="budget_plan_group_adult">Adult %1$d</string>
     <string name="budget_plan_group_child">Child %1$d</string>
-    <string name="budget_plan_group_sharing">Adult %1$d &amp; %2$d · sharing</string>
-    <string name="budget_plan_group_shared">Shared</string>
-    <string name="budget_plan_meta_main">Main</string>
-    <string name="budget_plan_meta_kid_main">Main · kid-friendly</string>
-    <string name="budget_plan_meta_drink">Drink</string>
+    <string name="budget_plan_group_sharing">Adults %1$d &amp; %2$d · sharing</string>
+    <string name="budget_plan_group_shared">For the table</string>
     <string name="budget_plan_meta_meal">Meal</string>
-    <string name="budget_plan_meta_meal_includes">Meal · %1$s</string>
     <string name="budget_plan_meta_meal_for_two">Meal for two</string>
-    <string name="budget_plan_meta_meal_for_two_includes">Meal for two · %1$s</string>
     <string name="budget_plan_meta_side">Side</string>
     <string name="budget_plan_meta_dessert">Dessert</string>
     <string name="budget_plan_subtotal">Subtotal</string>
@@ -465,23 +453,7 @@
     <string name="budget_plan_tax">Tax</string>
     <string name="budget_plan_rounding">Rounding</string>
     <string name="budget_plan_total">Total</string>
-    <string name="budget_plan_customize">Customize</string>
-    <string name="budget_plan_customize_hint">Swap items · sides · tolerance</string>
-    <string name="budget_plan_sheet_title">Customize your plan</string>
-    <string name="budget_plan_sheet_summary">%1$s · %2$s</string>
     <string name="budget_plan_close">Close</string>
-    <string name="budget_plan_include_sides">Include sides</string>
-    <string name="budget_plan_include_sides_hint">Fries, nuggets, wings</string>
-    <string name="budget_plan_include_desserts">Include desserts</string>
-    <string name="budget_plan_include_desserts_hint">Sundaes, soft serve</string>
-    <string name="budget_plan_over_budget">Over budget</string>
-    <string name="budget_plan_over_budget_hint">Allow a plan slightly above your budget</string>
-    <string name="budget_plan_tolerance">Over budget tolerance</string>
-    <string name="budget_plan_strict">Strict</string>
-    <string name="budget_plan_up_to_cap">Up to +%1$d%%</string>
-    <string name="budget_plan_swap_items">Swap items</string>
-    <string name="budget_plan_swap_hint">Sides and desserts rebalance automatically to land as close to your budget as possible.</string>
-    <string name="budget_plan_item_meta_price">%1$s · %2$s</string>
     <string name="budget_plan_swap">Swap</string>
     <string name="budget_plan_swap_description">Swap %1$s</string>
     <string name="budget_plan_reset">Reset to suggested</string>
@@ -492,5 +464,34 @@
     <string name="budget_plan_keypad_close">Close keypad</string>
     <string name="budget_plan_keypad_cancel">Cancel</string>
     <string name="budget_plan_keypad_use">Use this budget</string>
+    <string name="budget_plan_per_person">About %1$s per person</string>
+    <string name="budget_plan_dock_choose">Choose a budget to continue</string>
+    <string name="budget_plan_keypad_min">Minimum Rp 1.000</string>
+    <string name="budget_plan_review_order">Review order</string>
+    <string name="budget_plan_cart_full">Your order has too many items to add this plan</string>
+    <string name="budget_plan_plans">Plans</string>
+    <string name="budget_plan_card_under">Within your budget</string>
+    <string name="budget_plan_card_over">A little extra</string>
+    <string name="budget_plan_note_over_off">A second plan is hidden while \"Allow a little over budget\" is off.</string>
+    <string name="budget_plan_opt_sides">Add sides</string>
+    <string name="budget_plan_opt_desserts">Add desserts</string>
+    <string name="budget_plan_over_title">Allow a little over budget</string>
+    <string name="budget_plan_over_hint">Shows a second plan up to %1$d%% over</string>
+    <string name="budget_plan_group_child_kid">Child %1$d · kid-friendly</string>
+    <string name="budget_plan_meta_main_drink">Main + drink</string>
+    <string name="budget_plan_combo_savings">Combo savings (already included)</string>
+    <string name="budget_plan_swap_title_adult">Swap Adult %1$d\'s meal</string>
+    <string name="budget_plan_swap_title_child">Swap Child %1$d\'s meal</string>
+    <string name="budget_plan_swap_title_shared">Swap shared meal for 2</string>
+    <string name="budget_plan_swap_title_side">Swap shared side</string>
+    <string name="budget_plan_swap_title_dessert">Swap shared dessert</string>
+    <string name="budget_plan_swap_plan_total">Plan total %1$s</string>
+    <string name="budget_plan_swap_current">Current</string>
+    <string name="budget_plan_swap_same_price">Same price</string>
+    <string name="budget_plan_swap_up">+%1$s</string>
+    <string name="budget_plan_swap_down">-%1$s</string>
+    <string name="budget_plan_swap_row_total">Total %1$s</string>
+    <string name="budget_plan_swap_separate">Two separate meals</string>
+    <string name="budget_plan_swap_separate_meta">%1$s, twice</string>
     <!-- end SCR-19 -->
 </resources>

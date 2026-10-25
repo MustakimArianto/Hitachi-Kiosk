@@ -14,12 +14,16 @@ import com.hitachi.kiosk.core.domain.model.PaymentMethod
 fun YourOrderRoute(
     onBackToMenu: () -> Unit,
     onPay: (PaymentMethod) -> Unit,
+    onOpenBudgetPlan: () -> Unit,
+    onEditPlan: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: YourOrderViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val backToMenu by rememberUpdatedState(onBackToMenu)
     val pay by rememberUpdatedState(onPay)
+    val openBudgetPlan by rememberUpdatedState(onOpenBudgetPlan)
+    val editPlan by rememberUpdatedState(onEditPlan)
     LaunchedEffect(viewModel) {
         // Back from Checkout the composition starts again, so Pay can navigate once more (TC-069).
         viewModel.onEvent(YourOrderEvent.Shown)
@@ -27,6 +31,8 @@ fun YourOrderRoute(
             when (effect) {
                 YourOrderEffect.BackToMenu -> backToMenu()
                 is YourOrderEffect.Pay -> pay(effect.method)
+                YourOrderEffect.OpenBudgetPlan -> openBudgetPlan()
+                YourOrderEffect.EditPlan -> editPlan()
             }
         }
     }

@@ -51,6 +51,7 @@ import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.em
@@ -72,6 +73,7 @@ import com.hitachi.kiosk.core.designsystem.motion.motionSpec
 import com.hitachi.kiosk.core.designsystem.motion.pressScale
 import com.hitachi.kiosk.core.designsystem.motion.riseIn
 import com.hitachi.kiosk.core.designsystem.theme.KioskTheme
+import com.hitachi.kiosk.core.designsystem.theme.kioskShadow
 import com.hitachi.kiosk.core.designsystem.unit.DesignFrame
 import com.hitachi.kiosk.core.designsystem.unit.dpx
 import com.hitachi.kiosk.core.designsystem.unit.spx
@@ -91,6 +93,11 @@ const val YOUR_ORDER_BACK_TO_MENU_TAG = "your-order-back-to-menu"
 
 /** Test tag of the banner's button ("Review" or "Remove it"). */
 const val YOUR_ORDER_BANNER_ACTION_TAG = "your-order-banner-action"
+
+/** Test tags of "Edit plan", the empty tray's "Plan by budget" and the "Plan added" confirmation. */
+const val YOUR_ORDER_EDIT_PLAN_TAG = "your-order-edit-plan"
+const val YOUR_ORDER_EMPTY_PLAN_TAG = "your-order-empty-plan"
+const val YOUR_ORDER_PLAN_ADDED_TAG = "your-order-plan-added"
 
 /** Test tag of the Budget Plan tag row. */
 const val YOUR_ORDER_PLAN_TAG = "your-order-plan"
@@ -124,9 +131,10 @@ private const val BANNER_LINE_HEIGHT_EM = 1.2f
 
 /**
  * SCR-10 Your order (`Payment.dc.html` and `S_Payment_priceChanged`, `S_Payment_itemUnavailable`,
- * `S_Payment_offline`, `S_Payment_noMethods`, `S_Payment_emptyTray`, `S_Payment_promoNudge`; FR-012, FR-013, FR-015;
- * DEV-037, DEV-037a, DEV-038). Draws [state] exactly: header, step label and title, the scrolling list (Budget Plan
- * row, the one banner, the lines or the empty tray) with its fade, and the summary panel.
+ * `S_Payment_offline`, `S_Payment_noMethods`, `S_Payment_emptyTray`, `S_Payment_promoNudge`,
+ * `S_Payment_upsell*`; FR-012, FR-013, FR-014, FR-015; DEV-037, DEV-037a, DEV-038, DEV-106). Draws [state] exactly:
+ * header, step label and title, the scrolling list (Budget Plan row, the one banner, the lines and the "Goes well with
+ * your order" strip, or the empty tray) with its fade, and the summary panel.
  */
 @Composable
 fun YourOrderScreen(
@@ -156,6 +164,9 @@ fun YourOrderScreen(
                     modifier = Modifier.padding(start = 72.dpx, end = 72.dpx, bottom = 48.dpx),
                 )
             }
+        }
+        if (state.showPlanAdded) {
+            PlanAddedToast(Modifier.align(Alignment.TopCenter).padding(top = 48.dpx))
         }
         if (state.showMaxToast) {
             KioskToast(
@@ -306,14 +317,21 @@ private fun OrderList(
                 .verticalScroll(rememberScrollState())
                 .padding(start = 72.dpx, end = 72.dpx, bottom = 24.dpx),
     ) {
-        state.planTag?.let { PlanRow(it, Modifier.padding(bottom = 24.dpx)) }
+        state.planTag?.let {
+            PlanRow(it, onEdit = { onEvent(YourOrderEvent.EditPlan) }, modifier = Modifier.padding(bottom = 24.dpx))
+        }
         state.banner?.let { OrderBanner(it, onEvent, Modifier.padding(bottom = 24.dpx)) }
         if (state.empty) {
-            EmptyTray(onBackToMenu = { onEvent(YourOrderEvent.BackToMenu) })
+            EmptyTray(
+                planEntry = state.planEntry,
+                onBackToMenu = { onEvent(YourOrderEvent.BackToMenu) },
+                onPlan = { onEvent(YourOrderEvent.OpenBudgetPlan) },
+            )
         } else {
             state.lines.forEachIndexed { index, line ->
                 key(line.lineId) { OrderLineRow(line = line, index = index, onEvent = onEvent) }
             }
+            state.suggestions?.let { SuggestionStrip(it, onEvent) }
         }
     }
 }
@@ -340,6 +358,7 @@ private fun Modifier.fadeBottom(height: Dp): Modifier =
 @Composable
 private fun PlanRow(
     plan: PlanTagUi,
+    onEdit: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val colors = KioskTheme.colors
@@ -360,25 +379,50 @@ private fun PlanRow(
                 .fillMaxWidth()
                 .heightIn(min = 96.dpx)
                 .background(colors.surfaceAlt, KioskTheme.shapes.large)
-                .padding(horizontal = 32.dpx)
-                .semantics(mergeDescendants = true) {}
+                .padding(start = 32.dpx)
                 .testTag(YOUR_ORDER_PLAN_TAG),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(16.dpx),
+        horizontalArrangement = Arrangement.spacedBy(20.dpx),
     ) {
-        Box(Modifier.size(16.dpx).background(colors.accent, CircleShape))
-        KioskText(
-            text = stringResource(R.string.your_order_plan_title),
-            style = KioskTheme.typography.meta.copy(fontSize = 28.spx, fontWeight = FontWeight.W700),
-            maxLines = 1,
-            modifier = Modifier.weight(1f),
-        )
-        KioskText(
-            text = people.joinToString(separator),
-            style = KioskTheme.typography.meta,
-            color = colors.muted,
-            maxLines = 1,
-        )
+        Row(
+            modifier = Modifier.weight(1f).semantics(mergeDescendants = true) {},
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(16.dpx),
+        ) {
+            Box(Modifier.size(16.dpx).background(colors.accent, CircleShape))
+            KioskText(
+                text = stringResource(R.string.your_order_plan_title),
+                style = KioskTheme.typography.meta.copy(fontSize = 28.spx, fontWeight = FontWeight.W700),
+                maxLines = 1,
+            )
+            KioskText(
+                text = people.joinToString(separator),
+                style = KioskTheme.typography.meta,
+                color = colors.muted,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f, fill = false),
+            )
+        }
+        val editLabel = stringResource(R.string.your_order_plan_edit)
+        val interactionSource = remember { MutableInteractionSource() }
+        val scale = animatePressScale(interactionSource)
+        Box(
+            modifier =
+                Modifier
+                    .height(96.dpx)
+                    .pressScale(scale)
+                    .orderButton(editLabel, YOUR_ORDER_EDIT_PLAN_TAG, interactionSource, onClick = onEdit)
+                    .padding(horizontal = 36.dpx),
+            contentAlignment = Alignment.Center,
+        ) {
+            KioskText(
+                text = editLabel,
+                style = KioskTheme.typography.meta.copy(fontSize = 28.spx, fontWeight = FontWeight.W700),
+                color = colors.accent,
+                maxLines = 1,
+            )
+        }
     }
 }
 
@@ -583,7 +627,11 @@ private fun BannerButton(
 
 /** "Your tray is empty" / "Add something tasty to get started." / "Back to menu" (`S_Payment_emptyTray`). */
 @Composable
-private fun EmptyTray(onBackToMenu: () -> Unit) {
+private fun EmptyTray(
+    planEntry: Boolean,
+    onBackToMenu: () -> Unit,
+    onPlan: () -> Unit,
+) {
     val colors = KioskTheme.colors
     val entrance = animateEntrance(BLOCK_UP_MILLIS)
     Column(
@@ -628,6 +676,64 @@ private fun EmptyTray(onBackToMenu: () -> Unit) {
                 maxLines = 1,
             )
         }
+        if (planEntry) {
+            val planLabel = stringResource(R.string.your_order_empty_plan)
+            val planSource = remember { MutableInteractionSource() }
+            val planScale = animatePressScale(planSource)
+            Row(
+                modifier =
+                    Modifier
+                        .height(96.dpx)
+                        .pressScale(planScale)
+                        .background(colors.surface, KioskTheme.shapes.pill)
+                        .border(2.dpx, colors.line, KioskTheme.shapes.pill)
+                        .orderButton(planLabel, YOUR_ORDER_EMPTY_PLAN_TAG, planSource, onClick = onPlan)
+                        .padding(start = 32.dpx, end = 40.dpx),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(14.dpx),
+            ) {
+                KioskIcon(icon = KioskIcons.People, tint = colors.ink, modifier = Modifier.size(40.dpx))
+                KioskText(
+                    text = planLabel,
+                    style = KioskTheme.typography.body.copy(fontWeight = FontWeight.W600),
+                    maxLines = 1,
+                )
+            }
+        }
+    }
+}
+
+/** The green "Plan added" pill at the top (`S_Payment_planAdded`, DEV-112). */
+@Composable
+private fun PlanAddedToast(modifier: Modifier = Modifier) {
+    val colors = KioskTheme.colors
+    val entrance = animateEntrance(BLOCK_UP_MILLIS)
+    val text = stringResource(R.string.your_order_plan_added)
+    Row(
+        modifier =
+            modifier
+                .fadeUp(entrance, KioskMotion.Common.UP_DISTANCE_PX.dpx)
+                .height(96.dpx)
+                .kioskShadow(KioskTheme.shapes.pill, KioskTheme.elevation.raised)
+                .background(colors.success, KioskTheme.shapes.pill)
+                .padding(start = 24.dpx, end = 44.dpx)
+                .semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite }
+                .testTag(YOUR_ORDER_PLAN_ADDED_TAG),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(20.dpx),
+    ) {
+        Box(
+            modifier = Modifier.size(56.dpx).background(colors.surface.copy(alpha = 0.2f), CircleShape),
+            contentAlignment = Alignment.Center,
+        ) {
+            KioskIcon(icon = KioskIcons.CheckBold, tint = colors.surface, modifier = Modifier.size(32.dpx))
+        }
+        KioskText(
+            text = text,
+            style = KioskTheme.typography.body.copy(fontSize = 32.spx, fontWeight = FontWeight.W700),
+            color = colors.surface,
+            maxLines = 1,
+        )
     }
 }
 

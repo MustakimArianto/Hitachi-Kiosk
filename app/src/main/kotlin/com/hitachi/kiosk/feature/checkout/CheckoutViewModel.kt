@@ -167,7 +167,10 @@ class CheckoutViewModel
                 }
             }
 
-        /** Remembers the order total and hands a paid payment over to Complete (A-15). */
+        /**
+         * Remembers the order total and leaves for Complete once the payment is paid (A-15). The machine stays in
+         * [PaymentUiState.Paid]: the Complete screen takes the paid details and acknowledges it itself (DEV-060).
+         */
         private suspend fun watchMachine() {
             machine.state.collect { payment ->
                 when (payment) {
@@ -182,9 +185,6 @@ class CheckoutViewModel
             if (!paidHandled.compareAndSet(false, true)) return
             finished = true
             effects.trySend(CheckoutEffect.ToComplete)
-            // The Complete placeholder of 0.5.0 cannot hand the payment over; the real Complete screen (0.6.0) takes
-            // the paid details first and acknowledges itself. The call runs in the application scope.
-            viewModelScope.launch { machine.acknowledgePaid() }
         }
 
         // Entry ---------------------------------------------------------------------------------------------------

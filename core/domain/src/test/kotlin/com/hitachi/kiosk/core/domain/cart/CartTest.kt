@@ -147,4 +147,51 @@ class CartTest {
 
         assertThat(cart.lines.single().lineId).isEqualTo("l2")
     }
+
+    @Test
+    fun `switchOne changes a single unit in place and keeps its position (DEV-114)`() {
+        val cart =
+            Cart()
+                .added(c1)
+                .cart
+                .added(d1, price = 16_000)
+                .cart
+
+        val result =
+            cart.switchOne("l1", c1.copy(selections = listOf(Selection("g", "o"))), Rupiah(50_000), emptyList())
+                as CartAddResult.Added
+
+        assertThat(result.cart.lines.map { it.lineId }).containsExactly("l1", "l2").inOrder()
+        assertThat(result.cart.line("l1")?.unitPrice).isEqualTo(Rupiah(50_000))
+        assertThat(result.merged).isFalse()
+    }
+
+    @Test
+    fun `switchOne splits one unit off a bigger line or merges into an identical one`() {
+        val meal = c1.copy(selections = listOf(Selection("g", "o")))
+        val cart = Cart().added(c1, quantity = 2).cart
+
+        val split = cart.switchOne("l1", meal, Rupiah(50_000), emptyList()) as CartAddResult.Added
+        assertThat(split.cart.lines.map { it.item to it.quantity }).containsExactly(c1 to 1, meal to 1).inOrder()
+
+        val merged = split.cart.switchOne("l1", meal, Rupiah(50_000), emptyList()) as CartAddResult.Added
+        assertThat(merged.cart.lines.map { it.item to it.quantity }).containsExactly(meal to 2)
+        assertThat(merged.merged).isTrue()
+    }
+
+    @Test
+    fun `switchOne ignores an unknown line or an unchanged item and obeys the limits`() {
+        val cart = Cart().added(c1).cart
+
+        assertThat(cart.switchOne("nope", d1, Rupiah(1), emptyList())).isNull()
+        assertThat(cart.switchOne("l1", c1, Rupiah(1), emptyList())).isNull()
+
+        val full =
+            (1..Cart.MAX_LINES).fold(Cart()) { acc, i ->
+                acc.added(CartItem.ProductItem("p$i", emptyList())).cart
+            }
+        val two = full.added(CartItem.ProductItem("p1", emptyList())).cart
+        assertThat(two.switchOne("l1", d1, Rupiah(1), emptyList()))
+            .isEqualTo(CartAddResult.LimitReached(CartLimit.MAX_LINES))
+    }
 }

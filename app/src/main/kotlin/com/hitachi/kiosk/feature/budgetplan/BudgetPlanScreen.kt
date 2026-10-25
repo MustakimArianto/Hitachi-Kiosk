@@ -28,7 +28,9 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
@@ -65,6 +67,11 @@ const val BUDGET_PLAN_CART_TAG = "budget-plan-cart"
 
 /** Test tag of the dock button: "See plans", "Reduce group", "Add plan to order" or "Added to order". */
 const val BUDGET_PLAN_CTA_TAG = "budget-plan-cta"
+
+/** Test tag of the "too many items" message. */
+const val BUDGET_PLAN_CART_FULL_TAG = "budget-plan-cart-full"
+
+private const val CART_FULL_MILLIS = 600
 
 /** Test tag of the dock's summary and total. */
 const val BUDGET_PLAN_DOCK_SUMMARY_TAG = "budget-plan-dock-summary"
@@ -142,10 +149,9 @@ fun BudgetPlanScreen(
         }
         Header(state, onEvent)
         BottomFade(Modifier.align(Alignment.BottomCenter))
+        if (state.cartFull) CartFullAlert(Modifier.align(Alignment.BottomCenter))
         Dock(state, onEvent, Modifier.align(Alignment.BottomCenter))
-        state.customize?.let { customize ->
-            state.plan?.let { plan -> CustomizeSheet(customize, plan, onEvent) }
-        }
+        state.swap?.let { SwapSheet(it, onEvent) }
         state.keypad?.let { KeypadSheet(it, onEvent) }
     }
 }
@@ -247,7 +253,7 @@ private fun BottomFade(modifier: Modifier = Modifier) {
 }
 
 /** What the dock shows: the summary line, the amount and the button. */
-private enum class DockCta { SEE_PLANS, REDUCE_GROUP, ADD, ADDED }
+private enum class DockCta { SEE_PLANS, REDUCE_GROUP, ADD, ADDED, REVIEW_ORDER }
 
 @Composable
 private fun Dock(
@@ -267,10 +273,10 @@ private fun Dock(
             }
 
             DockCta.SEE_PLANS -> {
-                state.budget
+                if (state.hasBudget) state.budget else stringResource(R.string.budget_plan_dock_choose)
             }
 
-            DockCta.ADD, DockCta.ADDED -> {
+            DockCta.ADD, DockCta.ADDED, DockCta.REVIEW_ORDER -> {
                 state.plan
                     ?.hero
                     ?.total
@@ -305,7 +311,7 @@ private fun Dock(
                 text = total,
                 style =
                     KioskTheme.typography.section.copy(
-                        fontSize = 44.spx,
+                        fontSize = if (cta == DockCta.SEE_PLANS && !state.hasBudget) 30.spx else 44.spx,
                         letterSpacing = DOCK_TOTAL_TRACKING_EM.em,
                         lineHeight = (56f / 44f).em,
                     ),
@@ -319,10 +325,16 @@ private fun Dock(
                 when (cta) {
                     DockCta.SEE_PLANS -> state.canSeePlans
                     DockCta.REDUCE_GROUP -> false
-                    DockCta.ADD, DockCta.ADDED -> true
+                    DockCta.ADD, DockCta.ADDED, DockCta.REVIEW_ORDER -> true
                 },
             onClick = {
-                onEvent(if (cta == DockCta.SEE_PLANS) BudgetPlanEvent.SeePlans else BudgetPlanEvent.AddPlan)
+                onEvent(
+                    when (cta) {
+                        DockCta.SEE_PLANS -> BudgetPlanEvent.SeePlans
+                        DockCta.REVIEW_ORDER -> BudgetPlanEvent.ViewOrder
+                        else -> BudgetPlanEvent.AddPlan
+                    },
+                )
             },
         )
     }
@@ -333,6 +345,7 @@ private fun dockCta(state: BudgetPlanUiState): DockCta =
         state.groupTooLarge -> DockCta.REDUCE_GROUP
         state.step == BudgetPlanStep.TABLE || state.plan == null -> DockCta.SEE_PLANS
         state.added -> DockCta.ADDED
+        state.cartFull -> DockCta.REVIEW_ORDER
         else -> DockCta.ADD
     }
 
@@ -350,7 +363,7 @@ private fun dockSummary(
         }
 
         cta == DockCta.SEE_PLANS || plan == null -> {
-            stringResource(R.string.budget_plan_dock_budget, people)
+            if (state.hasBudget) stringResource(R.string.budget_plan_dock_budget, people) else people
         }
 
         else -> {
@@ -406,6 +419,7 @@ private fun DockButton(
                             DockCta.REDUCE_GROUP -> R.string.budget_plan_reduce_group
                             DockCta.ADD -> R.string.budget_plan_add
                             DockCta.ADDED -> R.string.budget_plan_added
+                            DockCta.REVIEW_ORDER -> R.string.budget_plan_review_order
                         },
                     ),
                 style = KioskTheme.typography.button,
@@ -455,6 +469,35 @@ private fun AddedCheck() {
                 rotationZ = CHECK_START_ROTATION * (1f - p)
             },
     )
+}
+
+/** "Your order has too many items to add this plan" above the dock (`S_BudgetPas_cartFull`, FR-032 AC15). */
+@Composable
+private fun CartFullAlert(modifier: Modifier = Modifier) {
+    val colors = KioskTheme.colors
+    val shape = RoundedCornerShape(36.dpx)
+    val enter = animateEntrance(CART_FULL_MILLIS)
+    Row(
+        modifier =
+            modifier
+                .padding(start = 72.dpx, end = 72.dpx, bottom = 240.dpx)
+                .fadeUp(enter, UP_DISTANCE.dpx)
+                .fillMaxWidth()
+                .background(colors.shortBg, shape)
+                .border(2.dpx, colors.shortBorder, shape)
+                .padding(horizontal = 36.dpx, vertical = 28.dpx)
+                .semantics { liveRegion = LiveRegionMode.Assertive }
+                .testTag(BUDGET_PLAN_CART_FULL_TAG),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(24.dpx),
+    ) {
+        KioskIcon(icon = KioskIcons.AlertCircle, tint = colors.shortText, modifier = Modifier.size(48.dpx))
+        KioskText(
+            text = stringResource(R.string.budget_plan_cart_full),
+            style = KioskTheme.typography.body.copy(fontWeight = FontWeight.W600),
+            color = colors.shortInk,
+        )
+    }
 }
 
 @Composable

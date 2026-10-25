@@ -75,6 +75,7 @@ class MenuScreenTest {
         composeRule.onNodeWithTag(menuCategoryPillTag("cat_chicken")).performClick()
         composeRule.onNodeWithTag(MENU_MEALS_PILL_TAG).performClick()
         composeRule.onNodeWithTag(MENU_BUDGET_PLAN_TAG).assertContentDescriptionEquals("Plan by budget").performClick()
+        composeRule.onNodeWithTag(MENU_BUDGET_PILL_TAG).assertContentDescriptionEquals("Plan by budget").performClick()
         composeRule.onNodeWithTag(MENU_VIEW_ORDER_TAG).performClick()
 
         assertThat(events)
@@ -84,8 +85,33 @@ class MenuScreenTest {
                 MenuEvent.Select(MenuSelection.Category("cat_chicken")),
                 MenuEvent.OpenCombos,
                 MenuEvent.OpenBudgetPlan,
+                MenuEvent.OpenBudgetPlan,
                 MenuEvent.ViewOrder,
             ).inOrder()
+    }
+
+    @Test
+    fun `the header pill shows on every tab and the slim row only on Popular (TC-202)`() {
+        show(MenuTestStates.DrinksTab)
+
+        composeRule.onNodeWithTag(MENU_BUDGET_PILL_TAG).assertExists()
+        composeRule.onNodeWithTag(MENU_BUDGET_PLAN_TAG).assertDoesNotExist()
+    }
+
+    @Test
+    fun `with the planner off neither the pill nor the row shows (AC7)`() {
+        show(MenuTestStates.PlanOff)
+
+        composeRule.onNodeWithTag(MENU_BUDGET_PILL_TAG).assertDoesNotExist()
+        composeRule.onNodeWithTag(MENU_BUDGET_PLAN_TAG).assertDoesNotExist()
+    }
+
+    @Test
+    fun `the entry row carries the new copy (D-35)`() {
+        show(MenuTestStates.Default)
+
+        composeRule.onNodeWithText("Eating with a group?", useUnmergedTree = true).assertExists()
+        composeRule.onNodeWithText("Tell us your budget and we pick the meal", useUnmergedTree = true).assertExists()
     }
 
     @Test

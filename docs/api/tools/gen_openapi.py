@@ -121,7 +121,7 @@ schemas = {
         "levels": arr(obj({"level": enum("NONE", "REGULAR", "EXTRA"), "priceDelta": {"type": "integer"}},
                           ["level", "priceDelta"])),
         "defaultLevel": enum("NONE", "REGULAR", "EXTRA")}, ["id", "name"]),
-    "ModifierGroup": obj({"id": STR, "name": L, "type": enum("SINGLE", "MULTI", "LEVEL"), "required": BOOL,
+    "ModifierGroup": obj({"id": STR, "name": L, "purpose": enum("MEAL_UPGRADE"), "type": enum("SINGLE", "MULTI", "LEVEL"), "required": BOOL,
                           "min": INT, "max": INT, "options": arr(ref("ModifierOption"))},
                          ["id", "name", "type", "required", "options"]),
     "Combo": obj({"id": STR, "name": L, "shortName": L, "includes": L, "price": MONEY, "separatePrice": MONEY,

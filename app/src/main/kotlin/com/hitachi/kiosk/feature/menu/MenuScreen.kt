@@ -45,6 +45,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.em
 import com.hitachi.kiosk.R
 import com.hitachi.kiosk.core.designsystem.component.BrandLockup
@@ -82,6 +83,9 @@ const val MENU_CANCEL_TAG = "menu-cancel"
 
 /** Test tag of the "Plan by budget" row. */
 const val MENU_BUDGET_PLAN_TAG = "menu-budget-plan"
+
+/** Test tag of the "Plan by budget" pill in the category bar. */
+const val MENU_BUDGET_PILL_TAG = "menu-budget-pill"
 
 /** Test tag of "See popular items" in the empty category state. */
 const val MENU_SEE_POPULAR_TAG = "menu-see-popular"
@@ -163,11 +167,31 @@ fun MenuScreen(
             onCancel = { onEvent(MenuEvent.Cancel) },
         )
         MenuGreeting(dayPart = state.dayPart, modifier = Modifier.padding(start = 72.dpx, end = 72.dpx, top = 208.dpx))
-        CategoryPills(
-            pills = state.pills,
-            onEvent = onEvent,
-            modifier = Modifier.padding(top = PILLS_TOP_PX.dpx),
-        )
+        Row(
+            modifier = Modifier.padding(top = PILLS_TOP_PX.dpx).fillMaxWidth().height(112.dpx),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            if (state.showPlanPill) {
+                BudgetPlanPill(
+                    onClick = { onEvent(MenuEvent.OpenBudgetPlan) },
+                    modifier = Modifier.padding(start = 72.dpx),
+                )
+                Box(
+                    Modifier
+                        .padding(
+                            start = 24.dpx,
+                            end = 8.dpx,
+                        ).size(2.dpx, 48.dpx)
+                        .background(KioskTheme.colors.line),
+                )
+            }
+            CategoryPills(
+                pills = state.pills,
+                onEvent = onEvent,
+                startPadding = if (state.showPlanPill) 16.dpx else 72.dpx,
+                modifier = Modifier.weight(1f),
+            )
+        }
         if (state.loaded) {
             MenuContent(
                 state = state,
@@ -347,6 +371,7 @@ private fun MenuGreeting(
 private fun CategoryPills(
     pills: List<MenuPillUi>,
     onEvent: (MenuEvent) -> Unit,
+    startPadding: Dp,
     modifier: Modifier = Modifier,
 ) {
     val description = stringResource(R.string.menu_categories_description)
@@ -360,7 +385,7 @@ private fun CategoryPills(
                 .fillMaxWidth()
                 .height(112.dpx)
                 .semantics { contentDescription = description },
-        contentPadding = PaddingValues(horizontal = 72.dpx, vertical = 8.dpx),
+        contentPadding = PaddingValues(start = startPadding, end = 72.dpx, top = 8.dpx, bottom = 8.dpx),
         horizontalArrangement = Arrangement.spacedBy(12.dpx),
     ) {
         itemsIndexed(pills, key = { _, pill -> pill.key }) { index, pill ->

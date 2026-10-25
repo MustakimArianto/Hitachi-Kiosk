@@ -343,6 +343,7 @@ internal fun BudgetPlanRow(
     val interactionSource = remember { MutableInteractionSource() }
     val scale = animatePressScale(interactionSource)
     val title = stringResource(R.string.menu_budget_title)
+    val description = stringResource(R.string.menu_budget_description)
     Row(
         modifier =
             modifier
@@ -351,7 +352,7 @@ internal fun BudgetPlanRow(
                 .height(128.dpx)
                 .pressScale(scale)
                 .background(colors.ink, KioskTheme.shapes.card)
-                .kioskButton(title, MENU_BUDGET_PLAN_TAG, interactionSource, onClick = onClick)
+                .kioskButton(description, MENU_BUDGET_PLAN_TAG, interactionSource, onClick = onClick)
                 .padding(horizontal = 24.dpx),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(24.dpx),
@@ -388,6 +389,42 @@ internal fun BudgetPlanRow(
         ) {
             KioskIcon(icon = KioskIcons.ArrowRightBold, tint = colors.ink, modifier = Modifier.size(36.dpx))
         }
+    }
+}
+
+/** The compact dark "Plan by budget" pill that heads the category bar on every tab (`Menu.dc.html` `showPill`). */
+@Composable
+internal fun BudgetPlanPill(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val colors = KioskTheme.colors
+    val interactionSource = remember { MutableInteractionSource() }
+    val scale = animatePressScale(interactionSource)
+    val label = stringResource(R.string.menu_budget_pill)
+    Row(
+        modifier =
+            modifier
+                .height(96.dpx)
+                .pressScale(scale)
+                .background(colors.ink, KioskTheme.shapes.pill)
+                .kioskButton(label, MENU_BUDGET_PILL_TAG, interactionSource, onClick = onClick)
+                .padding(start = 28.dpx, end = 36.dpx),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(14.dpx),
+    ) {
+        KioskIcon(icon = KioskIcons.People, tint = colors.bg, modifier = Modifier.size(40.dpx))
+        KioskText(
+            text = label,
+            style =
+                KioskTheme.typography.button.copy(
+                    fontSize = 30.spx,
+                    fontWeight = FontWeight.W600,
+                    letterSpacing = 0.em,
+                ),
+            color = colors.bg,
+            maxLines = 1,
+        )
     }
 }
 

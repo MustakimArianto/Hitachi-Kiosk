@@ -43,6 +43,7 @@ internal object MenuSamples {
             brandName = "Urban Grill",
             pills = pills,
             showBudgetPlan = true,
+            showPlanPill = true,
             products =
                 listOf(
                     MenuProductUi(
@@ -94,6 +95,7 @@ internal object MenuSamples {
                 },
             selection = MenuSelection.Category("cat_desserts"),
             showBudgetPlan = false,
+            showPlanPill = true,
             sectionTitle = "Desserts",
             products = emptyList(),
         )

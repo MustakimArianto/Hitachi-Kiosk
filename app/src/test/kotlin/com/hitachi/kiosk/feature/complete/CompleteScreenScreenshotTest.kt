@@ -1,4 +1,4 @@
-package com.hitachi.kiosk.feature.upsell
+package com.hitachi.kiosk.feature.complete
 
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onRoot
@@ -12,38 +12,32 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
-/**
- * DEV-039: the `Upsell` artboard with the design's sample cart, `S_Upsell_noSuggestions` (TC-172), cards after a
- * quick add and larger text (TR-MNT-08).
- */
+/** DEV-060: the `Complete` artboard and `S_Complete_takeaway` in their final frame (TC-088, TC-090). */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(qualifiers = "w1080dp-h1920dp-mdpi")
-class UpsellScreenScreenshotTest {
+class CompleteScreenScreenshotTest {
     @get:Rule
     val composeRule = createComposeRule()
 
     @Test
-    fun `Upsell default`() = capture("Upsell", UpsellTestStates.Default)
+    fun `Complete`() = capture("Complete", CompleteSamples.DineIn)
 
     @Test
-    fun `S_Upsell_noSuggestions`() = capture("S_Upsell_noSuggestions", UpsellTestStates.NoSuggestions)
+    fun `S_Complete_takeaway`() = capture("S_Complete_takeaway", CompleteSamples.Takeaway)
 
     @Test
-    fun `Upsell with a just-added card`() = capture("Upsell_justAdded", UpsellTestStates.JustAdded)
+    fun `Complete card`() = capture("Complete_card", CompleteSamples.Card)
 
     @Test
-    fun `Upsell with larger text`() = capture("Upsell_largeText", UpsellTestStates.Default, largeText = true)
+    fun `Complete recovered`() = capture("Complete_recovered", CompleteSamples.Recovered)
 
     private fun capture(
         name: String,
-        state: UpsellUiState,
-        largeText: Boolean = false,
+        state: CompleteUiState,
     ) {
         composeRule.setContent {
-            KioskTheme(largeText = largeText, reduceMotion = true) {
-                DesignFrame { UpsellScreen(state = state, onEvent = {}) }
-            }
+            KioskTheme(reduceMotion = true) { DesignFrame { CompleteScreen(state = state, onEvent = {}) } }
         }
         composeRule.onRoot().captureRoboImage("src/test/screenshots/$name.png")
     }

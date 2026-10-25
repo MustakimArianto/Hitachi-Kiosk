@@ -41,6 +41,12 @@ interface RecoveryGate {
     val blocksNewOrder: StateFlow<Boolean>
 }
 
+/** Where the Complete screen takes an order that a recovery found paid (FR-016 AC4, DEV-060). */
+fun interface RecoveredPaidSource {
+    /** The recovered paid order, once; `null` when there is none. */
+    fun consumeRecoveredPaid(): RecoveredPaidOrder?
+}
+
 /** Where the recovery of the pending order is. */
 sealed interface RecoveryState {
     /** Nothing is being recovered: no pending order, a finished one, or one waiting for the next trigger. */
@@ -89,7 +95,8 @@ class PendingOrderRecoveryCoordinator
         private val connectivity: ConnectivityMonitor,
         private val sessions: OrderSessionHolder,
         @ApplicationScope private val scope: CoroutineScope,
-    ) : RecoveryGate {
+    ) : RecoveryGate,
+        RecoveredPaidSource {
         private val triggers = Channel<Unit>(Channel.CONFLATED)
         private val mutableState = MutableStateFlow<RecoveryState>(RecoveryState.Settled)
         private val blocking = MutableStateFlow(false)
@@ -108,8 +115,8 @@ class PendingOrderRecoveryCoordinator
         override val blocksNewOrder: StateFlow<Boolean> = blocking.asStateFlow()
 
         /**
-         * The order a recovery found paid, for the Complete screen. It stays until [consumeRecoveredPaid] takes it, so
-         * the 0.6.0 Complete screen can print from it (the lines of the order are not persisted).
+         * The order a recovery found paid, for the Complete screen. It stays until [consumeRecoveredPaid] takes it (the
+         * lines and the order type are not persisted, so Complete shows the totals and the payment only).
          */
         val recoveredPaid: StateFlow<RecoveredPaidOrder?> = paid.asStateFlow()
 
@@ -142,7 +149,7 @@ class PendingOrderRecoveryCoordinator
         }
 
         /** The recovered paid order, once: for the Complete screen. */
-        fun consumeRecoveredPaid(): RecoveredPaidOrder? = paid.getAndUpdate { null }
+        override fun consumeRecoveredPaid(): RecoveredPaidOrder? = paid.getAndUpdate { null }
 
         /** Starts the run consumer and the `ONLINE` watcher, once. */
         private fun ensureConsumers() {

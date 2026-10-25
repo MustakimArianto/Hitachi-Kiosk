@@ -43,7 +43,6 @@ import com.hitachi.kiosk.feature.order.YOUR_ORDER_ADD_MORE_TAG
 import com.hitachi.kiosk.feature.order.YOUR_ORDER_BACK_TO_MENU_TAG
 import com.hitachi.kiosk.feature.order.YOUR_ORDER_PAY_TAG
 import com.hitachi.kiosk.feature.ordertype.orderTypeCardTag
-import com.hitachi.kiosk.feature.upsell.UPSELL_NO_THANKS_TAG
 import com.hitachi.kiosk.testing.KioskState
 import com.hitachi.kiosk.testing.awaitScreen
 import com.hitachi.kiosk.testing.launchKiosk
@@ -106,9 +105,8 @@ class NavigationEdgeWalkUiTest {
         goTag(MENU_CHANGE_TAG, "SCR-05")
         pickDineIn()
         goTag(menuAddTag("c1"), "SCR-06")
-        // The first View order of an order goes through Upsell (FR-014); the second goes straight to Your order.
-        goTag(MENU_VIEW_ORDER_TAG, "SCR-09")
-        goTag(UPSELL_NO_THANKS_TAG, "SCR-10")
+        // View order always goes straight to Your order; the suggestion strip lives there (FR-014, D-33).
+        goTag(MENU_VIEW_ORDER_TAG, "SCR-10")
         goTag(YOUR_ORDER_ADD_MORE_TAG, "SCR-06")
         goTag(MENU_VIEW_ORDER_TAG, "SCR-10")
         goTag(YOUR_ORDER_PAY_TAG, "SCR-11")
@@ -147,7 +145,7 @@ class NavigationEdgeWalkUiTest {
         goTag(MENU_BUDGET_PLAN_TAG, "SCR-19")
         goTag(budgetPlanChipTag(BUDGET), "SCR-19")
         goTag(BUDGET_PLAN_CTA_TAG, "SCR-19")
-        // "Added to order" shows for 1 s, then Your order opens.
+        // "Added to order" shows for about 0.6 s, then Your order opens.
         goTag(BUDGET_PLAN_CTA_TAG, "SCR-10")
         goTag(YOUR_ORDER_ADD_MORE_TAG, "SCR-06")
     }

@@ -65,7 +65,17 @@ data class ModifierGroup(
     val min: Int?,
     val max: Int?,
     val options: List<ModifierOption>,
+    val purpose: ModifierPurpose? = null,
 )
+
+/**
+ * What a modifier group is for, when the API says so (api-spec E6 `purpose`, OQ-17). `null` is a plain group, which is
+ * also what older payloads and values this app does not know give.
+ */
+enum class ModifierPurpose {
+    /** The "Make it a meal" group: a `SINGLE` group whose non-default option makes the product a meal (FR-014, A-48). */
+    MEAL_UPGRADE,
+}
 
 /** `SINGLE` = radio, `MULTI` = checkboxes, `LEVEL` = None / Regular / Extra per option (api-spec E6). */
 enum class ModifierType { SINGLE, MULTI, LEVEL }

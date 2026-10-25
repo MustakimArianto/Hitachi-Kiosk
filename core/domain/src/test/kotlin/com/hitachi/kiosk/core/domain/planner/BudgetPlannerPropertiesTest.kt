@@ -157,6 +157,53 @@ class BudgetPlannerPropertiesTest {
     }
 
     @Test
+    fun `every alternative stays within the budget or the cap rule and keeps the plan valid (DEV-109, TC-200)`() {
+        val requests =
+            PlanTolerance.entries.flatMap { tolerance ->
+                (50_000L..300_000L step 25_000L).flatMap { budget ->
+                    (GROUPS + (3 to 2) + (4 to 0)).map { (adults, children) ->
+                        PlanRequest(Rupiah(budget), adults, children, PlanOptions(tolerance = tolerance))
+                    }
+                }
+            }
+        val rows =
+            requests.sumOf { request ->
+                (planner.plan(request) as PlanResult.Plans).plans.sumOf { plan -> assertAlternatives(request, plan) }
+            }
+        assertThat(rows).isGreaterThan(requests.size)
+    }
+
+    /** Checks every row of every pick's picker and returns how many rows there were. */
+    private fun assertAlternatives(
+        request: PlanRequest,
+        plan: BudgetPlan,
+    ): Int {
+        val budget = request.budget.value
+        val cap = if (request.options.tolerance == PlanTolerance.STRICT) budget else budget + budget / 10
+        val limit = maxOf(plan.total.value, if (plan.kind == PlanKind.OVER) cap else budget)
+        return plan.picks.indices.sumOf { index ->
+            val rows = planner.alternatives(request, plan, index)
+            assertThat(rows.first().isCurrent).isTrue()
+            rows.forEach { row ->
+                assertWithMessage("$request pick $index").that(row.plan.total.value).isAtMost(limit)
+                assertThat(row.change).isEqualTo(row.plan.total.value - plan.total.value)
+                BudgetPlannerTest.assertCovers(row.plan, request.adults, request.children)
+                val comboDiners = row.plan.picks.sumOf { pick -> comboDinersOf(pick) }
+                val sides = row.plan.picks.count { it is PlanPick.Extra && it.item.role == PlanRole.SIDE }
+                assertThat(sides).isAtMost(request.people - comboDiners)
+            }
+            rows.size
+        }
+    }
+
+    private fun comboDinersOf(pick: PlanPick): Int =
+        when (pick) {
+            is PlanPick.Meal -> 1
+            is PlanPick.SharedMeal -> 2
+            else -> 0
+        }
+
+    @Test
     fun `prices that share only Rp 1 still plan ten people quickly (TR-PRF-08)`() {
         val odd = menu.copy(products = menu.products.map { if (it.id == "d1") it.copy(price = Rupiah(16_001)) else it })
         val oddPlanner = BudgetPlannerTest.planner(odd)

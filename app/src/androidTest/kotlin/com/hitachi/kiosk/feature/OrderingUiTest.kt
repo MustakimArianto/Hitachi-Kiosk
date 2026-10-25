@@ -27,19 +27,22 @@ import com.hitachi.kiosk.feature.budgetplan.BUDGET_PLAN_ADULTS_MORE_TAG
 import com.hitachi.kiosk.feature.budgetplan.BUDGET_PLAN_CHILDREN_MORE_TAG
 import com.hitachi.kiosk.feature.budgetplan.BUDGET_PLAN_CTA_TAG
 import com.hitachi.kiosk.feature.budgetplan.budgetPlanChipTag
+import com.hitachi.kiosk.feature.menu.MENU_BUDGET_PILL_TAG
 import com.hitachi.kiosk.feature.menu.MENU_BUDGET_PLAN_TAG
 import com.hitachi.kiosk.feature.menu.MENU_VIEW_ORDER_TAG
 import com.hitachi.kiosk.feature.menu.menuAddTag
+import com.hitachi.kiosk.feature.menu.menuCategoryPillTag
 import com.hitachi.kiosk.feature.order.YOUR_ORDER_ADD_MORE_TAG
+import com.hitachi.kiosk.feature.order.YOUR_ORDER_EDIT_PLAN_TAG
 import com.hitachi.kiosk.feature.order.YOUR_ORDER_PAY_TAG
 import com.hitachi.kiosk.feature.order.YOUR_ORDER_PLAN_TAG
+import com.hitachi.kiosk.feature.order.YOUR_ORDER_SUGGESTIONS_TAG
 import com.hitachi.kiosk.feature.order.YOUR_ORDER_TOTAL_TAG
+import com.hitachi.kiosk.feature.order.suggestionAddTag
+import com.hitachi.kiosk.feature.order.suggestionDecrementTag
 import com.hitachi.kiosk.feature.order.yourOrderDecrementTag
 import com.hitachi.kiosk.feature.order.yourOrderIncrementTag
 import com.hitachi.kiosk.feature.ordertype.orderTypeCardTag
-import com.hitachi.kiosk.feature.upsell.UPSELL_CONTINUE_TAG
-import com.hitachi.kiosk.feature.upsell.UPSELL_NO_THANKS_TAG
-import com.hitachi.kiosk.feature.upsell.upsellAddTag
 import com.hitachi.kiosk.inactivity.STILL_THERE_TAG
 import com.hitachi.kiosk.navigation.screenTag
 import com.hitachi.kiosk.testing.KioskState
@@ -58,7 +61,7 @@ import org.junit.Test
 import javax.inject.Inject
 
 /**
- * The 0.4.0 ordering journeys on the real screens (FR-012–FR-015, FR-023, FR-032): Upsell once per order, Your order
+ * The 0.4.0 ordering journeys on the real screens (FR-012–FR-015, FR-023, FR-032): the Your order suggestion strip, Your order
  * edits down to the empty tray, a Budget Plan in the cart, and the inactivity overlay with the real timer. The
  * device settings live in a real DataStore, so every test restores the defaults.
  */
@@ -101,49 +104,55 @@ class OrderingUiTest {
     }
 
     @Test
-    fun upsellShowsOnceAndQuickAddsWithDefaults() {
+    fun theStripOpensWithYourOrderAndAddsWithDefaultsAndUndoes() {
         startOrder()
         tapTag(menuAddTag("c1"))
+        // TC-194: View order goes straight to Your order, where the strip is ("Goes well with your order").
         tapTag(MENU_VIEW_ORDER_TAG)
-        compose.awaitScreen("SCR-09")
-
-        // TC-064: French Fries is suggested with its default size and lands in the cart.
-        tapTag(upsellAddTag("s1"))
-        tapTag(UPSELL_CONTINUE_TAG)
         compose.awaitScreen("SCR-10")
-        compose.awaitText("French Fries")
+        compose.waitUntilAtLeastOneExists(hasTestTag(YOUR_ORDER_SUGGESTIONS_TAG), SCREEN_TIMEOUT_MS)
 
-        // TC-063: once per order.
+        // TC-196: French Fries is suggested with its default size and lands in the cart; minus undoes it.
+        tapTag(suggestionAddTag("add:s1"))
+        compose.awaitText("French Fries")
+        assertThat(cartCount()).isEqualTo(2)
+        tapTag(suggestionDecrementTag("add:s1"))
+        compose.waitUntil(SCREEN_TIMEOUT_MS) { cartCount() == 1 }
+        compose.waitUntilAtLeastOneExists(hasTestTag(suggestionAddTag("add:s1")), SCREEN_TIMEOUT_MS)
+
+        // Not once per order: Add more and back shows the strip again, with no extra screen in between.
         tapTag(YOUR_ORDER_ADD_MORE_TAG)
         compose.awaitScreen("SCR-06")
         tapTag(MENU_VIEW_ORDER_TAG)
         compose.awaitScreen("SCR-10")
-        assertThat(
-            orders.current.value
-                ?.state
-                ?.value
-                ?.cart
-                ?.itemCount,
-        ).isEqualTo(2)
+        compose.waitUntilAtLeastOneExists(hasTestTag(YOUR_ORDER_SUGGESTIONS_TAG), SCREEN_TIMEOUT_MS)
     }
 
     @Test
-    fun upsellIsSkippedWhenTurnedOff() {
+    fun theStripIsNotDrawnWhenTurnedOff() {
         setSettings(KioskSettings(upsellEnabled = false))
         startOrder()
         tapTag(menuAddTag("c1"))
         tapTag(MENU_VIEW_ORDER_TAG)
 
-        // TC-062.
+        // TC-194, FR-014 AC1: no strip, and Pay is there at once.
         compose.awaitScreen("SCR-10")
+        compose.onNodeWithTag(YOUR_ORDER_PAY_TAG).assertIsDisplayed()
+        assertThat(compose.onAllNodes(hasTestTag(YOUR_ORDER_SUGGESTIONS_TAG)).fetchSemanticsNodes()).isEmpty()
     }
+
+    private fun cartCount(): Int? =
+        orders.current.value
+            ?.state
+            ?.value
+            ?.cart
+            ?.itemCount
 
     @Test
     fun yourOrderEditsLinesDownToTheEmptyTray() {
         startOrder()
         tapTag(menuAddTag("c1"))
         tapTag(MENU_VIEW_ORDER_TAG)
-        tapTag(UPSELL_NO_THANKS_TAG)
         compose.awaitScreen("SCR-10")
 
         // TC-050, TC-066: 2 × Rp 38.000 = Rp 76.000, PB1 10 % → Rp 83.600, and Pay says so.
@@ -169,11 +178,32 @@ class OrderingUiTest {
         tapTag(BUDGET_PLAN_CTA_TAG)
         compose.awaitText("Rp 149.600")
 
-        // TC-167, FR-032 AC5: "Add plan to order", then Your order after 1 s with the plan tag and the plan's total.
+        // TC-167, FR-032 AC5: "Add plan to order", then Your order after about 0.6 s with the plan tag and the plan's total.
         tapTag(BUDGET_PLAN_CTA_TAG)
         compose.awaitScreen("SCR-10")
         compose.onNodeWithTag(YOUR_ORDER_PLAN_TAG).assertExists()
         compose.onNodeWithTag(YOUR_ORDER_TOTAL_TAG).assertTextContains("Rp 149.600", substring = true)
+    }
+
+    @Test
+    fun theHeaderPillOpensBudgetPlanFromAnyTabAndEditPlanReopensIt() {
+        startOrder()
+
+        // TC-202: the "Plan by budget" pill is in the category bar on every tab.
+        tapTag(menuCategoryPillTag("cat_drinks"))
+        tapTag(MENU_BUDGET_PILL_TAG)
+        compose.awaitScreen("SCR-19")
+        tapTag(budgetPlanChipTag(150_000))
+        tapTag(BUDGET_PLAN_CTA_TAG)
+        compose.awaitText("Rp 149.600")
+        tapTag(BUDGET_PLAN_CTA_TAG)
+        compose.awaitScreen("SCR-10")
+
+        // TC-203, DEV-112: the plan row offers "Edit plan", which reopens step 2 with the saved budget.
+        compose.awaitText(string(R.string.your_order_plan_edit))
+        tapTag(YOUR_ORDER_EDIT_PLAN_TAG)
+        compose.awaitScreen("SCR-19")
+        compose.awaitText(string(R.string.budget_plan_add))
     }
 
     @Test
@@ -200,7 +230,6 @@ class OrderingUiTest {
         startOrder()
         tapTag(menuAddTag("c1"))
         tapTag(MENU_VIEW_ORDER_TAG)
-        tapTag(UPSELL_NO_THANKS_TAG)
         tapTag(YOUR_ORDER_PAY_TAG)
         compose.awaitScreen("SCR-11")
 

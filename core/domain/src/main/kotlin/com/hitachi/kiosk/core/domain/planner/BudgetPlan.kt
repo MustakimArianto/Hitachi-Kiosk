@@ -139,6 +139,22 @@ data class BudgetPlan(
         picks.flatMap { it.items }.map { CartAddition(it.cartItem, 1, it.unitPrice, it.choices) }
 }
 
+/**
+ * One row of the swap picker (FR-032, DEV-109): what takes the place of one pick and the plan that results.
+ *
+ * @property replacement the picks that stand where the swapped pick stood: one, or two when a shared meal for two
+ *   becomes two separate meals. For [isCurrent] it is the pick itself.
+ * @property plan the whole plan with [replacement] in it, priced by the `PricingEngine`; its total is the "Total Rp X"
+ *   of the row, and its notes and kind follow from it.
+ * @property change the plan's total minus the swapped plan's total, in rupiah: the "+Rp 2.000" of the row.
+ */
+data class PlanAlternative(
+    val replacement: List<PlanPick>,
+    val plan: BudgetPlan,
+    val change: Long,
+    val isCurrent: Boolean,
+)
+
 /** The answer to a [PlanRequest] (FR-032). */
 sealed interface PlanResult {
     /** More people than `maxGroupSize`: "Please order in smaller groups" (FR-032 AC11). */

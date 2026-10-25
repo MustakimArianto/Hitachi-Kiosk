@@ -27,6 +27,7 @@ import com.hitachi.kiosk.core.domain.model.LocalizedText
 import com.hitachi.kiosk.core.domain.model.Menu
 import com.hitachi.kiosk.core.domain.model.ModifierGroup
 import com.hitachi.kiosk.core.domain.model.ModifierOption
+import com.hitachi.kiosk.core.domain.model.ModifierPurpose
 import com.hitachi.kiosk.core.domain.model.ModifierType
 import com.hitachi.kiosk.core.domain.model.Product
 import com.hitachi.kiosk.core.domain.model.ProductRole
@@ -80,6 +81,7 @@ internal fun Catalog.toRows(
                     group.required,
                     group.min,
                     group.max,
+                    group.purpose?.name,
                 )
             },
         options =
@@ -143,6 +145,7 @@ private fun CatalogRows.toMenu(): Menu {
                     required = group.required,
                     min = group.min,
                     max = group.max,
+                    purpose = enumOrNull<ModifierPurpose>(group.purpose),
                     options =
                         optionsByGroup[group.id].orEmpty().map { option ->
                             option.toDomain(levelsByOption[group.id to option.id].orEmpty())

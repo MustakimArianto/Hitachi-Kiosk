@@ -63,6 +63,9 @@ const val BUDGET_PLAN_OTHER_TAG = "budget-plan-other"
 /** Test tag of the budget amount. */
 const val BUDGET_PLAN_BUDGET_TAG = "budget-plan-budget"
 
+/** Test tag of the "About Rp X per person" caption. */
+const val BUDGET_PLAN_PER_PERSON_TAG = "budget-plan-per-person"
+
 /** Test tags of the steppers' buttons and counts. */
 const val BUDGET_PLAN_ADULTS_LESS_TAG = "budget-plan-adults-less"
 const val BUDGET_PLAN_ADULTS_MORE_TAG = "budget-plan-adults-more"
@@ -147,6 +150,7 @@ private fun BudgetCard(
                     lineHeight = AMOUNT_LINE_EM.em,
                 ),
             durationMillis = AMOUNT_ROLL_MILLIS,
+            color = if (state.hasBudget) colors.ink else colors.placeholder,
             modifier =
                 Modifier
                     .padding(top = 8.dpx)
@@ -159,6 +163,13 @@ private fun BudgetCard(
             color = colors.muted,
             modifier = Modifier.padding(top = 4.dpx),
         )
+        state.perPerson?.let { perPerson ->
+            KioskText(
+                text = stringResource(R.string.budget_plan_per_person, perPerson),
+                style = typography.meta.copy(fontWeight = FontWeight.W600),
+                modifier = Modifier.padding(top = 4.dpx).testTag(BUDGET_PLAN_PER_PERSON_TAG),
+            )
+        }
         Row(
             modifier =
                 Modifier

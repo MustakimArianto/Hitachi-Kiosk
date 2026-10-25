@@ -40,7 +40,7 @@
     "npwp": null,
     "defaultFooter": { "en": "Thank you for dining with us!", "id": "Terima kasih telah makan bersama kami!" }
   },
-  "upsell": { "categoryIds": ["cat_sides", "cat_desserts"], "maxSuggestions": 4 },
+  "upsell": { "categoryIds": ["cat_sides", "cat_drinks", "cat_desserts"], "maxSuggestions": 4 },
   "budgetPlanner": { "enabled": true, "overCapPercent": 10, "maxGroupSize": 10, "quickBudgets": [50000, 100000, 150000, 200000] },
   "idlePromos": [
     { "imageUrl": "https://cdn.example/mer_urbangrill/idle1.jpg" },

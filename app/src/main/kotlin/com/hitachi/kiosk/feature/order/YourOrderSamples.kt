@@ -63,7 +63,9 @@ internal object YourOrderSamples {
             pay = PayUi.Ready("Rp 173.000"),
         )
 
-    val Plan = Default.copy(planTag = PlanTagUi(adults = 2, children = 1, budget = "Rp 150.000"))
+    val Plan = Default.copy(planTag = PlanTagUi(adults = 2, children = 1, budget = "Rp 150.000"), planEntry = true)
+
+    val PlanAdded = Plan.copy(showPlanAdded = true)
 
     val PriceChanged =
         Default.copy(
@@ -88,7 +90,10 @@ internal object YourOrderSamples {
             loaded = true,
             methods = listOf(PaymentMethod.QRIS, PaymentMethod.CARD),
             selectedMethod = PaymentMethod.QRIS,
+            planEntry = true,
         )
+
+    val EmptyTrayNoPlan = EmptyTray.copy(planEntry = false)
 
     val PromoNudge =
         Default.copy(

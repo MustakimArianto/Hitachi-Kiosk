@@ -21,7 +21,12 @@ import com.hitachi.kiosk.core.domain.model.Rupiah
  * @property methods the payment method tiles, QRIS first; empty shows "No payment methods right now" (A-14).
  * @property selectedMethod the inverted tile; the first visible method by default (FR-015).
  * @property pay whether Pay can be tapped, or why not (its label).
+ * @property suggestions the "Goes well with your order" strip below the lines, or `null` when it is not drawn: the
+ *   toggle is off, nothing is suggestable, or the order cannot be paid yet (FR-014, D-33).
  * @property showMaxToast "Maximum 20 per item" is on screen after a "+" on a line at 20.
+ * @property planEntry the empty tray offers "Plan by budget": the planner is enabled and the menu can be planned
+ *   (FR-032, DEV-110).
+ * @property showPlanAdded the green "Plan added" confirmation is on screen after a plan was added (DEV-112).
  */
 @Immutable
 data class YourOrderUiState(
@@ -37,11 +42,50 @@ data class YourOrderUiState(
     val methods: List<PaymentMethod> = emptyList(),
     val selectedMethod: PaymentMethod? = null,
     val pay: PayUi = PayUi.Blocked(PayBlock.EMPTY),
+    val suggestions: SuggestionsUi? = null,
     val showMaxToast: Boolean = false,
+    val planEntry: Boolean = false,
+    val showPlanAdded: Boolean = false,
 ) {
     /** The method tiles are replaced by "No payment methods right now" (`S_Payment_noMethods`, FR-015). */
     val noMethods: Boolean get() = loaded && methods.isEmpty()
 }
+
+/**
+ * The "Goes well with your order" strip (`Payment.dc.html`, FR-014): up to three [cards].
+ *
+ * @property budgetLimited the order came from a Budget Plan, so the strip says "Fits your budget" (`upsellBudget`).
+ */
+@Immutable
+data class SuggestionsUi(
+    val cards: List<SuggestionCardUi>,
+    val budgetLimited: Boolean = false,
+)
+
+/** What kind of card it is, for its chip: the role of an add-on, or the "Upgrade" of the meal card (DEV-114). */
+enum class SuggestionKind { MAIN, SIDE, DRINK, DESSERT, UPGRADE }
+
+/**
+ * One suggestion card. [key] identifies it for events and tags (`add:<productId>` or `meal:<productId>`).
+ *
+ * @property note the line under the name: the meal card's "Adds fries & a drink"; add-ons have none.
+ * @property pricePlus the price is an upgrade amount, drawn "+Rp 18.000".
+ * @property quantity how many of it the order holds; above 0 the "Add" button is a "− n +" stepper.
+ * @property canAddMore the stepper's "+" works (the meal card has no unit left to upgrade, or the line is at 20).
+ */
+@Immutable
+data class SuggestionCardUi(
+    val key: String,
+    val kind: SuggestionKind,
+    val name: String,
+    val note: String?,
+    val price: String,
+    val pricePlus: Boolean,
+    val imageUrl: String?,
+    val tone: String?,
+    val quantity: Int,
+    val canAddMore: Boolean,
+)
 
 /** "Budget Plan · {adults} adults · {children} child · Rp {budget}" (FR-012, A-40). */
 @Immutable
@@ -192,6 +236,25 @@ sealed interface YourOrderEvent {
         val method: PaymentMethod,
     ) : YourOrderEvent
 
+    /** "Add" or the stepper's "+" on a suggestion card (`key` is [SuggestionCardUi.key]). */
+    data class SuggestionAdd(
+        val key: String,
+    ) : YourOrderEvent
+
+    /** The stepper's "−" on a suggestion card; at quantity 1 the card returns to "Add". */
+    data class SuggestionRemove(
+        val key: String,
+    ) : YourOrderEvent
+
+    /** The two doors to SCR-19: "Plan by budget" in the empty tray and "Edit plan" on the plan row. */
+    sealed interface PlanDoor : YourOrderEvent
+
+    /** "Plan by budget" in the empty tray. */
+    data object OpenBudgetPlan : PlanDoor
+
+    /** "Edit plan" on the plan row. */
+    data object EditPlan : PlanDoor
+
     /** "Pay Rp X". */
     data object Pay : YourOrderEvent
 
@@ -206,6 +269,12 @@ sealed interface YourOrderEvent {
 sealed interface YourOrderEffect {
     /** "Add more" or "Back to menu": back to SCR-06. */
     data object BackToMenu : YourOrderEffect
+
+    /** "Plan by budget" in the empty tray: SCR-19 from the start. */
+    data object OpenBudgetPlan : YourOrderEffect
+
+    /** "Edit plan": SCR-19 on step 2 with the saved budget and group (DEV-111). */
+    data object EditPlan : YourOrderEffect
 
     /** "Pay Rp X": on to SCR-11 Checkout with the chosen [method]; Checkout submits the order (E7, FR-016). */
     data class Pay(

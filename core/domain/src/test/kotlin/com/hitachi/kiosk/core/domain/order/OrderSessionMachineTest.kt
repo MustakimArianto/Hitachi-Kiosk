@@ -93,7 +93,8 @@ class OrderSessionMachineTest {
             assertThat(session.remove("l1")).isFalse()
             assertThat(session.addPlan(listOf(addition(d4)), Rupiah(1), 1, 0))
                 .isEqualTo(CartAddAllResult.LimitReached(CartLimit.ORDER_LOCKED))
-            assertThat(session.markUpsellShown()).isFalse()
+            assertThat(session.switchOne("l1", d4, Rupiah(8_000), emptyList()))
+                .isEqualTo(CartAddResult.LimitReached(CartLimit.ORDER_LOCKED))
             assertThat(session.changeOrderType(OrderType.TAKEAWAY)).isFalse()
             assertWithMessage("$phase").that(session.state.value).isEqualTo(before)
         }
@@ -116,12 +117,18 @@ class OrderSessionMachineTest {
     }
 
     @Test
-    fun `the upsell is offered once per order (FR-014 AC2)`() {
+    fun `switchOne changes a line in place (DEV-114)`() {
         val session = sessionWithCart()
 
-        assertThat(session.state.value.upsellShown).isFalse()
-        assertThat(session.markUpsellShown()).isTrue()
-        assertThat(session.state.value.upsellShown).isTrue()
+        val result = session.switchOne("l1", d4, Rupiah(8_000), emptyList()) as CartAddResult.Added
+
+        assertThat(result.line.item).isEqualTo(d4)
+        assertThat(
+            session.state.value.cart
+                .line("l1")
+                ?.item,
+        ).isEqualTo(d4)
+        assertThat(session.switchOne("nope", c1, Rupiah(1), emptyList())).isNull()
     }
 
     @Test
@@ -132,7 +139,15 @@ class OrderSessionMachineTest {
 
         assertThat(result).isInstanceOf(CartAddAllResult.Added::class.java)
         assertThat(session.state.value.planTag)
-            .isEqualTo(PlanTag(Rupiah(150_000), adults = 2, children = 1, lineIds = listOf("l2", "l1")))
+            .isEqualTo(
+                PlanTag(
+                    Rupiah(150_000),
+                    adults = 2,
+                    children = 1,
+                    lineIds = listOf("l2", "l1"),
+                    quantities = mapOf("l2" to 2, "l1" to 1),
+                ),
+            )
         assertThat(session.state.value.cart.itemCount).isEqualTo(4)
     }
 

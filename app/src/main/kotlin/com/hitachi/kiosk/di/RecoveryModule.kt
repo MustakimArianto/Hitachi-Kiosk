@@ -5,6 +5,7 @@ import com.hitachi.kiosk.core.domain.order.RecoverPendingOrder
 import com.hitachi.kiosk.core.domain.payment.PaymentGateway
 import com.hitachi.kiosk.core.domain.repository.OrderRepository
 import com.hitachi.kiosk.recovery.PendingOrderRecoveryCoordinator
+import com.hitachi.kiosk.recovery.RecoveredPaidSource
 import com.hitachi.kiosk.recovery.RecoveryGate
 import dagger.Binds
 import dagger.Module
@@ -21,6 +22,9 @@ import dagger.hilt.components.SingletonComponent
 abstract class RecoveryModule {
     @Binds
     abstract fun recoveryGate(coordinator: PendingOrderRecoveryCoordinator): RecoveryGate
+
+    @Binds
+    abstract fun recoveredPaidSource(coordinator: PendingOrderRecoveryCoordinator): RecoveredPaidSource
 
     companion object {
         @Provides

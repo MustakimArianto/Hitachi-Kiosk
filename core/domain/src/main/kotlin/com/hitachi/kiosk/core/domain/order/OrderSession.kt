@@ -26,7 +26,7 @@ enum class OrderPhase {
     /** The customer is on the Menu, Item, Combo or Budget Plan (FR-009–FR-011, FR-032). */
     BUILDING,
 
-    /** Upsell or Your order (FR-012–FR-015). */
+    /** Your order, with its suggestion strip (FR-012–FR-015). */
     REVIEWING,
 
     /** Pay was tapped and E7 is running (FR-016). */
@@ -57,21 +57,26 @@ enum class OrderPhase {
 
 /**
  * The "Budget Plan · 2 adults · 1 child · Rp 150.000" row on Your order (FR-012, A-40). [lineIds] are the cart lines
- * the plan created; editing or removing any of them clears the tag (architecture §5.1).
+ * the plan created or merged into; editing or removing any of them clears the tag (architecture §5.1).
+ *
+ * @property quantities the units the plan put into each of [lineIds], so "Edit plan" takes out only what the plan
+ *   added and keeps units the customer had of the same item before (DEV-111). Empty for a tag built without it: every
+ *   unit of the lines then belongs to the plan.
  */
 data class PlanTag(
     val budget: Rupiah,
     val adults: Int,
     val children: Int,
     val lineIds: List<String>,
+    val quantities: Map<String, Int> = emptyMap(),
 )
 
 /**
  * One order's state (architecture §5.1). [menuVersion] and [configVersion] are the catalog the order started with:
  * a sync that lands mid-order waits until the order ends (FR-028, A-29).
  *
- * @property upsellShown whether SCR-09 was already offered in this order (FR-014: at most once).
  * @property planTag the Budget Plan that filled the cart, while its lines are untouched (FR-032).
+ * @property planAdded a plan was just added or replaced and Your order has not shown "Plan added" for it yet (DEV-112).
  * @property issues what E7 asked the customer to review: re-priced and unavailable lines (FR-016, DEV-046).
  * @property submission the body and `Idempotency-Key` of the last E7 attempt, kept until "Back to order" so a retry
  *   of the same body reuses the key (technical-design §5.3, BR-08).
@@ -82,14 +87,14 @@ data class OrderState(
     val cart: Cart,
     val menuVersion: String,
     val configVersion: String,
-    val upsellShown: Boolean = false,
     val planTag: PlanTag? = null,
+    val planAdded: Boolean = false,
     val issues: ReviewIssues = ReviewIssues(),
     val submission: Submission? = null,
 )
 
 /**
- * One customer order, shared by Order type, Menu, Item, Combo, Budget Plan, Upsell and Your order through
+ * One customer order, shared by Order type, Menu, Item, Combo, Budget Plan and Your order through
  * [OrderSessionHolder] (architecture §5.1). Every change is atomic (compare-and-set), so a double tap can never act
  * on a stale cart. A transition that the machine does not allow from the current phase changes nothing and returns
  * `false`.
@@ -123,14 +128,11 @@ class OrderSession(
             it.copy(phase = OrderPhase.BUILDING)
         }
 
-    /** Upsell or Your order is shown: Building → Reviewing (§5.1). Also accepted on the way back from Submitting. */
+    /** Your order is shown: Building → Reviewing (§5.1). Also accepted on the way back from Submitting. */
     fun startReviewing(): Boolean =
         transition({ it == OrderPhase.BUILDING || it == OrderPhase.REVIEWING }) {
             it.copy(phase = OrderPhase.REVIEWING)
         }
-
-    /** SCR-09 was offered, so it is never offered again in this order (FR-014 AC2). */
-    fun markUpsellShown(): Boolean = transition({ it.isEditable }) { it.copy(upsellShown = true) }
 
     /** Adds to the cart with the merge and limit rules of [Cart.add] (FR-009 AC2, FR-010, BR-05). */
     fun add(
@@ -145,6 +147,31 @@ class OrderSession(
             val result = current.cart.add(item, quantity, unitPrice, choices)
             if (result !is CartAddResult.Added) return result
             val next = current.copy(cart = result.cart, planTag = current.planTag.without(result.line.lineId))
+            if (mutableState.compareAndSet(current, next)) return result
+        }
+    }
+
+    /**
+     * One unit of [lineId] becomes [item] (the "Make it a meal" card, DEV-114); see [Cart.switchOne]. `null` for an
+     * unknown line or no change. Changing a plan line clears the plan tag.
+     */
+    fun switchOne(
+        lineId: String,
+        item: CartItem,
+        unitPrice: Rupiah,
+        choices: List<LineChoice>,
+    ): CartAddResult? {
+        while (true) {
+            val current = mutableState.value
+            if (!current.phase.isEditable) return CartAddResult.LimitReached(CartLimit.ORDER_LOCKED)
+            val result = current.cart.switchOne(lineId, item, unitPrice, choices)
+            if (result !is CartAddResult.Added) return result
+            val next =
+                current.copy(
+                    cart = result.cart,
+                    planTag = current.planTag.without(lineId),
+                    issues = if (result.cart.line(lineId) == null) current.issues.without(lineId) else current.issues,
+                )
             if (mutableState.compareAndSet(current, next)) return result
         }
     }
@@ -169,7 +196,7 @@ class OrderSession(
 
     /**
      * "Add plan to order" (FR-032 AC5): every line of the plan or none, tagged with [budget] and the group size for
-     * the Your order row (A-40).
+     * the Your order row (A-40). Marks the plan as just added, for the "Plan added" confirmation (DEV-112).
      */
     fun addPlan(
         additions: List<CartAddition>,
@@ -182,10 +209,48 @@ class OrderSession(
             if (!current.phase.isEditable) return CartAddAllResult.LimitReached(CartLimit.ORDER_LOCKED)
             val result = current.cart.addAll(additions)
             if (result !is CartAddAllResult.Added) return result
-            val tag = PlanTag(budget, adults, children, result.lineIds)
-            if (mutableState.compareAndSet(current, current.copy(cart = result.cart, planTag = tag))) return result
+            val tag = planTag(current.cart, result, budget, adults, children)
+            val next = current.copy(cart = result.cart, planTag = tag, planAdded = true)
+            if (mutableState.compareAndSet(current, next)) return result
         }
     }
+
+    /**
+     * "Edit plan" then "Add plan to order" (FR-032, DEV-111, TC-203): the units the current plan put into the cart go
+     * out and [additions] come in, whole or not at all, so the other lines stay and the cart never holds both plans.
+     * The tag becomes the new plan's. Without a plan tag this is [addPlan]. A refusal ([CartAddAllResult.LimitReached])
+     * leaves the cart and the tag as they were.
+     */
+    fun replacePlan(
+        additions: List<CartAddition>,
+        budget: Rupiah,
+        adults: Int,
+        children: Int,
+    ): CartAddAllResult {
+        while (true) {
+            val current = mutableState.value
+            if (!current.phase.isEditable) return CartAddAllResult.LimitReached(CartLimit.ORDER_LOCKED)
+            val old = current.planTag
+            val cleared = if (old == null) current.cart else old.takenOutOf(current.cart)
+            val result = cleared.addAll(additions)
+            if (result !is CartAddAllResult.Added) return result
+            val gone =
+                current.cart.lines
+                    .map { it.lineId }
+                    .filter { cleared.line(it) == null }
+            val next =
+                current.copy(
+                    cart = result.cart,
+                    planTag = planTag(cleared, result, budget, adults, children),
+                    planAdded = true,
+                    issues = gone.fold(current.issues) { issues, lineId -> issues.without(lineId) },
+                )
+            if (mutableState.compareAndSet(current, next)) return result
+        }
+    }
+
+    /** Your order showed "Plan added" for the last plan, so it is not shown again (DEV-112). `false` when none was due. */
+    fun acknowledgePlanAdded(): Boolean = transition({ true }, { it.planAdded }) { it.copy(planAdded = false) }
 
     /**
      * "Pay" on Your order: Reviewing → Submitting, only with something to pay for and nothing left to review
@@ -321,6 +386,29 @@ class OrderSession(
             if (mutableState.compareAndSet(current, change(current))) return true
         }
     }
+
+    private fun planTag(
+        before: Cart,
+        result: CartAddAllResult.Added,
+        budget: Rupiah,
+        adults: Int,
+        children: Int,
+    ): PlanTag {
+        val units =
+            result.lineIds.associateWith { id ->
+                (result.cart.line(id)?.quantity ?: 0) - (before.line(id)?.quantity ?: 0)
+            }
+        return PlanTag(budget, adults, children, result.lineIds, units)
+    }
+
+    /** [cart] without the units this plan added (whole lines when the tag has no quantities). */
+    private fun PlanTag.takenOutOf(cart: Cart): Cart =
+        lineIds.fold(cart) { acc, lineId ->
+            val units = quantities[lineId] ?: Int.MAX_VALUE
+            var next = acc
+            repeat(minOf(units, acc.line(lineId)?.quantity ?: 0)) { next = next.decrement(lineId) }
+            next
+        }
 
     /** The tag, or `null` once one of its lines was edited (architecture §5.1). */
     private fun PlanTag?.without(lineId: String): PlanTag? = this?.takeUnless { lineId in it.lineIds }

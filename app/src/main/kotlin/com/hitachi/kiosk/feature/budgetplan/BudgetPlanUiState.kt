@@ -3,8 +3,6 @@ package com.hitachi.kiosk.feature.budgetplan
 import androidx.compose.runtime.Immutable
 import com.hitachi.kiosk.core.designsystem.component.RollDirection
 import com.hitachi.kiosk.core.domain.planner.PlanKind
-import com.hitachi.kiosk.core.domain.planner.PlanTolerance
-import com.hitachi.kiosk.core.domain.planner.SwapPart
 
 /** The two steps of SCR-19 (architecture §11: one route, an internal step). */
 enum class BudgetPlanStep {
@@ -21,14 +19,19 @@ enum class BudgetPlanStep {
  *
  * @property loaded false until the cached catalog has been read; the screen then shows only its background.
  * @property budget the budget, formatted; "Rp 0" until one is chosen (TC-166).
+ * @property hasBudget a budget is chosen: the amount is drawn in ink, the caption names the per-person amount, and
+ *   the dock shows the amount instead of "Choose a budget to continue" (D-35, A-46).
+ * @property perPerson the budget divided by the group, rounded down to Rp 100, formatted; `null` without a budget.
  * @property chips the quick budgets from config `quickBudgets`.
  * @property otherChip "Other" (no custom amount) or "Edit" (a custom amount, drawn selected).
  * @property groupTooLarge more people than [maxGroupSize]: the group card and the disabled "Reduce group" dock.
  * @property canSeePlans "See plans" is enabled: a budget, a group within the limit and a plan.
  * @property plan step 2's content, or `null` when there is no plan for the inputs.
  * @property keypad the "Other" keypad while it is open.
- * @property customize the Customize sheet while it is open.
- * @property added "Added to order" is showing; Your order opens 1 s later (FR-032 AC5).
+ * @property swap the swap picker while it is open (DEV-109).
+ * @property added "Added to order" is showing; Your order opens about 0.6 s later (FR-032 AC5, DEV-112).
+ * @property cartFull the plan was refused because it would break the cart limits: the message shows and the dock
+ *   button becomes "Review order" (FR-032 AC15, DEV-111).
  * @property cartCount units in the order, for the "My order" badge.
  */
 @Immutable
@@ -36,9 +39,11 @@ data class BudgetPlanUiState(
     val loaded: Boolean = false,
     val step: BudgetPlanStep = BudgetPlanStep.TABLE,
     val budget: String = "",
+    val hasBudget: Boolean = false,
+    val perPerson: String? = null,
     val chips: List<BudgetChipUi> = emptyList(),
     val otherChip: OtherChip = OtherChip.OTHER,
-    val adults: Int = MIN_ADULTS,
+    val adults: Int = DEFAULT_ADULTS,
     val children: Int = MIN_CHILDREN,
     val adultsRoll: RollDirection = RollDirection.UP,
     val childrenRoll: RollDirection = RollDirection.UP,
@@ -47,10 +52,11 @@ data class BudgetPlanUiState(
     val canSeePlans: Boolean = false,
     val plan: PlanUi? = null,
     val keypad: KeypadUi? = null,
-    val customize: CustomizeUi? = null,
-    val includedExpanded: Boolean = false,
+    val swap: SwapSheetUi? = null,
+    val includedExpanded: Boolean = true,
     val priceExpanded: Boolean = false,
     val added: Boolean = false,
+    val cartFull: Boolean = false,
     val cartCount: Int = 0,
 ) {
     val people: Int get() = adults + children
@@ -68,6 +74,9 @@ data class BudgetPlanUiState(
         const val MIN_ADULTS: Int = 1
         const val MIN_CHILDREN: Int = 0
         const val MAX_PER_STEPPER: Int = 10
+
+        /** Adults start at 2 and children at 0 (A-46, D-35). */
+        const val DEFAULT_ADULTS: Int = 2
 
         /** Config `maxGroupSize` default (FR-032). */
         const val DEFAULT_MAX_GROUP: Int = 10
@@ -89,11 +98,17 @@ data class BudgetChipUi(
 /** The fifth chip: "Other" opens the keypad; once a custom amount is set it reads "Edit" and is selected. */
 enum class OtherChip { OTHER, EDIT }
 
-/** The "Other" keypad: the typed [amount] and whether "Use this budget" is enabled (≥ Rp 1.000 after flooring). */
+/**
+ * The "Other" keypad: the typed [amount] (the current budget when it opens) and whether "Use this budget" is enabled
+ * (≥ Rp 1.000 after flooring). [empty] is nothing typed yet, so the amount is drawn in the placeholder grey; [tooLow]
+ * is something typed below Rp 1.000, so "Minimum Rp 1.000" shows under it in the warning color (FR-032, TC-198).
+ */
 @Immutable
 data class KeypadUi(
     val amount: String,
     val canUse: Boolean,
+    val empty: Boolean = false,
+    val tooLow: Boolean = false,
 )
 
 /** The keys of the budget keypad, in grid order (`BudgetPas.dc.html`). */
@@ -117,23 +132,26 @@ enum class KeypadKey(
 /** Step 2's title (FR-032): both plans, an exact match, or one plan. */
 enum class PlanTitle { TWO_PLANS, PERFECT_FIT, YOUR_PLAN }
 
-/** Which of the two plans a segment shows. */
+/** Which of the two plans a card shows. */
 enum class PlanSide { UNDER, OVER }
 
 /**
  * Step 2 "Your plan" for the chosen plan.
  *
- * @property options "Just under | Just over"; empty when there is only one plan (FR-032, AC10).
+ * @property cards the two selectable plan cards, "Within your budget" and "A little extra"; empty when there is only
+ *   one plan, which the [hero] card shows (FR-032, AC10).
  * @property notes the lines under the hero card's meta, in order.
- * @property groups "What's included", per person then the shared items.
+ * @property options the "Add sides" and "Add desserts" chips, the over-budget switch and "Reset to suggested".
+ * @property groups "What's included": one meal per person, then "For the table".
  * @property lastSwap the item just swapped, which slides in; [swapSerial] grows with every swap.
  */
 @Immutable
 data class PlanUi(
     val title: PlanTitle,
-    val options: List<PlanOptionUi>,
+    val cards: List<PlanCardUi>,
     val hero: HeroUi,
     val notes: List<PlanNote>,
+    val options: PlanOptionsUi,
     val groups: List<PlanGroupUi>,
     val itemCount: Int,
     val price: PriceDetailsUi,
@@ -141,12 +159,27 @@ data class PlanUi(
     val swapSerial: Int = 0,
 )
 
-/** One segment of "Just under | Just over". */
+/** One of the two plan cards: its [kind] is UNDER or OVER, [delta] the amount left or over, [items] its item count. */
 @Immutable
-data class PlanOptionUi(
+data class PlanCardUi(
     val side: PlanSide,
     val total: String,
+    val delta: String,
+    val items: Int,
     val selected: Boolean,
+)
+
+/**
+ * The options of Step 2: [overCapPercent] is config `overCapPercent`; [canReset] is true once an option or an item
+ * differs from the suggestion.
+ */
+@Immutable
+data class PlanOptionsUi(
+    val includeSides: Boolean,
+    val includeDesserts: Boolean,
+    val allowOver: Boolean,
+    val overCapPercent: Int,
+    val canReset: Boolean,
 )
 
 /**
@@ -174,14 +207,14 @@ sealed interface PlanNote {
         val percent: Int,
     ) : PlanNote
 
-    /** "Strict budget: only plans at or under your budget are shown." */
-    data object Strict : PlanNote
+    /** "A second plan is hidden while "Allow a little over budget" is off." */
+    data object OverOff : PlanNote
 
     /** "Kids' menu not available": children got the cheapest main (BR-14, D-28). */
     data object KidsMenuUnavailable : PlanNote
 }
 
-/** One group of "What's included" and of the Customize item list. */
+/** One group of "What's included": a person's meal, or the table's shared items. */
 @Immutable
 data class PlanGroupUi(
     val label: PlanGroupLabel,
@@ -195,21 +228,23 @@ sealed interface PlanGroupLabel {
         val number: Int,
     ) : PlanGroupLabel
 
+    /** "Child 1 · kid-friendly" when the main is tagged kid-friendly. */
     data class Child(
         val number: Int,
+        val kidFriendly: Boolean = false,
     ) : PlanGroupLabel
 
-    /** "Adult 1 & 2 · sharing": a two-person meal. */
+    /** "Adults 1 & 2 · sharing": a two-person meal. */
     data class Sharing(
         val first: Int,
         val second: Int,
     ) : PlanGroupLabel
 
-    /** "Shared": the table's sides and desserts. */
+    /** "For the table": the table's sides and desserts. */
     data object Shared : PlanGroupLabel
 }
 
-/** One planned item; [swap] is `null` for an item without "Swap" (a shared meal). */
+/** One planned meal or extra; [swap] opens the swap picker for it. */
 @Immutable
 data class PlanItemUi(
     val name: String,
@@ -220,15 +255,12 @@ data class PlanItemUi(
     val swap: SwapTarget?,
 )
 
-/** The small line under an item's name ("Main · kid-friendly", "Meal · Cheeseburger · fries · cola"). */
+/** The small line under an item's name: "Main + drink", what a combo includes, or "Side". */
 @Immutable
 sealed interface PlanItemMeta {
-    data object Main : PlanItemMeta
+    data object MainAndDrink : PlanItemMeta
 
-    data object KidMain : PlanItemMeta
-
-    data object Drink : PlanItemMeta
-
+    /** A one-person combo; [includes] is "fries, cola" when the menu says. */
     data class Meal(
         val includes: String?,
     ) : PlanItemMeta
@@ -240,16 +272,23 @@ sealed interface PlanItemMeta {
     data object Side : PlanItemMeta
 
     data object Dessert : PlanItemMeta
+
+    /** "Cheeseburger + Cola, twice": a swap row for two separate meals. */
+    data class Twice(
+        val pair: String,
+    ) : PlanItemMeta
 }
 
-/** Which item a "Swap" replaces: a pick of the plan and the part of it. */
+/** Which pick of the plan a "Swap" button changes. */
 @Immutable
 data class SwapTarget(
     val pickIndex: Int,
-    val part: SwapPart,
 )
 
-/** "Price details": the same breakdown as checkout (FR-013). [rounding] shows only when it is not zero. */
+/**
+ * "Price details": the same breakdown as checkout (FR-013). [rounding] shows only when it is not zero; [comboSavings]
+ * is what the plan's combos save over buying the same food apart, already included in the total.
+ */
 @Immutable
 data class PriceDetailsUi(
     val subtotal: String,
@@ -258,18 +297,67 @@ data class PriceDetailsUi(
     val taxLabel: String?,
     val tax: String,
     val rounding: String?,
+    val comboSavings: String?,
     val total: String,
 )
 
-/** The Customize sheet (DEV-043a). [canReset] is true once an item was swapped. */
+/**
+ * The swap picker (DEV-109, `S_BudgetPas_swapOpen`): [title] says what is being swapped, [planTotal] is the plan's
+ * total now, and [rows] are the current choice and its alternatives with the price change and the new total.
+ */
 @Immutable
-data class CustomizeUi(
-    val includeSides: Boolean,
-    val includeDesserts: Boolean,
-    val tolerance: PlanTolerance,
-    val overCapPercent: Int,
-    val canReset: Boolean,
+data class SwapSheetUi(
+    val title: SwapTitle,
+    val planTotal: String,
+    val rows: List<SwapRowUi>,
 )
+
+/** The picker's heading. */
+@Immutable
+sealed interface SwapTitle {
+    data class Adult(
+        val number: Int,
+    ) : SwapTitle
+
+    data class Child(
+        val number: Int,
+    ) : SwapTitle
+
+    data object SharedMeal : SwapTitle
+
+    data object SharedSide : SwapTitle
+
+    data object SharedDessert : SwapTitle
+}
+
+/**
+ * One picker row. [name] is `null` for "Two separate meals". [change] is the plan total's change; [total] the plan
+ * total after choosing the row.
+ */
+@Immutable
+data class SwapRowUi(
+    val name: String?,
+    val meta: PlanItemMeta,
+    val imageUrl: String?,
+    val tone: String?,
+    val current: Boolean,
+    val change: PriceChange,
+    val total: String,
+)
+
+/** "Same price", "+Rp 2.000" or "-Rp 1.000". */
+@Immutable
+sealed interface PriceChange {
+    data object Same : PriceChange
+
+    data class Up(
+        val amount: String,
+    ) : PriceChange
+
+    data class Down(
+        val amount: String,
+    ) : PriceChange
+}
 
 /** What SCR-19 can ask for. */
 sealed interface BudgetPlanEvent {
@@ -311,7 +399,7 @@ sealed interface BudgetPlanEvent {
     /** The "My order" pill. */
     data object ViewOrder : BudgetPlanEvent
 
-    /** "Just under" or "Just over". */
+    /** One of the two plan cards. */
     data class SelectPlan(
         val side: PlanSide,
     ) : BudgetPlanEvent
@@ -319,11 +407,6 @@ sealed interface BudgetPlanEvent {
     data object ToggleIncluded : BudgetPlanEvent
 
     data object TogglePriceDetails : BudgetPlanEvent
-
-    data object OpenCustomize : BudgetPlanEvent
-
-    /** "Done", the close button or the scrim. */
-    data object CloseCustomize : BudgetPlanEvent
 
     data class SetIncludeSides(
         val include: Boolean,
@@ -333,13 +416,23 @@ sealed interface BudgetPlanEvent {
         val include: Boolean,
     ) : BudgetPlanEvent
 
-    data class SetTolerance(
-        val tolerance: PlanTolerance,
+    /** The "Allow a little over budget" switch. */
+    data class SetAllowOver(
+        val allow: Boolean,
     ) : BudgetPlanEvent
 
+    /** A "Swap" button: opens the picker for that pick. */
     data class Swap(
         val target: SwapTarget,
     ) : BudgetPlanEvent
+
+    /** A row of the swap picker (an index into [SwapSheetUi.rows]). The current row does nothing. */
+    data class PickAlternative(
+        val index: Int,
+    ) : BudgetPlanEvent
+
+    /** "Done", the close button or the scrim of the swap picker. */
+    data object CloseSwap : BudgetPlanEvent
 
     /** "Reset to suggested". */
     data object ResetPlan : BudgetPlanEvent

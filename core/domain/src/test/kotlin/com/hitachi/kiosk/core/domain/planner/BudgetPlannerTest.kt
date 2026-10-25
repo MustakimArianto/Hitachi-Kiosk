@@ -1,6 +1,7 @@
 package com.hitachi.kiosk.core.domain.planner
 
 import com.google.common.truth.Truth.assertThat
+import com.google.common.truth.Truth.assertWithMessage
 import com.hitachi.kiosk.core.domain.model.Menu
 import com.hitachi.kiosk.core.domain.model.ProductRole
 import com.hitachi.kiosk.core.domain.model.Rupiah
@@ -151,6 +152,156 @@ class BudgetPlannerTest {
 
         items.filter { it.id == "r1" }.forEach { assertThat(it.choices).isNotEmpty() }
     }
+
+    @Test
+    fun `a combo diner has no extra side, desserts are unaffected (OQ-15, TC-204)`() {
+        val combos = planner(cheapCombos())
+        val plans =
+            listOf(1 to 0, 2 to 0, 2 to 1, 3 to 1).flatMap { (adults, children) ->
+                (40_000L..300_000L step 100L).flatMap { budget ->
+                    (combos.plan(PlanRequest(Rupiah(budget), adults, children)) as PlanResult.Plans)
+                        .plans
+                        .map { Triple(adults + children, budget, it) }
+                }
+            }
+
+        plans.forEach { (people, budget, plan) ->
+            val comboDiners = plan.picks.sumOf { comboDinersOf(it) }
+            val sides = plan.picks.count { it is PlanPick.Extra && it.item.role == PlanRole.SIDE }
+            val extras = plan.picks.count { it is PlanPick.Extra }
+            assertWithMessage("$people people at $budget").that(sides).isAtMost(people - comboDiners)
+            assertWithMessage("$people people at $budget").that(extras).isAtMost(people)
+        }
+        assertThat(plans.count { (_, _, plan) -> plan.picks.sumOf { comboDinersOf(it) } > 0 }).isGreaterThan(0)
+    }
+
+    @Test
+    fun `two adults who share a meal for two get no sides at all, only desserts (OQ-15)`() {
+        val combos = planner(cheapCombos())
+        val shared =
+            (60_000L..300_000L step 100L)
+                .map { combos.plan(PlanRequest(Rupiah(it), 2, 0)) as PlanResult.Plans }
+                .flatMap { it.plans }
+                .filter { plan -> plan.picks.any { it is PlanPick.SharedMeal } }
+
+        assertThat(shared).isNotEmpty()
+        shared.forEach { plan ->
+            val extras = plan.picks.filterIsInstance<PlanPick.Extra>()
+            assertThat(extras.map { it.item.role }).containsNoneIn(listOf(PlanRole.SIDE))
+        }
+    }
+
+    @Test
+    fun `alternatives list the current choice first and each row carries its price change (TC-200)`() {
+        val request = PlanRequest(Rupiah(150_000), 2, 1)
+        val plan = (planner.plan(request) as PlanResult.Plans).hero
+        val index = plan.picks.indexOfFirst { it is PlanPick.MainAndDrink && !it.diner.isChild }
+
+        val rows = planner.alternatives(request, plan, index)
+
+        assertThat(rows.first().isCurrent).isTrue()
+        assertThat(rows.first().plan).isEqualTo(plan)
+        assertThat(rows.first().change).isEqualTo(0L)
+        assertThat(rows.drop(1).none { it.isCurrent }).isTrue()
+        rows.drop(1).forEach { row ->
+            assertThat(row.change).isEqualTo(row.plan.total.value - plan.total.value)
+            assertThat(row.plan.total.value).isAtMost(150_000L)
+            assertThat(row.replacement.single()).isNotEqualTo(plan.picks[index])
+            BudgetPlannerTest.assertCovers(row.plan, 2, 1)
+        }
+        assertThat(rows.drop(1).map { it.plan.total.value }).isInOrder()
+        assertThat(rows.size - 1).isAtMost(BudgetPlanner.MAX_ALTERNATIVES)
+    }
+
+    @Test
+    fun `an adult's alternatives mix combos and main plus drink pairs, a child's are kid-friendly pairs`() {
+        val request = PlanRequest(Rupiah(200_000), 2, 1)
+        val plan = (planner.plan(request) as PlanResult.Plans).hero
+        val adult = plan.picks.indexOfFirst { it is PlanPick.MainAndDrink && !it.diner.isChild }
+        val child = plan.picks.indexOfFirst { it is PlanPick.MainAndDrink && it.diner.isChild }
+
+        val adultRows = planner.alternatives(request, plan, adult)
+        val childRows = planner.alternatives(request, plan, child)
+
+        val kinds = adultRows.map { it.replacement.single()::class }
+        assertThat(kinds).contains(PlanPick.MainAndDrink::class)
+        assertThat(kinds).contains(PlanPick.Meal::class)
+        assertThat(childRows).isNotEmpty()
+        childRows.forEach { row ->
+            val pick = row.replacement.single() as PlanPick.MainAndDrink
+            assertThat(pick.diner.isChild).isTrue()
+            assertThat(pick.main.id).isIn(listOf("b1", "c3", "r2"))
+            assertThat(pick.drink.id).isIn(listOf("d2", "d4"))
+        }
+    }
+
+    @Test
+    fun `a shared meal for two swaps for another one or for two separate meals`() {
+        val combos = planner(cheapCombos())
+        // A plan with a shared meal, then the picker with a roomier budget so the dearer separate meals fit.
+        val plan =
+            (60_000L..300_000L step 100L)
+                .flatMap { (combos.plan(PlanRequest(Rupiah(it), 2, 0)) as PlanResult.Plans).plans }
+                .first { plan -> plan.picks.any { it is PlanPick.SharedMeal } }
+        val index = plan.picks.indexOfFirst { it is PlanPick.SharedMeal }
+
+        val rows = combos.alternatives(PlanRequest(Rupiah(400_000), 2, 0), plan, index)
+
+        assertThat(rows.first().isCurrent).isTrue()
+        val separate = rows.filter { it.replacement.size == 2 }
+        assertThat(separate).hasSize(1)
+        assertThat(separate.single().replacement.all { it is PlanPick.MainAndDrink }).isTrue()
+        assertThat(separate.single().change).isGreaterThan(0L)
+        rows.forEach { BudgetPlannerTest.assertCovers(it.plan, 2, 0) }
+    }
+
+    @Test
+    fun `a shared meal is not offered as separate meals when they would break the budget`() {
+        val combos = planner(cheapCombos())
+        val plan =
+            (60_000L..300_000L step 100L)
+                .flatMap { (combos.plan(PlanRequest(Rupiah(it), 2, 0)) as PlanResult.Plans).plans }
+                .first { plan -> plan.picks.any { it is PlanPick.SharedMeal } }
+        val index = plan.picks.indexOfFirst { it is PlanPick.SharedMeal }
+
+        val rows = combos.alternatives(PlanRequest(plan.total, 2, 0), plan, index)
+
+        assertThat(rows.none { it.replacement.size == 2 }).isTrue()
+        rows.forEach { assertThat(it.plan.total.value).isAtMost(plan.total.value) }
+    }
+
+    @Test
+    fun `an extra swaps for another extra of its kind, and an unknown pick has none`() {
+        val request = PlanRequest(Rupiah(100_000), 1, 0)
+        val plan = (planner.plan(request) as PlanResult.Plans).hero
+        val index = plan.picks.indexOfFirst { it is PlanPick.Extra }
+        val extra = plan.picks[index] as PlanPick.Extra
+
+        val rows = planner.alternatives(request, plan, index)
+
+        rows
+            .drop(
+                1,
+            ).forEach { assertThat((it.replacement.single() as PlanPick.Extra).item.role).isEqualTo(extra.item.role) }
+        assertThat(planner.alternatives(request, plan, plan.picks.size)).isEmpty()
+        assertThat(planner.alternatives(request, plan, -1)).isEmpty()
+    }
+
+    /** Combos cheaper than the same food apart, so a plan can reach totals only they reach (OQ-15, TC-204). */
+    private fun cheapCombos(): Menu =
+        SampleData.menu.copy(
+            combos =
+                SampleData.menu.combos.map {
+                    it.copy(price = Rupiah(if (it.serves == 2) 60_000L else 30_000L + it.price.value % 5_000L))
+                },
+        )
+
+    private fun comboDinersOf(pick: PlanPick): Int =
+        when (pick) {
+            is PlanPick.Meal -> 1
+            is PlanPick.SharedMeal -> 2
+            else -> 0
+        }
 
     private fun plans(
         budget: Long,

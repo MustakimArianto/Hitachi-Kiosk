@@ -81,5 +81,21 @@ internal object MenuTestStates {
     val MaxQty: MenuUiState
         get() = board(MenuSelection.Category("cat_drinks"), order = sampleOrder(teaQuantity = 20), showMaxToast = true)
 
+    /** `S_Menu_drinksTab`: the header pill without the slim row. */
+    val DrinksTab: MenuUiState get() = board(MenuSelection.Category("cat_drinks"))
+
+    /** `S_Menu_planOff`: `budgetPlanner.enabled` is false, so neither entry shows (AC7). */
+    val PlanOff: MenuUiState
+        get() =
+            board(
+                catalog =
+                    SampleData.catalog.copy(
+                        config =
+                            SampleData.config.copy(
+                                budgetPlanner = SampleData.config.budgetPlanner.copy(enabled = false),
+                            ),
+                    ),
+            )
+
     val Burgers: MenuUiState get() = board(MenuSelection.Category("cat_burgers"))
 }

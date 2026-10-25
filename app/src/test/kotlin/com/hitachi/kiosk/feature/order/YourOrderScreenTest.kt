@@ -200,7 +200,122 @@ class YourOrderScreenTest {
     fun `a Budget Plan order shows its tag row`() {
         show(YourOrderTestStates.Plan)
 
-        composeRule.onNodeWithTag(YOUR_ORDER_PLAN_TAG).assert(hasText("Budget Plan"))
-        composeRule.onNodeWithTag(YOUR_ORDER_PLAN_TAG).assert(hasText("2 adults · 1 child · Rp 150.000"))
+        composeRule.onNodeWithTag(YOUR_ORDER_PLAN_TAG).assertExists()
+        composeRule.onNodeWithText("Budget Plan", useUnmergedTree = true).assertExists()
+        composeRule.onNodeWithText("2 adults · 1 child · Rp 150.000", useUnmergedTree = true).assertExists()
+    }
+
+    @Test
+    fun `Edit plan on the plan row sends EditPlan (TC-203)`() {
+        show(YourOrderTestStates.Plan)
+
+        composeRule.onNodeWithTag(YOUR_ORDER_EDIT_PLAN_TAG).assertContentDescriptionEquals("Edit plan").performClick()
+
+        assertThat(events).containsExactly(YourOrderEvent.EditPlan)
+    }
+
+    @Test
+    fun `the Plan added confirmation shows after a plan was added (DEV-112)`() {
+        show(YourOrderTestStates.PlanAdded)
+
+        composeRule.onNodeWithTag(YOUR_ORDER_PLAN_ADDED_TAG).assertExists()
+        composeRule.onNodeWithText("Plan added", useUnmergedTree = true).assertExists()
+    }
+
+    @Test
+    fun `the empty tray offers Plan by budget only when the planner is on (TC-202)`() {
+        show(YourOrderTestStates.EmptyTray)
+
+        composeRule
+            .onNodeWithTag(
+                YOUR_ORDER_EMPTY_PLAN_TAG,
+            ).assertContentDescriptionEquals("Plan by budget")
+            .performClick()
+
+        assertThat(events).containsExactly(YourOrderEvent.OpenBudgetPlan)
+    }
+
+    @Test
+    fun `without the planner the empty tray has no Plan by budget (AC16)`() {
+        show(YourOrderTestStates.EmptyTrayNoPlan)
+
+        composeRule.onNodeWithTag(YOUR_ORDER_EMPTY_PLAN_TAG).assertDoesNotExist()
+        composeRule.onNodeWithTag(YOUR_ORDER_BACK_TO_MENU_TAG).assertExists()
+    }
+
+    @Test
+    fun `the strip shows up to three cards with a drink first and sends add (TC-194, TC-196)`() {
+        show(YourOrderTestStates.Suggestions)
+
+        composeRule.onNodeWithTag(YOUR_ORDER_SUGGESTIONS_TAG).performScrollTo()
+        composeRule.onNodeWithText("Goes well with your order").assertExists()
+        composeRule.onNodeWithText("Fits your budget").assertDoesNotExist()
+        composeRule.onNodeWithTag(suggestionCardTag("add:d1")).assertExists()
+        composeRule.onNodeWithTag(suggestionCardTag("add:s1")).assertExists()
+        composeRule.onNodeWithTag(suggestionCardTag("add:e1")).assertExists()
+        composeRule.onNodeWithText("Drink").assertExists()
+        composeRule
+            .onNodeWithTag(suggestionAddTag("add:d1"))
+            .assertContentDescriptionEquals("Add Iced Lychee Tea")
+            .performClick()
+        composeRule.onNodeWithTag(suggestionDecrementTag("add:d1")).assertDoesNotExist()
+
+        assertThat(events).containsExactly(YourOrderEvent.SuggestionAdd("add:d1"))
+    }
+
+    @Test
+    fun `an added card shows its stepper, and minus and plus send their events (TC-196)`() {
+        show(YourOrderTestStates.SuggestionAdded)
+
+        composeRule.onNodeWithTag(YOUR_ORDER_SUGGESTIONS_TAG).performScrollTo()
+        composeRule.onNodeWithTag(suggestionAddTag("add:d1")).assertDoesNotExist()
+        composeRule
+            .onNodeWithTag(suggestionDecrementTag("add:d1"))
+            .assertContentDescriptionEquals("Remove one Iced Lychee Tea")
+            .performClick()
+        composeRule
+            .onNodeWithTag(suggestionIncrementTag("add:d1"))
+            .assertContentDescriptionEquals("Add one more Iced Lychee Tea")
+            .performClick()
+        // The other cards keep their "Add" button.
+        composeRule.onNodeWithTag(suggestionAddTag("add:s1")).assertExists()
+
+        assertThat(events)
+            .containsExactly(YourOrderEvent.SuggestionRemove("add:d1"), YourOrderEvent.SuggestionAdd("add:d1"))
+            .inOrder()
+    }
+
+    @Test
+    fun `a Budget Plan strip says it fits the budget (TC-197)`() {
+        show(YourOrderTestStates.SuggestionBudget)
+
+        composeRule.onNodeWithTag(YOUR_ORDER_SUGGESTIONS_TAG).performScrollTo()
+        composeRule.onNodeWithText("Fits your budget").assertExists()
+    }
+
+    @Test
+    fun `the meal card leads, shows its plus price and its stepper dims plus at the limit (TC-205)`() {
+        show(YourOrderTestStates.SuggestionMeal)
+
+        composeRule.onNodeWithTag(YOUR_ORDER_SUGGESTIONS_TAG).performScrollTo()
+        composeRule.onNodeWithText("Make it a meal").assertExists()
+        composeRule.onNodeWithText("Adds fries & a drink").assertExists()
+        composeRule.onNodeWithText("+Rp 18.000").assertExists()
+        composeRule.onNodeWithText("Upgrade").assertExists()
+        composeRule.onNodeWithTag(suggestionAddTag("meal:b2")).performClick()
+        assertThat(events).containsExactly(YourOrderEvent.SuggestionAdd("meal:b2"))
+
+        state = YourOrderTestStates.SuggestionMealOn
+        composeRule.onNodeWithTag(suggestionAddTag("meal:b2")).assertDoesNotExist()
+        composeRule.onNodeWithTag(suggestionIncrementTag("meal:b2")).assert(disabled)
+        composeRule.onNodeWithTag(suggestionDecrementTag("meal:b2")).performClick()
+        assertThat(events.last()).isEqualTo(YourOrderEvent.SuggestionRemove("meal:b2"))
+    }
+
+    @Test
+    fun `without suggestions no strip is drawn (TC-194, AC1, AC4)`() {
+        show(YourOrderTestStates.Default)
+        composeRule.onNodeWithTag(YOUR_ORDER_SUGGESTIONS_TAG).assertDoesNotExist()
+        composeRule.onNodeWithTag(YOUR_ORDER_PAY_TAG).assertIsEnabled()
     }
 }

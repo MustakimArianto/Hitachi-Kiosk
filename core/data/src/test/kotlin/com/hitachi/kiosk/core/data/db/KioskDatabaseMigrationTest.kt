@@ -17,8 +17,9 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 
 /**
- * 1 → 2 (0.5.0) adds `pending_order` and keeps the cache tables (technical-design §6.1, TR-DAT-04, TR-REL-09). The
- * helper reads the committed `schemas/…/1.json` and `2.json` and validates the migrated database against version 2.
+ * 1 → 2 (0.5.0) adds `pending_order` and keeps the cache tables (technical-design §6.1, TR-DAT-04, TR-REL-09); 2 → 3
+ * (0.6.0) adds `modifier_group.purpose`. The helper reads the committed `schemas/…/N.json` files and validates each
+ * migrated database against its target version.
  */
 @RunWith(RobolectricTestRunner::class)
 class KioskDatabaseMigrationTest {
@@ -118,8 +119,30 @@ class KioskDatabaseMigrationTest {
         }
 
     @Test
-    fun `the registered migrations are exactly 1 to 2`() {
-        assertThat(KIOSK_MIGRATIONS.map { it.startVersion to it.endVersion }).containsExactly(1 to 2)
+    fun `migrating 2 to 3 adds a null purpose to the modifier groups and keeps the rows (DEV-114)`() {
+        helper.createDatabase(DB, 2).apply {
+            execSQL(
+                "INSERT INTO modifier_group (id, position, nameEn, nameId, type, required, min, max) " +
+                    "VALUES ('mg_meal_upgrade', 0, 'Make it a meal?', NULL, 'SINGLE', 1, 1, 1)",
+            )
+            close()
+        }
+
+        val migrated = helper.runMigrationsAndValidate(DB, 3, true, MIGRATION_2_3)
+
+        migrated.query("SELECT id, nameEn, purpose FROM modifier_group").use {
+            assertThat(it.count).isEqualTo(1)
+            it.moveToFirst()
+            assertThat(it.getString(0)).isEqualTo("mg_meal_upgrade")
+            assertThat(it.getString(1)).isEqualTo("Make it a meal?")
+            assertThat(it.isNull(2)).isTrue()
+        }
+        migrated.close()
+    }
+
+    @Test
+    fun `the registered migrations are exactly 1 to 2 and 2 to 3`() {
+        assertThat(KIOSK_MIGRATIONS.map { it.startVersion to it.endVersion }).containsExactly(1 to 2, 2 to 3).inOrder()
     }
 
     private companion object {

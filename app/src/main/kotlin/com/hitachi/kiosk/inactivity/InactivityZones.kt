@@ -7,7 +7,6 @@ import com.hitachi.kiosk.navigation.ComboRoute
 import com.hitachi.kiosk.navigation.ItemDetailRoute
 import com.hitachi.kiosk.navigation.MenuRoute
 import com.hitachi.kiosk.navigation.OrderTypeRoute
-import com.hitachi.kiosk.navigation.UpsellRoute
 import com.hitachi.kiosk.navigation.YourOrderRoute
 
 /**
@@ -23,7 +22,6 @@ fun NavDestination?.inactivityZone(): InactivityZone =
         hasRoute<MenuRoute>() ||
             hasRoute<ComboRoute>() ||
             hasRoute<ItemDetailRoute>() ||
-            hasRoute<UpsellRoute>() ||
             hasRoute<YourOrderRoute>() ||
             hasRoute<BudgetPlanRoute>() -> InactivityZone.ORDERING
 

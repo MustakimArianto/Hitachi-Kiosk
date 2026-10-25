@@ -13,6 +13,7 @@ import com.hitachi.kiosk.feature.activation.SignInRoute as SignInFeatureRoute
 import com.hitachi.kiosk.feature.budgetplan.BudgetPlanRoute as BudgetPlanFeatureRoute
 import com.hitachi.kiosk.feature.checkout.CheckoutRoute as CheckoutFeatureRoute
 import com.hitachi.kiosk.feature.combo.ComboRoute as ComboFeatureRoute
+import com.hitachi.kiosk.feature.complete.CompleteRoute as CompleteFeatureRoute
 import com.hitachi.kiosk.feature.idle.IdleRoute as IdleFeatureRoute
 import com.hitachi.kiosk.feature.item.ItemDetailRoute as ItemDetailFeatureRoute
 import com.hitachi.kiosk.feature.menu.MenuRoute as MenuFeatureRoute
@@ -20,11 +21,10 @@ import com.hitachi.kiosk.feature.merchant.MerchantsRoute as MerchantsFeatureRout
 import com.hitachi.kiosk.feature.order.YourOrderRoute as YourOrderFeatureRoute
 import com.hitachi.kiosk.feature.ordertype.OrderTypeRoute as OrderTypeFeatureRoute
 import com.hitachi.kiosk.feature.splash.SplashRoute as SplashFeatureRoute
-import com.hitachi.kiosk.feature.upsell.UpsellRoute as UpsellFeatureRoute
 
 /**
  * The navigation graph of architecture §11 with every edge of PRD §5.1 (DEV-010a). Splash, Sign in and Choose a
- * restaurant (0.2.0), Idle, Order type, Menu, Item detail and Combo (0.3.0), and Upsell, Your order and Budget Plan
+ * restaurant (0.2.0), Idle, Order type, Menu, Item detail and Combo (0.3.0), and Your order and Budget Plan
  * (0.4.0) are the real screens; every other destination is a [PlaceholderScreen] until its milestone replaces it with
  * the feature's `XxxRoute`. The SCR-13 overlay lives above this host in [KioskRoot].
  *
@@ -90,13 +90,12 @@ private fun NavGraphBuilder.orderingDestinations(navController: NavHostControlle
         MenuFeatureRoute(
             onOpenProduct = { productId -> navController.navigate(ItemDetailRoute(productId = productId)) },
             onOpenCombos = { navController.navigate(ComboRoute()) },
-            onOpenBudgetPlan = { navController.navigate(BudgetPlanRoute) { launchSingleTop = true } },
+            onOpenBudgetPlan = { navController.navigate(BudgetPlanRoute()) { launchSingleTop = true } },
             // The cart is kept when the order type changes (PRD §5.1).
             onChangeOrderType = { navController.popBackStack(OrderTypeRoute, false) },
             // Entering Idle ends the order and clears the cart (FR-009 AC4).
             onCancel = { navController.popBackStack(IdleRoute, false) },
             onViewOrder = { navController.navigate(YourOrderRoute) { launchSingleTop = true } },
-            onOfferUpsell = { navController.navigate(UpsellRoute) { launchSingleTop = true } },
         )
     }
     composable<ItemDetailRoute> {
@@ -119,19 +118,16 @@ private fun NavGraphBuilder.orderingDestinations(navController: NavHostControlle
     }
 }
 
-/** SCR-09…SCR-12: upsell, review, payment and completion. */
+/** SCR-10…SCR-12: review (with the suggestion strip), payment and completion. */
 private fun NavGraphBuilder.checkoutDestinations(navController: NavHostController) {
-    composable<UpsellRoute> {
-        UpsellFeatureRoute(
-            onNavigateToYourOrder = { navController.navigateToYourOrder() },
-            onNavigateToMenu = { navController.popBackStack(MenuRoute, false) },
-        )
-    }
     composable<YourOrderRoute> {
         YourOrderFeatureRoute(
             onBackToMenu = { navController.popBackStack(MenuRoute, false) },
             // Checkout submits the order (E7) and starts the payment with the chosen method (FR-016).
             onPay = { method -> navController.navigate(CheckoutRoute(method)) { launchSingleTop = true } },
+            // "Plan by budget" in the empty tray and "Edit plan" on the plan row open SCR-19 (FR-032, DEV-110, DEV-111).
+            onOpenBudgetPlan = { navController.navigate(BudgetPlanRoute()) { launchSingleTop = true } },
+            onEditPlan = { navController.navigate(BudgetPlanRoute(edit = true)) { launchSingleTop = true } },
         )
     }
     composable<CheckoutRoute> {
@@ -145,11 +141,8 @@ private fun NavGraphBuilder.checkoutDestinations(navController: NavHostControlle
         )
     }
     composable<CompleteRoute> {
-        PlaceholderScreen(
-            screenId = "SCR-12",
-            title = R.string.screen_complete,
-            actions = listOf(PlaceholderAction(R.string.nav_done) { navController.popBackStack(IdleRoute, false) }),
-        )
+        // "Done" and the 20 s timer end the order and return to Idle (FR-020 AC2, AC3).
+        CompleteFeatureRoute(onNavigateToIdle = { navController.popBackStack(IdleRoute, false) })
     }
 }
 

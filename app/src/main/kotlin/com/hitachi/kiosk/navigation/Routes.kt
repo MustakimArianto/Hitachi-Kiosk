@@ -37,9 +37,6 @@ import kotlinx.serialization.Serializable
     val productId: String,
 )
 
-/** SCR-09. */
-@Serializable data object UpsellRoute
-
 /** SCR-10. */
 @Serializable data object YourOrderRoute
 
@@ -59,8 +56,13 @@ import kotlinx.serialization.Serializable
 /** SCR-12. */
 @Serializable data object CompleteRoute
 
-/** SCR-19. One route with an internal step state (step 1 "Your table", step 2 "Your plan"). */
-@Serializable data object BudgetPlanRoute
+/**
+ * SCR-19. One route with an internal step state (step 1 "Your table", step 2 "Your plan"). [edit] opens it on step 2
+ * with the plan already in the cart, from "Edit plan" on Your order (FR-032, DEV-111).
+ */
+@Serializable data class BudgetPlanRoute(
+    val edit: Boolean = false,
+)
 
 /** Nested staff graph, entered only through the PIN gate (SCR-14…SCR-18, SCR-20). */
 @Serializable data object StaffGraph

@@ -2,10 +2,14 @@ package com.hitachi.kiosk.feature.order
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.hitachi.kiosk.core.domain.cart.Cart
 import com.hitachi.kiosk.core.domain.cart.CartAddResult
 import com.hitachi.kiosk.core.domain.cart.CartItem
 import com.hitachi.kiosk.core.domain.cart.CartLimit
 import com.hitachi.kiosk.core.domain.cart.CartLine
+import com.hitachi.kiosk.core.domain.cart.ProductCustomization
+import com.hitachi.kiosk.core.domain.cart.Upsell
+import com.hitachi.kiosk.core.domain.cart.UpsellCard
 import com.hitachi.kiosk.core.domain.device.Connectivity
 import com.hitachi.kiosk.core.domain.device.ConnectivityMonitor
 import com.hitachi.kiosk.core.domain.format.IdrFormatter
@@ -15,6 +19,7 @@ import com.hitachi.kiosk.core.domain.model.KioskSettings
 import com.hitachi.kiosk.core.domain.model.Menu
 import com.hitachi.kiosk.core.domain.model.MerchantConfig
 import com.hitachi.kiosk.core.domain.model.PaymentMethod
+import com.hitachi.kiosk.core.domain.model.ProductRole
 import com.hitachi.kiosk.core.domain.model.Rupiah
 import com.hitachi.kiosk.core.domain.model.Totals
 import com.hitachi.kiosk.core.domain.model.combo
@@ -26,6 +31,7 @@ import com.hitachi.kiosk.core.domain.order.OrderSession
 import com.hitachi.kiosk.core.domain.order.OrderSessionHolder
 import com.hitachi.kiosk.core.domain.order.OrderState
 import com.hitachi.kiosk.core.domain.order.ReviewIssues
+import com.hitachi.kiosk.core.domain.planner.BudgetPlanner
 import com.hitachi.kiosk.core.domain.pricing.PricingEngine
 import com.hitachi.kiosk.core.domain.pricing.PricingRules
 import com.hitachi.kiosk.core.domain.pricing.PromoHint
@@ -55,6 +61,9 @@ private val REMOVE_SLIDE_DURATION = 460.milliseconds
 
 /** How long "Maximum 20 per item" stays on screen (`Menu.dc.html`, scenario `maxQty`). */
 private val MAX_TOAST_DURATION = 2_400.milliseconds
+
+/** How long the green "Plan added" confirmation stays (`Payment.dc.html` `toastLife`, 2 600 ms). */
+private val PLAN_ADDED_DURATION = 2_600.milliseconds
 
 private const val STOP_TIMEOUT_MILLIS = 5_000L
 
@@ -116,6 +125,8 @@ class YourOrderViewModel
             // Architecture §5.1: Upsell or Your order moves the order from Building to Reviewing.
             val session = sessions.current.value
             if (session != null) session.startReviewing() else KioskLog.w("your_order_without_order")
+            // A plan was just added or replaced: confirm it once (DEV-112).
+            if (session?.acknowledgePlanAdded() == true) showPlanAdded()
         }
 
         fun onEvent(event: YourOrderEvent) {
@@ -154,6 +165,18 @@ class YourOrderViewModel
 
                 is YourOrderEvent.SelectMethod -> {
                     local.update { it.copy(selectedMethod = event.method) }
+                }
+
+                is YourOrderEvent.SuggestionAdd -> {
+                    suggestionAdd(event.key)
+                }
+
+                is YourOrderEvent.SuggestionRemove -> {
+                    suggestionRemove(event.key)
+                }
+
+                is YourOrderEvent.PlanDoor -> {
+                    openPlan(event)
                 }
 
                 YourOrderEvent.Pay -> {
@@ -214,6 +237,83 @@ class YourOrderViewModel
             }
         }
 
+        /**
+         * "Add" or "+" on a suggestion card (FR-014 AC3, DEV-114): one unit with the default options, or the meal
+         * option switched on for one unit. The card is held at its slot so the stepper stays where it is.
+         */
+        private fun suggestionAdd(key: String) {
+            val session = session() ?: return
+            val catalog = catalog.value ?: return
+            val order = session.state.value
+            val cards = suggestionCards(catalog, order, settings.value ?: KioskSettings(), local.value)
+            val slot = cards.indexOfFirst { it.key == key }
+            val card = cards.getOrNull(slot) ?: return
+            val result =
+                when (card) {
+                    is UpsellCard.AddProduct -> {
+                        val custom = ProductCustomization.defaults(card.product, catalog.menu)
+                        session.add(custom.toCartItem(), 1, custom.unitPrice, custom.choices())
+                    }
+
+                    is UpsellCard.MakeMeal -> {
+                        val excluded =
+                            order.planTag
+                                ?.lineIds
+                                .orEmpty()
+                                .toSet()
+                        Upsell.mealSwitch(catalog.menu, order.cart, card.product.id, on = true, excluded)?.let {
+                            session.switchOne(it.lineId, it.item, it.unitPrice, it.choices)
+                        }
+                    }
+                }
+            when (result) {
+                is CartAddResult.Added -> {
+                    if (result.capped) showMaxToast()
+                    local.update { it.copy(held = it.held + (key to (it.held[key] ?: slot))) }
+                }
+
+                is CartAddResult.LimitReached -> {
+                    if (result.limit == CartLimit.MAX_PER_LINE) showMaxToast()
+                    KioskLog.i("your_order_suggestion_refused", "limit" to result.limit.name)
+                }
+
+                null -> {
+                    Unit
+                }
+            }
+        }
+
+        /** "−" on a suggestion card: one unit fewer (a line slides out at 0), or the meal option switched off. */
+        private fun suggestionRemove(key: String) {
+            val session = session() ?: return
+            val menu = catalog.value?.menu ?: return
+            val order = session.state.value
+            when (val card = Upsell.card(menu, key)) {
+                is UpsellCard.AddProduct -> {
+                    val defaults = ProductCustomization.defaults(card.product, menu).toCartItem()
+                    val lines =
+                        order.cart.lines.filter { (it.item as? CartItem.ProductItem)?.productId == card.product.id }
+                    val line = lines.firstOrNull { it.item == defaults } ?: lines.lastOrNull()
+                    if (line != null) removeOrDecrement(line.lineId, remove = false)
+                }
+
+                is UpsellCard.MakeMeal -> {
+                    val excluded =
+                        order.planTag
+                            ?.lineIds
+                            .orEmpty()
+                            .toSet()
+                    Upsell.mealSwitch(menu, order.cart, card.product.id, on = false, excluded)?.let {
+                        session.switchOne(it.lineId, it.item, it.unitPrice, it.choices)
+                    }
+                }
+
+                null -> {
+                    Unit
+                }
+            }
+        }
+
         private fun pay() {
             // Built from the current values, so a method picked in the same frame counts.
             val ui =
@@ -239,6 +339,19 @@ class YourOrderViewModel
             }
             payEmitted = true
             effects.trySend(YourOrderEffect.Pay(method))
+        }
+
+        private fun openPlan(door: YourOrderEvent.PlanDoor) {
+            val edit = door == YourOrderEvent.EditPlan
+            effects.trySend(if (edit) YourOrderEffect.EditPlan else YourOrderEffect.OpenBudgetPlan)
+        }
+
+        private fun showPlanAdded() {
+            local.update { it.copy(showPlanAdded = true) }
+            viewModelScope.launch {
+                delay(PLAN_ADDED_DURATION)
+                local.update { it.copy(showPlanAdded = false) }
+            }
         }
 
         private fun showMaxToast() {
@@ -274,6 +387,9 @@ internal data class YourOrderLocalState(
     val selectedMethod: PaymentMethod? = null,
     val leaving: List<LeavingLine> = emptyList(),
     val showMaxToast: Boolean = false,
+    val showPlanAdded: Boolean = false,
+    /** Suggestion cards the customer acted on, by [UpsellCard.key] to the slot they had (FR-014 undo). */
+    val held: Map<String, Int> = emptyMap(),
 )
 
 /**
@@ -330,9 +446,103 @@ internal fun yourOrderUiState(
         methods = methods,
         selectedMethod = local.selectedMethod?.takeIf { it in methods } ?: methods.firstOrNull(),
         pay = blocks.pay(IdrFormatter.format(totals.total)),
+        suggestions =
+            if (settings.upsellEnabled && order != null && blocks.canSuggest) {
+                menu.suggestionsUi(order, suggestionCards(catalog, order, settings, local))
+            } else {
+                null
+            },
         showMaxToast = local.showMaxToast,
+        showPlanAdded = local.showPlanAdded,
+        planEntry = config.budgetPlanner.enabled && BudgetPlanner.canPlan(menu),
     )
 }
+
+/**
+ * The strip's cards for [order] (FR-014, D-33): the domain's ranking, limited to the budget of a Budget Plan order,
+ * with the cards the customer acted on kept in place ([YourOrderLocalState.held]).
+ */
+internal fun suggestionCards(
+    catalog: Catalog,
+    order: OrderState,
+    settings: KioskSettings,
+    local: YourOrderLocalState,
+): List<UpsellCard> {
+    val plan = order.planTag
+    val fits: (Rupiah) -> Boolean =
+        plan?.let { Upsell.withinBudget(it.budget, order.cart, PricingRules.of(catalog.config, settings.roundingStep)) }
+            ?: { true }
+    return Upsell.strip(
+        menu = catalog.menu,
+        config = catalog.config.upsell,
+        cart = order.cart,
+        held = local.held,
+        fits = fits,
+        mealExcludedLineIds = plan?.lineIds.orEmpty().toSet(),
+    )
+}
+
+private fun Menu.suggestionsUi(
+    order: OrderState,
+    cards: List<UpsellCard>,
+): SuggestionsUi? {
+    val excluded =
+        order.planTag
+            ?.lineIds
+            .orEmpty()
+            .toSet()
+    val ui =
+        cards.map { card ->
+            when (card) {
+                is UpsellCard.AddProduct -> {
+                    val quantity =
+                        order.cart.lines
+                            .filter { (it.item as? CartItem.ProductItem)?.productId == card.product.id }
+                            .sumOf { it.quantity }
+                    SuggestionCardUi(
+                        key = card.key,
+                        kind = card.product.role.toKind(),
+                        name = card.product.name.resolve(),
+                        note = null,
+                        price = IdrFormatter.format(card.unitPrice),
+                        pricePlus = false,
+                        imageUrl = card.product.imageUrl,
+                        tone = toneOf(card.product),
+                        quantity = quantity,
+                        canAddMore = quantity < Cart.MAX_PER_LINE,
+                    )
+                }
+
+                is UpsellCard.MakeMeal -> {
+                    SuggestionCardUi(
+                        key = card.key,
+                        kind = SuggestionKind.UPGRADE,
+                        name = card.option.name.resolve(),
+                        note =
+                            card.option.description
+                                ?.resolve()
+                                ?.takeIf(String::isNotBlank),
+                        price = IdrFormatter.format(card.priceDelta),
+                        pricePlus = true,
+                        imageUrl = card.product.imageUrl,
+                        tone = toneOf(card.product),
+                        quantity = Upsell.mealUnits(this, order.cart, card.product.id),
+                        canAddMore =
+                            Upsell.mealSwitch(this, order.cart, card.product.id, on = true, excluded) != null,
+                    )
+                }
+            }
+        }
+    return ui.takeIf { it.isNotEmpty() }?.let { SuggestionsUi(it, budgetLimited = order.planTag != null) }
+}
+
+private fun ProductRole.toKind(): SuggestionKind =
+    when (this) {
+        ProductRole.MAIN -> SuggestionKind.MAIN
+        ProductRole.SIDE -> SuggestionKind.SIDE
+        ProductRole.DRINK -> SuggestionKind.DRINK
+        ProductRole.DESSERT -> SuggestionKind.DESSERT
+    }
 
 /** What can stop Pay on SCR-10, and the banner it shows (`Payment.dc.html` `ban` and `blockLabel`, FR-015). */
 private data class PayBlocks(
@@ -342,6 +552,10 @@ private data class PayBlocks(
     val unavailableCount: Int,
     val noMethods: Boolean,
 ) {
+    /** The strip is drawn only while the order can be paid as it is: the design hides it behind every blocker. */
+    val canSuggest: Boolean
+        get() = itemCount > 0 && !offline && !pricesChanged && unavailableCount == 0 && !noMethods
+
     /** One banner, by priority: offline, prices changed, item unavailable, then the promo nudge (never blocking). */
     fun banner(promoHint: () -> PromoHint?): OrderBannerUi? =
         when {

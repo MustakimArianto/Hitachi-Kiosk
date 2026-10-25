@@ -2,6 +2,7 @@ package com.hitachi.kiosk.feature.order
 
 import com.hitachi.kiosk.core.domain.cart.CartAddition
 import com.hitachi.kiosk.core.domain.cart.ProductCustomization
+import com.hitachi.kiosk.core.domain.cart.Upsell
 import com.hitachi.kiosk.core.domain.device.Connectivity
 import com.hitachi.kiosk.core.domain.model.Catalog
 import com.hitachi.kiosk.core.domain.model.KioskSettings
@@ -21,8 +22,14 @@ import com.hitachi.kiosk.core.testing.fixture.SampleData
  * Tea with less ice (Rp 16.000), with rounding to Rp 500: Rp 173.000.
  */
 internal object YourOrderTestStates {
-    /** The design's `roundingStep` default. */
-    val ROUNDED = KioskSettings(roundingStep = 500)
+    /**
+     * The design's `roundingStep` default. "Suggest add-ons" is off, so the sample boards keep their 0.4.0 look; the
+     * strip boards turn it on ([SUGGESTING]).
+     */
+    val ROUNDED = KioskSettings(roundingStep = 500, upsellEnabled = false)
+
+    /** [ROUNDED] with "Suggest add-ons" on (FR-014, FR-026). */
+    val SUGGESTING = ROUNDED.copy(upsellEnabled = true)
 
     fun burgerMeal(): ProductCustomization =
         defaults("b2")
@@ -94,6 +101,10 @@ internal object YourOrderTestStates {
 
     val Plan: YourOrderUiState get() = board(order = planOrder())
 
+    /** `S_Payment_planAdded`: Your order right after "Add plan to order", with the green confirmation (DEV-112). */
+    val PlanAdded: YourOrderUiState
+        get() = board(order = planOrder(), local = YourOrderLocalState(showPlanAdded = true))
+
     /**
      * `S_Payment_priceChanged`: the order was submitted and E7 re-priced the burger meal from Rp 75.000 to Rp 79.000,
      * so the session carries the re-priced cart and the review notes ("Price updated · was Rp 75.000").
@@ -129,7 +140,84 @@ internal object YourOrderTestStates {
                         .apply { startBuilding() },
             )
 
+    /** `S_Payment_emptyTrayNoPlan`: the planner is off in config, so the empty tray has no "Plan by budget" (AC16). */
+    val EmptyTrayNoPlan: YourOrderUiState
+        get() =
+            board(
+                order =
+                    OrderSession(OrderType.DINE_IN, SampleData.menu.menuVersion, SampleData.config.configVersion)
+                        .apply { startBuilding() },
+                catalog =
+                    SampleData.catalog.copy(
+                        config =
+                            SampleData.config.copy(
+                                budgetPlanner = SampleData.config.budgetPlanner.copy(enabled = false),
+                            ),
+                    ),
+            )
+
     val PromoNudge: YourOrderUiState get() = board(order = sampleOrder(withBurger = false))
+
+    private fun order(vararg items: ProductCustomization): OrderSession =
+        OrderSession(OrderType.DINE_IN, SampleData.menu.menuVersion, SampleData.config.configVersion).apply {
+            startBuilding()
+            items.forEach { addCustom(it) }
+            startReviewing()
+        }
+
+    /** One main (Crispy Chicken, Rp 38.000): the strip offers a drink, a side and a dessert (`default` scenario). */
+    fun mainOrder(): OrderSession = order(defaults("c1"))
+
+    /** A burger without the meal option, a side and drinks: the strip offers "Make it a meal" and a dessert. */
+    fun burgerOnlyOrder(): OrderSession =
+        order(
+            defaults("b2").select("mg_b2_size", "opt_b2_regular"),
+            defaults("c1"),
+            defaults("s1"),
+            defaults("d1"),
+        )
+
+    /** A Budget Plan of two mains for Rp 100.000 (a plan order, `upsellBudget`). */
+    fun budgetPlanOrder(): OrderSession =
+        OrderSession(OrderType.DINE_IN, SampleData.menu.menuVersion, SampleData.config.configVersion).apply {
+            startBuilding()
+            val additions =
+                listOf(defaults("c1"), defaults("b1")).map {
+                    CartAddition(it.toCartItem(), 1, it.unitPrice, it.choices())
+                }
+            addPlan(additions, Rupiah(100_000), adults = 2, children = 0)
+            startReviewing()
+        }
+
+    /** `S_Payment_upsell` (the strip as it opens): drink, side and dessert for a main. */
+    val Suggestions: YourOrderUiState get() = board(order = mainOrder(), settings = SUGGESTING)
+
+    /** `S_Payment_upsellAdded`: the drink was added and its card shows the "− 1 +" stepper. */
+    val SuggestionAdded: YourOrderUiState
+        get() {
+            val order = mainOrder()
+            order.addCustom(defaults("d1"))
+            return board(order = order, settings = SUGGESTING, local = YourOrderLocalState(held = mapOf("add:d1" to 0)))
+        }
+
+    /** `S_Payment_upsellBudget`: a plan order, so only what fits Rp 100.000 is offered, with "Fits your budget". */
+    val SuggestionBudget: YourOrderUiState get() = board(order = budgetPlanOrder(), settings = SUGGESTING)
+
+    /** `S_Payment_upsellMeal`: the "Make it a meal" card leads the strip. */
+    val SuggestionMeal: YourOrderUiState get() = board(order = burgerOnlyOrder(), settings = SUGGESTING)
+
+    /** The meal card after the tap: the burger is a meal and the card shows its stepper. */
+    val SuggestionMealOn: YourOrderUiState
+        get() {
+            val order = burgerOnlyOrder()
+            val switch = checkNotNull(Upsell.mealSwitch(SampleData.menu, order.state.value.cart, "b2", on = true))
+            order.switchOne(switch.lineId, switch.item, switch.unitPrice, switch.choices)
+            return board(
+                order = order,
+                settings = SUGGESTING,
+                local = YourOrderLocalState(held = mapOf("meal:b2" to 0)),
+            )
+        }
 
     val CardSelected: YourOrderUiState
         get() = board(local = YourOrderLocalState(selectedMethod = PaymentMethod.CARD))

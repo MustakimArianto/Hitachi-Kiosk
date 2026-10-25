@@ -446,6 +446,7 @@ paths:
                     upsell:
                       categoryIds:
                         - "cat_sides"
+                        - "cat_drinks"
                         - "cat_desserts"
                       maxSuggestions: 4
                     budgetPlanner:
@@ -526,6 +527,7 @@ paths:
                     upsell:
                       categoryIds:
                         - "cat_sides"
+                        - "cat_drinks"
                         - "cat_desserts"
                       maxSuggestions: 4
                     budgetPlanner:
@@ -1171,6 +1173,7 @@ paths:
                         name:
                           en: "Make it a meal?"
                           id: "Jadikan paket?"
+                        purpose: "MEAL_UPGRADE"
                         type: "SINGLE"
                         required: true
                         min: 1
@@ -2835,6 +2838,10 @@ components:
           type: "string"
         name:
           "$ref": "#/components/schemas/LocalizedText"
+        purpose:
+          type: "string"
+          enum:
+            - "MEAL_UPGRADE"
         type:
           type: "string"
           enum:

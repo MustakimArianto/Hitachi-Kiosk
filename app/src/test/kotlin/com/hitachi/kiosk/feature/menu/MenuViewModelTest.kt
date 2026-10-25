@@ -4,14 +4,12 @@ import com.google.common.truth.Truth.assertThat
 import com.hitachi.kiosk.core.domain.cart.CartItem
 import com.hitachi.kiosk.core.domain.device.Connectivity
 import com.hitachi.kiosk.core.domain.model.BadgeType
-import com.hitachi.kiosk.core.domain.model.KioskSettings
 import com.hitachi.kiosk.core.domain.model.OrderType
 import com.hitachi.kiosk.core.domain.order.DefaultOrderSessionHolder
 import com.hitachi.kiosk.core.domain.order.OrderPhase
 import com.hitachi.kiosk.core.domain.time.DayPart
 import com.hitachi.kiosk.core.testing.fake.FakeCatalogRepository
 import com.hitachi.kiosk.core.testing.fake.FakeConnectivityMonitor
-import com.hitachi.kiosk.core.testing.fake.FakeSettingsRepository
 import com.hitachi.kiosk.core.testing.fake.TestClock
 import com.hitachi.kiosk.core.testing.fixture.SampleData
 import com.hitachi.kiosk.core.testing.rule.MainDispatcherRule
@@ -37,7 +35,6 @@ class MenuViewModelTest {
     private val catalogs = FakeCatalogRepository()
     private val sessions = DefaultOrderSessionHolder()
     private val connectivity = FakeConnectivityMonitor()
-    private val settings = FakeSettingsRepository(KioskSettings(upsellEnabled = false))
 
     /** 07:15 UTC is 14:15 in Jakarta: "Good afternoon", as in the design. */
     private val clock = TestClock()
@@ -46,7 +43,7 @@ class MenuViewModelTest {
     private fun startOrder() = sessions.chooseOrderType(OrderType.DINE_IN, "menu-118", "cfg-42")
 
     private fun TestScope.viewModel(): MenuViewModel {
-        val vm = MenuViewModel(catalogs, sessions, connectivity, settings, clock, jakarta)
+        val vm = MenuViewModel(catalogs, sessions, connectivity, clock, jakarta)
         backgroundScope.launch { vm.state.collect {} }
         runCurrent()
         return vm
@@ -132,7 +129,9 @@ class MenuViewModelTest {
             val ui = vm.ui
             assertThat(ui.products.map { it.id }).containsExactly("c1", "c2", "c3", "c4").inOrder()
             assertThat(ui.sectionTitle).isEqualTo("Chicken")
+            // The slim row is Popular only; the header pill is on every tab (D-35, TC-202).
             assertThat(ui.showBudgetPlan).isFalse()
+            assertThat(ui.showPlanPill).isTrue()
             assertThat(ui.pills).contains(MenuPillUi.Category("cat_chicken", "Chicken", active = true))
             assertThat(ui.pills).contains(MenuPillUi.Popular(active = false))
         }
@@ -335,6 +334,7 @@ class MenuViewModelTest {
             val vm = viewModel()
 
             assertThat(vm.ui.showBudgetPlan).isFalse()
+            assertThat(vm.ui.showPlanPill).isFalse()
         }
 
     @Test
@@ -446,20 +446,18 @@ class MenuViewModelTest {
         }
 
     @Test
-    fun `View order offers the upsell once per order when the toggle is on (FR-014 AC1, AC2, TC-062, TC-063)`() =
+    fun `View order always goes straight to Your order, the suggestion strip lives there (FR-014, D-33)`() =
         runTest(main.dispatcher) {
-            settings.value = KioskSettings(upsellEnabled = true)
-            val session = startOrder()
+            startOrder()
             val vm = viewModel()
             val effects = effectsOf(vm)
 
             vm.send(MenuEvent.ViewOrder)
             runCurrent()
-            session.markUpsellShown()
             vm.send(MenuEvent.ViewOrder)
             runCurrent()
 
-            assertThat(effects).containsExactly(MenuEffect.OfferUpsell, MenuEffect.ViewOrder).inOrder()
+            assertThat(effects).containsExactly(MenuEffect.ViewOrder, MenuEffect.ViewOrder).inOrder()
         }
 
     @Test
@@ -475,6 +473,8 @@ class MenuViewModelTest {
             )
             startOrder()
 
-            assertThat(viewModel().ui.showBudgetPlan).isFalse()
+            val ui = viewModel().ui
+            assertThat(ui.showBudgetPlan).isFalse()
+            assertThat(ui.showPlanPill).isFalse()
         }
 }

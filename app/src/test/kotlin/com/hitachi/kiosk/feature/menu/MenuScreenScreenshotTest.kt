@@ -30,6 +30,12 @@ class MenuScreenScreenshotTest {
     fun `S_Menu_emptyCategory`() = capture("S_Menu_emptyCategory", MenuTestStates.EmptyCategory)
 
     @Test
+    fun `S_Menu_drinksTab`() = capture("S_Menu_drinksTab", MenuTestStates.DrinksTab)
+
+    @Test
+    fun `S_Menu_planOff`() = capture("S_Menu_planOff", MenuTestStates.PlanOff)
+
+    @Test
     fun `S_Menu_offline`() = capture("S_Menu_offline", MenuTestStates.Offline)
 
     @Test

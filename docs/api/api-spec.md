@@ -269,7 +269,7 @@ Every non-2xx response has this body:
     "npwp": null,
     "defaultFooter": { "en": "Thank you for dining with us!", "id": "Terima kasih telah makan bersama kami!" }
   },
-  "upsell": { "categoryIds": ["cat_sides", "cat_desserts"], "maxSuggestions": 4 },
+  "upsell": { "categoryIds": ["cat_sides", "cat_drinks", "cat_desserts"], "maxSuggestions": 4 },
   "budgetPlanner": { "enabled": true, "overCapPercent": 10, "maxGroupSize": 10, "quickBudgets": [50000, 100000, 150000, 200000] },
   "idlePromos": [
     { "imageUrl": "https://cdn.example/mer_urbangrill/idle1.jpg" },
@@ -363,6 +363,7 @@ Notes:
     {
       "id": "mg_meal_upgrade",
       "name": { "en": "Make it a meal?", "id": "Jadikan paket?" },
+      "purpose": "MEAL_UPGRADE",
       "type": "SINGLE",
       "required": true,
       "min": 1, "max": 1,
@@ -470,6 +471,7 @@ Notes:
 Rules the mock must respect:
 - `badge.type`: `NEW` | `BEST_SELLER` | `SPICY` | `SHARE` | `LOCAL`. The app colors NEW and BEST_SELLER with the accent and the others in ink.
 - `ModifierGroup.type`: `SINGLE` (radio) | `MULTI` (checkbox list) | `LEVEL` (None / Regular / Extra per option).
+- `ModifierGroup.purpose` (optional, FR-014, OQ-17): `MEAL_UPGRADE` marks the group that is "Make it a meal": a `SINGLE` group whose non-default option turns the product into a meal. Absent or any other value means a plain group, so older payloads still parse. The app uses it for the meal-aware Upsell gap check and the "Make it a meal" card on Your order (DEV-114); without it only combo lines count as a meal (A-48).
 - Combo price = `price + (side.upcharge + drink.upcharge + (large ? SIZE_LARGE_UPCHARGE : 0)) × serves`.
 - `available: false` → the item is hidden from the menu (PRD A-09).
 - `comboSlots` options may carry `available` (optional, default `true`). An option with `available: false` stays listed on the Combo screen, greyed and marked "Sold out", and cannot be picked (FR-011, `S_Combo_soldOut`).
@@ -823,6 +825,7 @@ Prism serves fixed example timestamps (e.g. `expiresAt: 2026-10-22T07:20:31Z`), 
 | `order.status` | `AWAITING_PAYMENT`, `PAID`, `CANCELLED` |
 | `promo.type` | `THRESHOLD_FIXED` |
 | `modifierGroup.type` | `SINGLE`, `MULTI`, `LEVEL` |
+| `modifierGroup.purpose` | `MEAL_UPGRADE` (optional) |
 | `level` | `NONE`, `REGULAR`, `EXTRA` |
 | `badge.type` | `NEW`, `BEST_SELLER`, `SPICY`, `SHARE`, `LOCAL` |
 | `product.role` | `MAIN`, `SIDE`, `DRINK`, `DESSERT` |

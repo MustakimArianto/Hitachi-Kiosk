@@ -15,6 +15,7 @@ import com.hitachi.kiosk.core.domain.time.DayPart
  * @property brandName the merchant brand of the header lockup (config `brandName`).
  * @property selection the active category pill; its products fill the grid.
  * @property showBudgetPlan the slim "Plan by budget" row: Popular only, and only when the planner is enabled (FR-032).
+ * @property showPlanPill the compact "Plan by budget" pill in the category bar: every tab, same conditions (D-35, FR-032).
  * @property sectionTitle the heading: `null` on Popular ("Popular now"), otherwise the category name.
  * @property products the visible (available) products of [selection], in menu order. Empty shows "Nothing here right
  *   now" (A-33).
@@ -32,6 +33,7 @@ data class MenuUiState(
     val pills: List<MenuPillUi> = listOf(MenuPillUi.Popular(active = true)),
     val selection: MenuSelection = MenuSelection.Popular,
     val showBudgetPlan: Boolean = false,
+    val showPlanPill: Boolean = false,
     val sectionTitle: String? = null,
     val products: List<MenuProductUi> = emptyList(),
     val dock: CartDockUi = CartDockUi(),
@@ -184,7 +186,4 @@ sealed interface MenuEffect {
 
     /** Straight to SCR-10 Your order. */
     data object ViewOrder : MenuEffect
-
-    /** To SCR-09 Upsell first (FR-014: once per order, when the toggle is on). */
-    data object OfferUpsell : MenuEffect
 }

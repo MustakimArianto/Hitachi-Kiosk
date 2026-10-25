@@ -36,7 +36,6 @@ import com.hitachi.kiosk.feature.menu.MENU_VIEW_ORDER_TAG
 import com.hitachi.kiosk.feature.menu.menuAddTag
 import com.hitachi.kiosk.feature.order.YOUR_ORDER_PAY_TAG
 import com.hitachi.kiosk.feature.ordertype.orderTypeCardTag
-import com.hitachi.kiosk.feature.upsell.UPSELL_NO_THANKS_TAG
 import com.hitachi.kiosk.navigation.screenTag
 import com.hitachi.kiosk.testing.KioskState
 import com.hitachi.kiosk.testing.SCREEN_TIMEOUT_MS
@@ -221,7 +220,7 @@ class CheckoutUiTest {
         compose.awaitScreen("SCR-12")
     }
 
-    /** Idle → Order type → Menu → Upsell → Your order, with Crispy Chicken in the cart. */
+    /** Idle → Order type → Menu → Your order, with Crispy Chicken in the cart. */
     private fun reachYourOrder() {
         compose.onNodeWithTag(screenTag("SCR-04")).performClick()
         compose.awaitScreen("SCR-05")
@@ -229,7 +228,6 @@ class CheckoutUiTest {
         compose.awaitScreen("SCR-06")
         tapTag(menuAddTag("c1"))
         tapTag(MENU_VIEW_ORDER_TAG)
-        tapTag(UPSELL_NO_THANKS_TAG)
         compose.awaitScreen("SCR-10")
     }
 

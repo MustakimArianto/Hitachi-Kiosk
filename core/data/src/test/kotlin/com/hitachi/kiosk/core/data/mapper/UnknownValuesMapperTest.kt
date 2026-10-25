@@ -16,6 +16,7 @@ import com.hitachi.kiosk.core.domain.model.BudgetPlannerConfig
 import com.hitachi.kiosk.core.domain.model.HealthStatus
 import com.hitachi.kiosk.core.domain.model.KioskMode
 import com.hitachi.kiosk.core.domain.model.MerchantStatus
+import com.hitachi.kiosk.core.domain.model.ModifierPurpose
 import com.hitachi.kiosk.core.domain.model.PaymentMethod
 import com.hitachi.kiosk.core.domain.model.ProductRole
 import com.hitachi.kiosk.core.domain.model.RoundingMode
@@ -86,6 +87,30 @@ class UnknownValuesMapperTest {
         assertThat(option.levels.map { it.level.name }).containsExactly("NONE")
         assertThat(option.defaultLevel?.name).isEqualTo("REGULAR")
         assertThat(menu.comboSlots.sides).isEmpty()
+    }
+
+    @Test
+    fun `a modifier group purpose is optional, and an unknown one is a plain group (OQ-17)`() {
+        val json =
+            """
+            { "menuVersion": "m1", "modifierGroups": [
+              { "id": "meal", "name": { "en": "Meal?" }, "type": "SINGLE", "purpose": "MEAL_UPGRADE", "options": [] },
+              { "id": "old", "name": { "en": "Old payload" }, "type": "SINGLE", "options": [] },
+              { "id": "odd", "name": { "en": "Odd" }, "type": "SINGLE", "purpose": "SOMETHING_NEW", "options": [] }
+            ] }
+            """.trimIndent()
+
+        val groups = KioskJson.decodeFromString<MenuDto>(json).toDomain().modifierGroups
+
+        assertThat(groups.map { it.purpose }).containsExactly(ModifierPurpose.MEAL_UPGRADE, null, null).inOrder()
+        assertThat(warnings("menu.modifierGroups.purpose")).hasSize(1)
+    }
+
+    @Test
+    fun `the E6 fixture marks the meal group and parses`() {
+        val groups = KioskJson.decodeFromString<MenuDto>(Fixtures.read("e6_response")).toDomain().modifierGroups
+
+        assertThat(groups.filter { it.purpose != null }.map { it.id }).containsExactly("mg_meal_upgrade")
     }
 
     @Test

@@ -72,6 +72,7 @@
     {
       "id": "mg_meal_upgrade",
       "name": { "en": "Make it a meal?", "id": "Jadikan paket?" },
+      "purpose": "MEAL_UPGRADE",
       "type": "SINGLE",
       "required": true,
       "min": 1, "max": 1,

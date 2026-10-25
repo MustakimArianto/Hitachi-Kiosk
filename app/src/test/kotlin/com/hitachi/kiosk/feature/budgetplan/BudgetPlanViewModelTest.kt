@@ -1,5 +1,6 @@
 package com.hitachi.kiosk.feature.budgetplan
 
+import androidx.lifecycle.SavedStateHandle
 import com.google.common.truth.Truth.assertThat
 import com.hitachi.kiosk.core.domain.cart.CartItem
 import com.hitachi.kiosk.core.domain.model.Catalog
@@ -9,8 +10,6 @@ import com.hitachi.kiosk.core.domain.model.Rupiah
 import com.hitachi.kiosk.core.domain.order.DefaultOrderSessionHolder
 import com.hitachi.kiosk.core.domain.order.OrderSession
 import com.hitachi.kiosk.core.domain.planner.PlanKind
-import com.hitachi.kiosk.core.domain.planner.PlanTolerance
-import com.hitachi.kiosk.core.domain.planner.SwapPart
 import com.hitachi.kiosk.core.testing.fake.FakeCatalogRepository
 import com.hitachi.kiosk.core.testing.fake.FakeSettingsRepository
 import com.hitachi.kiosk.core.testing.fixture.SampleData
@@ -24,8 +23,11 @@ import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Rule
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
 
-/** SCR-19 behaviour (FR-032, DEV-043, DEV-043a; TC-162–TC-164, TC-166, TC-167, TC-169–TC-171). */
+/** SCR-19 behaviour (FR-032, DEV-043, DEV-107–DEV-112; TC-162–TC-164, TC-166, TC-167, TC-169, TC-171, TC-198–TC-204). */
+@RunWith(RobolectricTestRunner::class)
 @OptIn(ExperimentalCoroutinesApi::class)
 class BudgetPlanViewModelTest {
     @get:Rule
@@ -36,9 +38,19 @@ class BudgetPlanViewModelTest {
     private val orders = DefaultOrderSessionHolder()
     private val session: OrderSession = orders.chooseOrderType(OrderType.DINE_IN, "menu-118", "cfg-42")
 
-    private fun TestScope.viewModel(catalog: Catalog = SampleData.catalog): BudgetPlanViewModel {
+    private fun TestScope.viewModel(
+        catalog: Catalog = SampleData.catalog,
+        edit: Boolean = false,
+    ): BudgetPlanViewModel {
         catalogs.set(catalog)
-        val vm = BudgetPlanViewModel(catalogs, settings, orders, main.dispatcher)
+        val vm =
+            BudgetPlanViewModel(
+                SavedStateHandle(mapOf("edit" to edit)),
+                catalogs,
+                settings,
+                orders,
+                main.dispatcher,
+            )
         runCurrent()
         return vm
     }
@@ -58,7 +70,7 @@ class BudgetPlanViewModelTest {
         runCurrent()
     }
 
-    /** Step 1 inputs, then "See plans". */
+    /** Step 1 inputs from the default 2 adults and no children, then "See plans". */
     private fun TestScope.plan(
         vm: BudgetPlanViewModel,
         budget: Long,
@@ -66,7 +78,8 @@ class BudgetPlanViewModelTest {
         children: Int,
     ) {
         send(vm, BudgetPlanEvent.PickBudget(budget))
-        repeat(adults - 1) { send(vm, BudgetPlanEvent.IncreaseAdults) }
+        repeat(maxOf(adults - 2, 0)) { send(vm, BudgetPlanEvent.IncreaseAdults) }
+        repeat(maxOf(2 - adults, 0)) { send(vm, BudgetPlanEvent.DecreaseAdults) }
         repeat(children) { send(vm, BudgetPlanEvent.IncreaseChildren) }
         send(vm, BudgetPlanEvent.SeePlans)
     }
@@ -76,20 +89,22 @@ class BudgetPlanViewModelTest {
     private val BudgetPlanViewModel.plan get() = checkNotNull(state.value.plan)
 
     @Test
-    fun `the screen opens with no budget, one adult and See plans disabled (TC-166)`() =
+    fun `the screen opens with no budget, 2 adults and See plans disabled (TC-198)`() =
         runTest(main.dispatcher) {
             val ui = viewModel().ui
 
             assertThat(ui.loaded).isTrue()
             assertThat(ui.step).isEqualTo(BudgetPlanStep.TABLE)
             assertThat(ui.budget).isEqualTo("Rp 0")
+            assertThat(ui.hasBudget).isFalse()
+            assertThat(ui.perPerson).isNull()
             assertThat(ui.chips.map { it.amount }).containsExactly(50_000L, 100_000L, 150_000L, 200_000L).inOrder()
             assertThat(ui.chips.map { it.thousands }).containsExactly(50L, 100L, 150L, 200L).inOrder()
             assertThat(ui.chips.none { it.selected }).isTrue()
             assertThat(ui.otherChip).isEqualTo(OtherChip.OTHER)
-            assertThat(ui.adults).isEqualTo(1)
+            assertThat(ui.adults).isEqualTo(2)
             assertThat(ui.children).isEqualTo(0)
-            assertThat(ui.canDecreaseAdults).isFalse()
+            assertThat(ui.canDecreaseAdults).isTrue()
             assertThat(ui.canDecreaseChildren).isFalse()
             assertThat(ui.canSeePlans).isFalse()
             assertThat(ui.plan).isNull()
@@ -106,28 +121,29 @@ class BudgetPlanViewModelTest {
         }
 
     @Test
-    fun `a chip sets the budget and enables See plans`() =
+    fun `a chip sets the budget and the per-person amount, rounded down to Rp 100 (A-46)`() =
         runTest(main.dispatcher) {
             val vm = viewModel()
 
             send(vm, BudgetPlanEvent.PickBudget(100_000))
 
             assertThat(vm.ui.budget).isEqualTo("Rp 100.000")
-            assertThat(
-                vm.ui.chips
-                    .single { it.selected }
-                    .amount,
-            ).isEqualTo(100_000L)
-            assertThat(vm.ui.otherChip).isEqualTo(OtherChip.OTHER)
+            assertThat(vm.ui.perPerson).isEqualTo("Rp 50.000")
             assertThat(vm.ui.canSeePlans).isTrue()
+
+            send(vm, BudgetPlanEvent.IncreaseChildren)
+            assertThat(vm.ui.perPerson).isEqualTo("Rp 33.300")
         }
 
     @Test
-    fun `the keypad floors to Rp 100 and the chip reads Edit (TC-171)`() =
+    fun `the keypad shows the current amount, floors to Rp 100 and the chip reads Edit (TC-171, TC-198)`() =
         runTest(main.dispatcher) {
             val vm = viewModel()
             send(vm, BudgetPlanEvent.PickBudget(100_000), BudgetPlanEvent.OpenKeypad)
-            assertThat(vm.ui.keypad).isEqualTo(KeypadUi("Rp 0", canUse = false))
+            assertThat(vm.ui.keypad).isEqualTo(KeypadUi("Rp 100.000", canUse = true))
+
+            repeat(6) { send(vm, BudgetPlanEvent.PressKey(KeypadKey.DELETE)) }
+            assertThat(vm.ui.keypad).isEqualTo(KeypadUi("Rp 0", canUse = false, empty = true))
 
             listOf(KeypadKey.ONE, KeypadKey.TWO, KeypadKey.THREE, KeypadKey.FOUR, KeypadKey.FIVE, KeypadKey.SIX)
                 .forEach { send(vm, BudgetPlanEvent.PressKey(it)) }
@@ -139,24 +155,29 @@ class BudgetPlanViewModelTest {
             assertThat(vm.ui.budget).isEqualTo("Rp 123.400")
             assertThat(vm.ui.otherChip).isEqualTo(OtherChip.EDIT)
             assertThat(vm.ui.chips.none { it.selected }).isTrue()
+
+            // Reopening shows the amount that was used.
+            send(vm, BudgetPlanEvent.OpenKeypad)
+            assertThat(vm.ui.keypad?.amount).isEqualTo("Rp 123.400")
         }
 
     @Test
-    fun `the keypad drops leading zeros, deletes, keeps 7 digits and needs Rp 1_000`() =
+    fun `the keypad flags an amount under Rp 1_000 and Use this budget does nothing (TC-198)`() =
         runTest(main.dispatcher) {
             val vm = viewModel()
             send(vm, BudgetPlanEvent.OpenKeypad)
 
-            send(vm, BudgetPlanEvent.PressKey(KeypadKey.ZERO), BudgetPlanEvent.PressKey(KeypadKey.NINE))
-            send(vm, BudgetPlanEvent.PressKey(KeypadKey.NINE), BudgetPlanEvent.PressKey(KeypadKey.NINE))
-            assertThat(vm.ui.keypad).isEqualTo(KeypadUi("Rp 999", canUse = false))
+            send(vm, BudgetPlanEvent.PressKey(KeypadKey.ZERO), BudgetPlanEvent.PressKey(KeypadKey.FIVE))
+            send(vm, BudgetPlanEvent.PressKey(KeypadKey.ZERO), BudgetPlanEvent.PressKey(KeypadKey.ZERO))
+            assertThat(vm.ui.keypad).isEqualTo(KeypadUi("Rp 500", canUse = false, tooLow = true))
             send(vm, BudgetPlanEvent.UseKeypadBudget)
             assertThat(vm.ui.keypad).isNotNull()
 
             send(vm, BudgetPlanEvent.PressKey(KeypadKey.THOUSAND), BudgetPlanEvent.PressKey(KeypadKey.THOUSAND))
-            assertThat(vm.ui.keypad?.amount).isEqualTo("Rp 999.000")
+            // 500 plus two "000" would be 8 digits: the keypad takes 7, so the second "000" is refused.
+            assertThat(vm.ui.keypad?.amount).isEqualTo("Rp 500.000")
             send(vm, BudgetPlanEvent.PressKey(KeypadKey.DELETE))
-            assertThat(vm.ui.keypad?.amount).isEqualTo("Rp 99.900")
+            assertThat(vm.ui.keypad?.amount).isEqualTo("Rp 50.000")
 
             send(vm, BudgetPlanEvent.CloseKeypad)
             assertThat(vm.ui.keypad).isNull()
@@ -168,7 +189,7 @@ class BudgetPlanViewModelTest {
         runTest(main.dispatcher) {
             val vm = viewModel()
 
-            send(vm, BudgetPlanEvent.DecreaseAdults, BudgetPlanEvent.DecreaseChildren)
+            repeat(3) { send(vm, BudgetPlanEvent.DecreaseAdults, BudgetPlanEvent.DecreaseChildren) }
             assertThat(vm.ui.adults).isEqualTo(1)
             assertThat(vm.ui.children).isEqualTo(0)
 
@@ -184,7 +205,7 @@ class BudgetPlanViewModelTest {
         runTest(main.dispatcher) {
             val vm = viewModel()
             send(vm, BudgetPlanEvent.PickBudget(200_000))
-            repeat(7) { send(vm, BudgetPlanEvent.IncreaseAdults) }
+            repeat(6) { send(vm, BudgetPlanEvent.IncreaseAdults) }
             repeat(3) { send(vm, BudgetPlanEvent.IncreaseChildren) }
 
             assertThat(vm.ui.people).isEqualTo(11)
@@ -203,7 +224,7 @@ class BudgetPlanViewModelTest {
         }
 
     @Test
-    fun `2 adults and a child at Rp 150_000 get two plans, the under one first (AC1, TC-161)`() =
+    fun `2 adults and a child at Rp 150_000 get two plan cards, the under one selected (AC1, TC-199)`() =
         runTest(main.dispatcher) {
             val vm = viewModel()
 
@@ -211,19 +232,17 @@ class BudgetPlanViewModelTest {
 
             assertThat(vm.ui.step).isEqualTo(BudgetPlanStep.PLAN)
             assertThat(vm.plan.title).isEqualTo(PlanTitle.TWO_PLANS)
-            assertThat(vm.plan.options)
-                .containsExactly(
-                    PlanOptionUi(PlanSide.UNDER, "Rp 149.600", selected = true),
-                    PlanOptionUi(PlanSide.OVER, "Rp 150.700", selected = false),
-                ).inOrder()
+            assertThat(vm.plan.cards.map { it.total }).containsExactly("Rp 149.600", "Rp 150.700").inOrder()
+            assertThat(vm.plan.cards.map { it.delta }).containsExactly("Rp 400", "Rp 700").inOrder()
+            assertThat(vm.plan.cards.map { it.selected }).containsExactly(true, false).inOrder()
             assertThat(vm.plan.hero).isEqualTo(HeroUi(PlanKind.UNDER, "Rp 149.600", "Rp 400"))
             assertThat(vm.plan.notes).isEmpty()
-            assertThat(vm.ui.includedExpanded).isFalse()
+            assertThat(vm.ui.includedExpanded).isTrue()
             assertThat(vm.ui.priceExpanded).isFalse()
         }
 
     @Test
-    fun `Just over shows the over plan`() =
+    fun `selecting the second card shows the over plan`() =
         runTest(main.dispatcher) {
             val vm = viewModel()
             plan(vm, 150_000, adults = 2, children = 1)
@@ -231,25 +250,35 @@ class BudgetPlanViewModelTest {
             send(vm, BudgetPlanEvent.SelectPlan(PlanSide.OVER))
 
             assertThat(vm.plan.hero).isEqualTo(HeroUi(PlanKind.OVER, "Rp 150.700", "Rp 700"))
-            assertThat(vm.plan.options.map { it.selected }).containsExactly(false, true).inOrder()
+            assertThat(vm.plan.cards.map { it.selected }).containsExactly(false, true).inOrder()
         }
 
     @Test
-    fun `What's included groups the items per person, with kid-friendly mains for the child`() =
+    fun `What's included has one row per person, with the kid-friendly tag for the child`() =
         runTest(main.dispatcher) {
             val vm = viewModel()
             plan(vm, 150_000, adults = 2, children = 1)
 
             val groups = vm.plan.groups
             assertThat(groups.map { it.label }.take(3))
-                .containsExactly(PlanGroupLabel.Adult(1), PlanGroupLabel.Adult(2), PlanGroupLabel.Child(1))
-                .inOrder()
-            val child = groups.single { it.label == PlanGroupLabel.Child(1) }
-            assertThat(child.items.map { it.meta }).containsExactly(PlanItemMeta.KidMain, PlanItemMeta.Drink).inOrder()
-            assertThat(vm.plan.itemCount).isEqualTo(groups.sumOf { it.items.size })
+                .containsExactly(
+                    PlanGroupLabel.Adult(1),
+                    PlanGroupLabel.Adult(2),
+                    PlanGroupLabel.Child(1, kidFriendly = true),
+                ).inOrder()
+            groups.take(3).forEach { assertThat(it.items).hasSize(1) }
+            assertThat(
+                groups
+                    .first()
+                    .items
+                    .single()
+                    .name,
+            ).contains(" + ")
+            assertThat(vm.plan.itemCount).isAtLeast(groups.size)
             groups.filter { it.label == PlanGroupLabel.Shared }.flatMap { it.items }.forEach {
                 assertThat(it.meta).isAnyOf(PlanItemMeta.Side, PlanItemMeta.Dessert)
             }
+            groups.flatMap { it.items }.forEach { assertThat(it.swap).isNotNull() }
         }
 
     @Test
@@ -266,7 +295,7 @@ class BudgetPlanViewModelTest {
             assertThat(price.rounding).isNull()
 
             send(vm, BudgetPlanEvent.ToggleIncluded, BudgetPlanEvent.TogglePriceDetails)
-            assertThat(vm.ui.includedExpanded).isTrue()
+            assertThat(vm.ui.includedExpanded).isFalse()
             assertThat(vm.ui.priceExpanded).isTrue()
         }
 
@@ -291,20 +320,6 @@ class BudgetPlanViewModelTest {
         }
 
     @Test
-    fun `Back closes an open keypad or sheet first`() =
-        runTest(main.dispatcher) {
-            val vm = viewModel()
-            plan(vm, 150_000, adults = 2, children = 1)
-            send(vm, BudgetPlanEvent.OpenCustomize)
-            assertThat(vm.ui.customize).isNotNull()
-
-            send(vm, BudgetPlanEvent.Back)
-
-            assertThat(vm.ui.customize).isNull()
-            assertThat(vm.ui.step).isEqualTo(BudgetPlanStep.PLAN)
-        }
-
-    @Test
     fun `1 adult and a child at Rp 99_000 is one exact match (AC2, TC-162, TC-169)`() =
         runTest(main.dispatcher) {
             val vm = viewModel()
@@ -312,7 +327,7 @@ class BudgetPlanViewModelTest {
             plan(vm, 99_000, adults = 1, children = 1)
 
             assertThat(vm.plan.title).isEqualTo(PlanTitle.PERFECT_FIT)
-            assertThat(vm.plan.options).isEmpty()
+            assertThat(vm.plan.cards).isEmpty()
             assertThat(vm.plan.hero.kind).isEqualTo(PlanKind.EXACT)
             assertThat(vm.plan.hero.total).isEqualTo("Rp 99.000")
             assertThat(vm.plan.notes).isEmpty()
@@ -355,7 +370,7 @@ class BudgetPlanViewModelTest {
             plan(vm, 150_000, adults = 2, children = 1)
 
             assertThat(vm.plan.title).isEqualTo(PlanTitle.YOUR_PLAN)
-            assertThat(vm.plan.options).isEmpty()
+            assertThat(vm.plan.cards).isEmpty()
             assertThat(vm.plan.notes).containsExactly(PlanNote.NoOverPlan(0))
         }
 
@@ -367,13 +382,7 @@ class BudgetPlanViewModelTest {
                 menu.copy(
                     products =
                         menu.products.map {
-                            if (it.role ==
-                                ProductRole.MAIN
-                            ) {
-                                it.copy(kidFriendly = false)
-                            } else {
-                                it
-                            }
+                            if (it.role == ProductRole.MAIN) it.copy(kidFriendly = false) else it
                         },
                 )
             val vm = viewModel(SampleData.catalog.copy(menu = noKids))
@@ -381,40 +390,40 @@ class BudgetPlanViewModelTest {
             plan(vm, 120_000, adults = 1, children = 2)
 
             assertThat(vm.plan.notes).contains(PlanNote.KidsMenuUnavailable)
-            val child = vm.plan.groups.first { it.label == PlanGroupLabel.Child(1) }
-            assertThat(child.items.first().meta).isEqualTo(PlanItemMeta.Main)
+            val child = vm.plan.groups.first { it.label is PlanGroupLabel.Child }
+            assertThat(child.label).isEqualTo(PlanGroupLabel.Child(1, kidFriendly = false))
         }
 
     @Test
-    fun `Strict hides Just over and shows the Strict note (AC10, TC-170)`() =
+    fun `turning Allow a little over budget off shows one plan and its note, on shows both (AC10, TC-199)`() =
         runTest(main.dispatcher) {
             val vm = viewModel()
             plan(vm, 150_000, adults = 2, children = 1)
-            send(vm, BudgetPlanEvent.SelectPlan(PlanSide.OVER), BudgetPlanEvent.OpenCustomize)
+            send(vm, BudgetPlanEvent.SelectPlan(PlanSide.OVER))
 
-            send(vm, BudgetPlanEvent.SetTolerance(PlanTolerance.STRICT))
+            send(vm, BudgetPlanEvent.SetAllowOver(false))
 
-            assertThat(vm.ui.customize?.tolerance).isEqualTo(PlanTolerance.STRICT)
-            assertThat(vm.plan.options).isEmpty()
+            assertThat(vm.plan.options.allowOver).isFalse()
+            assertThat(vm.plan.cards).isEmpty()
             assertThat(vm.plan.title).isEqualTo(PlanTitle.YOUR_PLAN)
             assertThat(vm.plan.hero.kind).isEqualTo(PlanKind.UNDER)
-            assertThat(vm.plan.notes).containsExactly(PlanNote.Strict)
+            assertThat(vm.plan.notes).containsExactly(PlanNote.OverOff)
+            assertThat(vm.plan.options.canReset).isTrue()
 
-            send(vm, BudgetPlanEvent.SetTolerance(PlanTolerance.UP_TO_CAP))
-            assertThat(vm.plan.options).hasSize(2)
+            send(vm, BudgetPlanEvent.SetAllowOver(true))
+            assertThat(vm.plan.cards).hasSize(2)
         }
 
     @Test
-    fun `Include desserts off removes every dessert (TC-170)`() =
+    fun `the chips remove every side or dessert (TC-199)`() =
         runTest(main.dispatcher) {
             val vm = viewModel()
             plan(vm, 150_000, adults = 2, children = 1)
-            send(vm, BudgetPlanEvent.OpenCustomize)
 
             send(vm, BudgetPlanEvent.SetIncludeDesserts(false), BudgetPlanEvent.SetIncludeSides(false))
 
-            assertThat(vm.ui.customize?.includeDesserts).isFalse()
-            assertThat(vm.ui.customize?.includeSides).isFalse()
+            assertThat(vm.plan.options.includeDesserts).isFalse()
+            assertThat(vm.plan.options.includeSides).isFalse()
             assertThat(
                 vm.plan.groups
                     .flatMap { it.items }
@@ -423,69 +432,91 @@ class BudgetPlanViewModelTest {
         }
 
     @Test
-    fun `a swap rebalances under the budget, enables Reset, and Reset restores the plan (TC-170)`() =
+    fun `the swap picker lists the current choice first with the price change and total (TC-200)`() =
         runTest(main.dispatcher) {
             val vm = viewModel()
             plan(vm, 150_000, adults = 2, children = 1)
-            send(vm, BudgetPlanEvent.OpenCustomize)
-            val suggested = vm.plan
-            assertThat(vm.ui.customize?.canReset).isFalse()
-            val adultMain =
-                suggested.groups
-                    .first()
-                    .items
-                    .first()
-            val target = checkNotNull(adultMain.swap)
-            assertThat(target.part).isAnyOf(SwapPart.MAIN, SwapPart.MEAL)
 
-            send(vm, BudgetPlanEvent.Swap(target))
+            send(vm, BudgetPlanEvent.Swap(SwapTarget(0)))
+
+            val swap = checkNotNull(vm.ui.swap)
+            assertThat(swap.title).isEqualTo(SwapTitle.Adult(1))
+            assertThat(swap.planTotal).isEqualTo("Rp 149.600")
+            assertThat(swap.rows.first().current).isTrue()
+            assertThat(swap.rows.first().change).isEqualTo(PriceChange.Same)
+            assertThat(swap.rows.drop(1).none { it.current }).isTrue()
+            assertThat(swap.rows.size).isGreaterThan(1)
+            swap.rows.forEach { assertThat(amount(it.total)).isAtMost(150_000) }
+        }
+
+    @Test
+    fun `picking a row swaps at once, keeps the picker open and enables Reset, which restores the plan (TC-200)`() =
+        runTest(main.dispatcher) {
+            val vm = viewModel()
+            plan(vm, 150_000, adults = 2, children = 1)
+            val suggested = vm.plan
+            assertThat(suggested.options.canReset).isFalse()
+            send(vm, BudgetPlanEvent.Swap(SwapTarget(0)))
+            val row = checkNotNull(vm.ui.swap).rows[1]
+
+            send(vm, BudgetPlanEvent.PickAlternative(1))
 
             val swapped = vm.plan
             assertThat(
                 swapped.groups
                     .first()
                     .items
-                    .first()
+                    .single()
                     .name,
-            ).isNotEqualTo(adultMain.name)
-            assertThat(swapped.hero.kind).isAnyOf(PlanKind.UNDER, PlanKind.EXACT)
+            ).isNotEqualTo(
+                suggested.groups
+                    .first()
+                    .items
+                    .single()
+                    .name,
+            )
+            assertThat(amount(swapped.hero.total)).isEqualTo(amount(row.total))
             assertThat(amount(swapped.hero.total)).isAtMost(150_000)
-            assertThat(swapped.lastSwap).isEqualTo(target)
+            assertThat(swapped.lastSwap).isEqualTo(SwapTarget(0))
             assertThat(swapped.swapSerial).isEqualTo(1)
-            assertThat(vm.ui.customize?.canReset).isTrue()
+            assertThat(swapped.options.canReset).isTrue()
+            assertThat(vm.ui.swap).isNotNull()
+            assertThat(
+                vm.ui.swap
+                    ?.rows
+                    ?.first()
+                    ?.current,
+            ).isTrue()
+
+            send(vm, BudgetPlanEvent.CloseSwap)
+            assertThat(vm.ui.swap).isNull()
+            assertThat(vm.plan.groups).isEqualTo(swapped.groups)
 
             send(vm, BudgetPlanEvent.ResetPlan)
 
             assertThat(vm.plan.groups).isEqualTo(suggested.groups)
             assertThat(vm.plan.hero).isEqualTo(suggested.hero)
-            assertThat(vm.ui.customize?.canReset).isFalse()
+            assertThat(vm.plan.options.canReset).isFalse()
         }
 
     @Test
-    fun `Done closes the sheet and keeps the plan`() =
+    fun `picking the current row changes nothing, and Back closes the picker first`() =
         runTest(main.dispatcher) {
             val vm = viewModel()
             plan(vm, 150_000, adults = 2, children = 1)
-            send(vm, BudgetPlanEvent.OpenCustomize)
-            val target =
-                checkNotNull(
-                    vm.plan.groups
-                        .first()
-                        .items
-                        .last()
-                        .swap,
-                )
-            send(vm, BudgetPlanEvent.Swap(target))
-            val swapped = vm.plan.groups
+            val before = vm.plan
+            send(vm, BudgetPlanEvent.Swap(SwapTarget(0)))
 
-            send(vm, BudgetPlanEvent.CloseCustomize)
+            send(vm, BudgetPlanEvent.PickAlternative(0))
+            assertThat(vm.plan.groups).isEqualTo(before.groups)
 
-            assertThat(vm.ui.customize).isNull()
-            assertThat(vm.plan.groups).isEqualTo(swapped)
+            send(vm, BudgetPlanEvent.Back)
+            assertThat(vm.ui.swap).isNull()
+            assertThat(vm.ui.step).isEqualTo(BudgetPlanStep.PLAN)
         }
 
     @Test
-    fun `Add plan to order fills the cart, shows Added, and opens Your order after 1 s (AC5, TC-167)`() =
+    fun `Add plan to order fills the cart, shows Added, and opens Your order after 0_6 s (AC5, DEV-112)`() =
         runTest(main.dispatcher) {
             val vm = viewModel()
             val effects = effectsOf(vm)
@@ -499,6 +530,7 @@ class BudgetPlanViewModelTest {
             assertThat(order.planTag?.budget).isEqualTo(Rupiah(150_000))
             assertThat(order.planTag?.adults).isEqualTo(2)
             assertThat(order.planTag?.children).isEqualTo(1)
+            assertThat(order.planAdded).isTrue()
             assertThat(vm.ui.added).isTrue()
             assertThat(vm.ui.cartCount).isEqualTo(vm.plan.itemCount)
 
@@ -549,7 +581,44 @@ class BudgetPlanViewModelTest {
         }
 
     @Test
-    fun `a locked order refuses the plan and stays on step 2`() =
+    fun `a plan that would break the cart limit says so and Review order opens Your order (TC-201)`() =
+        runTest(main.dispatcher) {
+            val vm = viewModel()
+            val effects = effectsOf(vm)
+            repeat(29) { session.add(CartItem.ProductItem("fill$it", emptyList()), 1, Rupiah(1_000), emptyList()) }
+            plan(vm, 150_000, adults = 2, children = 1)
+            val before = session.state.value
+
+            send(vm, BudgetPlanEvent.AddPlan)
+
+            assertThat(vm.ui.cartFull).isTrue()
+            assertThat(vm.ui.added).isFalse()
+            assertThat(vm.ui.step).isEqualTo(BudgetPlanStep.PLAN)
+            assertThat(session.state.value).isEqualTo(before)
+            advanceTimeBy(ADDED_NAVIGATE_MILLIS)
+            runCurrent()
+            assertThat(effects).isEmpty()
+
+            send(vm, BudgetPlanEvent.ViewOrder)
+            assertThat(effects).containsExactly(BudgetPlanEffect.NavigateToYourOrder)
+        }
+
+    @Test
+    fun `changing an option clears the cart-full message`() =
+        runTest(main.dispatcher) {
+            val vm = viewModel()
+            repeat(29) { session.add(CartItem.ProductItem("fill$it", emptyList()), 1, Rupiah(1_000), emptyList()) }
+            plan(vm, 150_000, adults = 2, children = 1)
+            send(vm, BudgetPlanEvent.AddPlan)
+            assertThat(vm.ui.cartFull).isTrue()
+
+            send(vm, BudgetPlanEvent.SetAllowOver(false))
+
+            assertThat(vm.ui.cartFull).isFalse()
+        }
+
+    @Test
+    fun `a locked order refuses the plan without the cart-full message and stays on step 2`() =
         runTest(main.dispatcher) {
             val vm = viewModel()
             val effects = effectsOf(vm)
@@ -564,8 +633,65 @@ class BudgetPlanViewModelTest {
             runCurrent()
 
             assertThat(vm.ui.added).isFalse()
+            assertThat(vm.ui.cartFull).isFalse()
             assertThat(vm.ui.step).isEqualTo(BudgetPlanStep.PLAN)
             assertThat(effects).isEmpty()
+        }
+
+    @Test
+    fun `Edit plan opens step 2 with the saved budget and group and replaces the plan lines (TC-203)`() =
+        runTest(main.dispatcher) {
+            session.add(CartItem.ProductItem("fill", emptyList()), 2, Rupiah(1_000), emptyList())
+            val first = viewModel()
+            plan(first, 150_000, adults = 2, children = 1)
+            send(first, BudgetPlanEvent.AddPlan)
+            val firstCount = first.plan.itemCount
+            assertThat(session.state.value.cart.itemCount).isEqualTo(firstCount + 2)
+
+            val vm = viewModel(edit = true)
+            val effects = effectsOf(vm)
+
+            assertThat(vm.ui.step).isEqualTo(BudgetPlanStep.PLAN)
+            assertThat(vm.ui.budget).isEqualTo("Rp 150.000")
+            assertThat(vm.ui.adults).isEqualTo(2)
+            assertThat(vm.ui.children).isEqualTo(1)
+            assertThat(vm.ui.plan).isNotNull()
+
+            // A bigger group at the same budget changes the plan; step 1 keeps the saved values to edit.
+            send(vm, BudgetPlanEvent.Back, BudgetPlanEvent.PickBudget(200_000))
+            send(vm, BudgetPlanEvent.SeePlans)
+            send(vm, BudgetPlanEvent.AddPlan)
+
+            val order = session.state.value
+            assertThat(order.planTag?.budget).isEqualTo(Rupiah(200_000))
+            assertThat(order.cart.quantityOf(CartItem.ProductItem("fill", emptyList()))).isEqualTo(2)
+            assertThat(order.cart.itemCount).isEqualTo(vm.plan.itemCount + 2)
+            advanceTimeBy(ADDED_NAVIGATE_MILLIS)
+            runCurrent()
+            assertThat(effects).containsExactly(BudgetPlanEffect.NavigateToYourOrder)
+        }
+
+    @Test
+    fun `Edit plan without a plan in the cart opens the normal step 1`() =
+        runTest(main.dispatcher) {
+            val vm = viewModel(edit = true)
+
+            assertThat(vm.ui.step).isEqualTo(BudgetPlanStep.TABLE)
+            assertThat(vm.ui.budget).isEqualTo("Rp 0")
+        }
+
+    @Test
+    fun `Back from step 1 of an edit returns to Your order`() =
+        runTest(main.dispatcher) {
+            val first = viewModel()
+            plan(first, 150_000, adults = 2, children = 1)
+            send(first, BudgetPlanEvent.AddPlan)
+            val vm = viewModel(edit = true)
+            val effects = effectsOf(vm)
+
+            send(vm, BudgetPlanEvent.Back, BudgetPlanEvent.Back)
+
+            assertThat(effects).containsExactly(BudgetPlanEffect.NavigateToYourOrder)
         }
 
     @Test
@@ -583,7 +709,14 @@ class BudgetPlanViewModelTest {
     fun `without a catalog nothing can be planned`() =
         runTest(main.dispatcher) {
             catalogs.set(null)
-            val vm = BudgetPlanViewModel(catalogs, settings, orders, main.dispatcher)
+            val vm =
+                BudgetPlanViewModel(
+                    SavedStateHandle(mapOf("edit" to false)),
+                    catalogs,
+                    settings,
+                    orders,
+                    main.dispatcher,
+                )
             runCurrent()
 
             send(vm, BudgetPlanEvent.PickBudget(150_000), BudgetPlanEvent.SeePlans)

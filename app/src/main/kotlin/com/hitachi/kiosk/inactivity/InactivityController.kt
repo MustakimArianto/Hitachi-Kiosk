@@ -35,7 +35,7 @@ enum class InactivityZone {
     /** SCR-05 Order type: with an empty cart the timeout goes straight to Idle (A-23). */
     ORDER_TYPE,
 
-    /** Menu, Combo, Item detail, Upsell, Your order and Budget Plan (SCR-06…SCR-10, SCR-19). */
+    /** Menu, Combo, Item detail, Your order and Budget Plan (SCR-06…SCR-10, SCR-19). */
     ORDERING,
 }
 

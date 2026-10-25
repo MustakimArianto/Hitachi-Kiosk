@@ -32,6 +32,7 @@ import com.hitachi.kiosk.core.domain.model.MerchantConfig
 import com.hitachi.kiosk.core.domain.model.MerchantStatus
 import com.hitachi.kiosk.core.domain.model.ModifierGroup
 import com.hitachi.kiosk.core.domain.model.ModifierOption
+import com.hitachi.kiosk.core.domain.model.ModifierPurpose
 import com.hitachi.kiosk.core.domain.model.ModifierType
 import com.hitachi.kiosk.core.domain.model.OrderLine
 import com.hitachi.kiosk.core.domain.model.OrderLineSummary
@@ -235,7 +236,7 @@ object SampleData {
                 ),
             upsell =
                 UpsellConfig(
-                    categoryIds = listOf("cat_sides", "cat_desserts"),
+                    categoryIds = listOf("cat_sides", "cat_drinks", "cat_desserts"),
                     maxSuggestions = 4,
                 ),
             budgetPlanner =
@@ -679,6 +680,7 @@ object SampleData {
                     ModifierGroup(
                         id = "mg_meal_upgrade",
                         name = text("Make it a meal?", "Jadikan paket?"),
+                        purpose = ModifierPurpose.MEAL_UPGRADE,
                         type = ModifierType.SINGLE,
                         required = true,
                         min = 1,
@@ -876,6 +878,16 @@ object SampleData {
 
     /** E5 and E6 together, as the cache serves them (FR-028). */
     val catalog = Catalog(config = config, menu = menu)
+
+    /**
+     * [menu] as an API without the optional `purpose` on modifier groups sends it (api-spec E6, OQ-17): no group is
+     * marked, so nothing counts as a meal but a combo and there is no "Make it a meal" card (A-48).
+     */
+    val menuWithoutPurposes: Menu =
+        menu.copy(modifierGroups = menu.modifierGroups.map { it.copy(purpose = null) })
+
+    /** [catalog] over [menuWithoutPurposes]. */
+    val catalogWithoutPurposes: Catalog = catalog.copy(menu = menuWithoutPurposes)
 
     // E7–E8 -------------------------------------------------------------------------------------------------------
 

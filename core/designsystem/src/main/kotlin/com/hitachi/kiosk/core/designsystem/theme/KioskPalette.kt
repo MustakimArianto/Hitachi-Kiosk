@@ -130,6 +130,15 @@ object KioskPalette {
     /** `shortBg`: the "Rp X more needed" badge (`BudgetPas.dc.html`, `S_BudgetPas_tooLow`). */
     val ShortBg = Color(0xFFF8E6DE)
 
+    /** `shortBorder`: the outline of the "Your order has too many items" message (`S_BudgetPas_cartFull`). */
+    val ShortBorder = Color(0xFFEBC9BB)
+
+    /** `shortInk`: the text of the "Your order has too many items" message (`S_BudgetPas_cartFull`). */
+    val ShortInk = Color(0xFF7A2F12)
+
+    /** `placeholder`: the empty budget "Rp 0" and the empty keypad amount (`BudgetPas.dc.html`). */
+    val Placeholder = Color(0xFFB5AEA3)
+
     /** `rowDivider`: the 2 px lines between rows inside white cards (`BudgetPas.dc.html`). */
     val RowDivider = Color(0xFFF4F0EA)
 

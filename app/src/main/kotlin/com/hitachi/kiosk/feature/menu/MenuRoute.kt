@@ -17,7 +17,6 @@ fun MenuRoute(
     onChangeOrderType: () -> Unit,
     onCancel: () -> Unit,
     onViewOrder: () -> Unit,
-    onOfferUpsell: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: MenuViewModel = hiltViewModel(),
 ) {
@@ -28,7 +27,6 @@ fun MenuRoute(
     val changeOrderType by rememberUpdatedState(onChangeOrderType)
     val cancel by rememberUpdatedState(onCancel)
     val viewOrder by rememberUpdatedState(onViewOrder)
-    val offerUpsell by rememberUpdatedState(onOfferUpsell)
     LaunchedEffect(viewModel) {
         viewModel.effect.collect { effect ->
             when (effect) {
@@ -38,7 +36,6 @@ fun MenuRoute(
                 MenuEffect.ChangeOrderType -> changeOrderType()
                 MenuEffect.Cancel -> cancel()
                 MenuEffect.ViewOrder -> viewOrder()
-                MenuEffect.OfferUpsell -> offerUpsell()
             }
         }
     }

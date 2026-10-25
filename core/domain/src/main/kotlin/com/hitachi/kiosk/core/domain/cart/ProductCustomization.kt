@@ -172,6 +172,37 @@ data class ProductCustomization(
             )
         }
 
+        /**
+         * The customization that [selections] describe, the inverse of [selections]: a `SINGLE` or `MULTI` group holds
+         * exactly the options listed for it, and a `LEVEL` option is at its default level unless a selection moves it
+         * (DEV-114: the meal card changes one option of a line that is already in the cart).
+         */
+        fun from(
+            product: Product,
+            menu: Menu,
+            selections: List<Selection>,
+        ): ProductCustomization {
+            val base = defaults(product, menu)
+            return base.copy(
+                chosen =
+                    base.groups
+                        .filter { it.type != ModifierType.LEVEL }
+                        .associate { group ->
+                            group.id to
+                                group.options
+                                    .map { it.id }
+                                    .filter { id -> selections.any { it.groupId == group.id && it.optionId == id } }
+                        },
+                levels =
+                    base.levels.mapValues { (groupId, byOption) ->
+                        byOption +
+                            selections
+                                .filter { it.groupId == groupId && it.level != null }
+                                .associate { it.optionId to checkNotNull(it.level) }
+                    },
+            )
+        }
+
         /** A `SINGLE` group keeps only its first default; a `MULTI` group keeps up to `max` of them. */
         private fun ModifierGroup.defaultOptionIds(): List<String> {
             val defaults = options.filter { it.isDefault }.map { it.id }

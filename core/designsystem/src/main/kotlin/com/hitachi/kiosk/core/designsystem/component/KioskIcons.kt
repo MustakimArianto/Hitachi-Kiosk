@@ -165,6 +165,14 @@ object KioskIcons {
             "M12 11v5M12 8h.01" to 2.2f,
         )
 
+    /** The "!" in a circle of the Budget Plan "too many items" message (`S_BudgetPas_cartFull`). */
+    val AlertCircle: ImageVector =
+        lineIcon(
+            "AlertCircle",
+            "M12 3a9 9 0 1 0 0 18a9 9 0 1 0 0-18z" to 2f,
+            "M12 7.5v5.5M12 16.2h.01" to 2.4f,
+        )
+
     /** "✕" of sheet close buttons (`BudgetPas.dc.html` Customize), stroke 2.2. */
     val Close: ImageVector = lineIcon("Close", "M6 6l12 12M18 6L6 18", strokeWidth = 2.2f)
 
@@ -173,6 +181,9 @@ object KioskIcons {
 
     /** The two opposed arrows of the Budget Plan "Swap" pill, stroke 2. */
     val Swap: ImageVector = lineIcon("Swap", "M4 8h13l-3.5-3.5M20 16H7l3.5 3.5", strokeWidth = 2f)
+
+    /** The counter-clockwise arrow of "Reset to suggested" (`BudgetPas.dc.html`), stroke 2.2. */
+    val Reset: ImageVector = lineIcon("Reset", "M4 12a8 8 0 1 0 3-6.2M4 4v5h5", strokeWidth = 2.2f)
 
     /** The backspace key of the budget keypad, stroke 1.8. */
     val Backspace: ImageVector = lineIcon("Backspace", "M9 5h11v14H9l-6-7zM12 9l5 6M17 9l-5 6", strokeWidth = 1.8f)

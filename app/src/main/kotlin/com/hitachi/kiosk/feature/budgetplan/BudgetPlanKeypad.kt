@@ -37,6 +37,9 @@ const val BUDGET_PLAN_KEYPAD_TAG = "budget-plan-keypad"
 /** Test tag of the typed amount. */
 const val BUDGET_PLAN_KEYPAD_AMOUNT_TAG = "budget-plan-keypad-amount"
 
+/** Test tag of the "Minimum Rp 1.000" message under the amount. */
+const val BUDGET_PLAN_KEYPAD_ERROR_TAG = "budget-plan-keypad-error"
+
 /** Test tags of "Use this budget" and "Cancel". */
 const val BUDGET_PLAN_KEYPAD_USE_TAG = "budget-plan-keypad-use"
 const val BUDGET_PLAN_KEYPAD_CANCEL_TAG = "budget-plan-keypad-cancel"
@@ -78,12 +81,30 @@ internal fun KeypadSheet(
                         letterSpacing = AMOUNT_TRACKING_EM.em,
                         lineHeight = AMOUNT_LINE_EM.em,
                     ),
+                color =
+                    when {
+                        keypad.tooLow -> colors.shortText
+                        keypad.empty -> colors.placeholder
+                        else -> colors.ink
+                    },
                 modifier =
                     Modifier
                         .padding(top = 8.dpx)
                         .semantics { liveRegion = LiveRegionMode.Polite }
                         .testTag(BUDGET_PLAN_KEYPAD_AMOUNT_TAG),
             )
+            if (keypad.tooLow) {
+                KioskText(
+                    text = stringResource(R.string.budget_plan_keypad_min),
+                    style = KioskTheme.typography.meta.copy(fontSize = 28.spx, fontWeight = FontWeight.W700),
+                    color = colors.shortText,
+                    modifier =
+                        Modifier
+                            .padding(top = 4.dpx)
+                            .semantics { liveRegion = LiveRegionMode.Assertive }
+                            .testTag(BUDGET_PLAN_KEYPAD_ERROR_TAG),
+                )
+            }
             KioskText(
                 text = stringResource(R.string.budget_plan_keypad_caption),
                 style = KioskTheme.typography.meta,
@@ -128,7 +149,10 @@ internal fun KeypadSheet(
                     modifier = Modifier.weight(1f).height(136.dpx).testTag(BUDGET_PLAN_KEYPAD_USE_TAG),
                 ) {
                     KioskText(
-                        text = stringResource(R.string.budget_plan_keypad_use),
+                        text =
+                            stringResource(
+                                if (keypad.canUse) R.string.budget_plan_keypad_use else R.string.budget_plan_keypad_min,
+                            ),
                         style = KioskTheme.typography.button,
                         color = colors.surface,
                         maxLines = 1,

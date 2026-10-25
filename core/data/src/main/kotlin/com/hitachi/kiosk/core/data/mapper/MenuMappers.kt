@@ -21,6 +21,7 @@ import com.hitachi.kiosk.core.domain.model.LevelPrice
 import com.hitachi.kiosk.core.domain.model.Menu
 import com.hitachi.kiosk.core.domain.model.ModifierGroup
 import com.hitachi.kiosk.core.domain.model.ModifierOption
+import com.hitachi.kiosk.core.domain.model.ModifierPurpose
 import com.hitachi.kiosk.core.domain.model.ModifierType
 import com.hitachi.kiosk.core.domain.model.Product
 import com.hitachi.kiosk.core.domain.model.ProductRole
@@ -86,7 +87,14 @@ private fun ModifierGroupDto.toDomain(type: ModifierType): ModifierGroup =
         min = min,
         max = max,
         options = options.map { it.toDomain() },
+        purpose = purpose?.let(::purposeOrNull),
     )
+
+/** An unknown purpose is a plain group (api-spec E6, OQ-17); it logs the field name only. */
+private fun purposeOrNull(value: String): ModifierPurpose? =
+    enumOrNull<ModifierPurpose>(value).also {
+        if (it == null) KioskLog.w("api_enum_dropped", "field" to "menu.modifierGroups.purpose")
+    }
 
 private fun ModifierOptionDto.toDomain(): ModifierOption =
     ModifierOption(
