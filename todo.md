@@ -29,12 +29,14 @@ These belong to the 0.5.0 exit criteria and risks ([dev-plan 0.5.0](docs/dev-pla
 
 ## Needs the iMin device
 
+- [ ] **Smoothness of the R8 build on the iMin unit** (NFR-003, 0.6.5). `./gradlew :app:installReleaseLocal`, walk Idle → Menu → Item → Your order, and read `adb shell dumpsys gfxinfo com.hitachi.kiosk.local` (the emulator's software GPU gives meaningless frame times).
 - [ ] **DEV-012 serial-number spike** (FR-002, TC-005, TC-006). Run the procedure in [ADR-0002](docs/adr/0002-device-serial.md) on the iMin kiosk with the debug build (Developer options → Serial number diagnostics). Fill the ADR's results table, decide the source order and whether `READ_PHONE_STATE` is requested from the PO (A-02, R-3), then set the ADR to Accepted. Also record the window orientation and size the spike screen reports (technical-design §16).
 - [ ] **TC-125: offline cold start with cached images** (FR-028 AC4, NFR-013). Use a menu whose products, combos and idle promos have real image URLs. Sync once, turn the network off, restart the app, and check that Idle and the Menu show the cached images.
 - [ ] **TC-146 on the device** (NFR-005). Repeat the 0.2.0 emulator check with `run-as` on the iMin unit: `secure.pb` holds no plain token.
 
 ## Needs more emulators or test data
 
+- [ ] **Prism mock cannot reach `PAID`** (0.6.5). Its E10 example is `EXPIRED` whatever the `Prefer` header says, so FR-013 AC4 and the paid path through the real DTOs are not run end to end. Fix the `PREFER` map in `MockServerInterceptor` or the openapi examples, then run the Rp 172.700 sample cart (Feast for Two is not needed: Classic Cheeseburger, Hot Honey Chicken Burger, BBQ Beef Bacon Burger, Cheese Fries and Chicken Nuggets sum to Rp 167.000).
 - [ ] **Instrumented suite on API 30 and API 34/35** (NFR-001, NFR-016, testing-plan §2.3). Create Kiosk-30 and Kiosk-34 with `scripts/create-avds.sh` and run `./gradlew connectedDebugAndroidTest` on each. Only API 37 has run so far, including the 0.5.0 `CheckoutUiTest`; the 0.6.0 edits to the instrumented tests have not run at all. On API 30 this also checks the inactivity overlay's scrim fallback (no blur below API 31, DEV-040).
 - [ ] **TC-157, filling the image cache** (NFR-013, A-37). The 200 MB cap and the placeholder on a failed image are covered. Still to do: load enough images to reach the cap and check that the cache never grows past 200 MB.
 

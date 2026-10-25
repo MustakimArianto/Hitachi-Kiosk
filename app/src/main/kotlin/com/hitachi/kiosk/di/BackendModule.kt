@@ -47,7 +47,7 @@ abstract class BackendModule {
                         .map(String::trim)
                         .filter(String::isNotEmpty),
                 appVersion = BuildConfig.VERSION_NAME,
-                allowCleartext = BuildConfig.DEBUG,
+                allowCleartext = BuildConfig.ALLOW_CLEARTEXT,
             )
 
         @Provides

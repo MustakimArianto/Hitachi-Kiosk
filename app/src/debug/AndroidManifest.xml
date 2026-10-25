@@ -7,6 +7,9 @@
          with `adb shell pm grant com.hitachi.kiosk android.permission.READ_PHONE_STATE`, or as device owner with
          setPermissionGrantState. -->
     <uses-permission android:name="android.permission.READ_PHONE_STATE" />
+    <!-- Android 17 blocks apps that target it from private addresses such as the emulator host 10.0.2.2 (the Prism mock
+         server of Developer options). Debug and releaseLocal only; release never talks to a local network. -->
+    <uses-permission android:name="android.permission.ACCESS_LOCAL_NETWORK" />
     <application>
         <activity
             android:name="com.hitachi.kiosk.debug.DeveloperOptionsActivity"

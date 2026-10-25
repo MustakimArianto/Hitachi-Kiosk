@@ -54,6 +54,9 @@ dependencies {
     // Debug-only Developer options (DEV-009): fakes and their switching never ship in release.
     debugImplementation(projects.core.testing)
     debugImplementation(libs.androidx.datastore.preferences)
+    // The releaseLocal run variant (kiosk.android.application) reuses the debug source set.
+    "releaseLocalImplementation"(projects.core.testing)
+    "releaseLocalImplementation"(libs.androidx.datastore.preferences)
     debugRuntimeOnly(libs.leakcanary.android)
     debugImplementation(libs.androidx.compose.ui.tooling)
     implementation(libs.androidx.compose.ui.tooling.preview)

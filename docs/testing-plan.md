@@ -358,7 +358,7 @@ Decisions: D-33 (the strip replaces SCR-09), D-35 (Budget Plan, fewer decisions)
 | TC-145 | NFR-004, NFR-015 | 72 h soak | iMin device, staging | UI Automator order every 3 min for 72 h | 0 crashes, 0 ANRs; heap growth ≤ 20 MB; temperature within spec; log dir ≤ 10 MB | D | H | P |
 | TC-146 | NFR-005 | Token storage | Debug build | `run-as` inspect files | Token not in plain text | D | H | N |
 | TC-147 | NFR-005 | TLS / pinning / cleartext | Proxy with self-signed cert; HTTP URL | Run app through proxy | Connections refused (pinning); cleartext blocked in release | D | H | N |
-| TC-148 | NFR-005 | Release hardening | Release APK | `scripts/check-release-apk.sh` (dex, R8 mapping, manifest), manifest review | `debuggable=false`; R8 on; no Developer options/simulate classes; exported components minimal; only listed permissions | U | H | Y |
+| TC-148 | NFR-005 | Release hardening (`release` only; `releaseLocal`, ADR-0005, is outside it) | Release APK | `scripts/check-release-apk.sh` (dex, R8 mapping, manifest), manifest review | `debuggable=false`; R8 on; no Developer options/simulate classes; exported components minimal; only listed permissions | U | H | Y |
 | TC-149 | NFR-006 | Privacy | Release build after a soak | Review logs; dependency list | No customer data, no PIN, payment refs masked; no analytics/crash SDKs | M | H | P |
 | TC-150 | NFR-007 | Automated accessibility checks | — | Compose tests with accessibility checks on every screen | No errors (labels, target ≥ 88 dpx, contrast) | UI | H | Y |
 | TC-151 | NFR-007 | TalkBack walkthrough | iMin device or emulator | Complete J1 with TalkBack only | All controls reachable and labelled as in the design aria labels | M | M | N |

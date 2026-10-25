@@ -566,6 +566,26 @@ All TCs listed above pass. The PO has signed off the new boards and reviewed the
 
 ---
 
+## Version 0.6.5 — Release preparation (R8)
+
+### Objective
+Prove that the minified, resource-shrunk build runs, and give the developer a way to run it with the fakes (D-36 left printing out; nothing here adds scope).
+
+### Scope
+**Included:** version `0.6.5` (versionCode 605); the `releaseLocal` run variant (ADR-0005); the `en` locale filter (D-29); R8 rules checked by running the minified app.
+**Excluded:** the baseline profile, `:benchmark` and JankStats (DEV-031, 1.0.0); the real signing key and pins (DEV-094/095, 0.9.0).
+
+### TODO checklist
+- [x] **DEV-115** `releaseLocal` build type in `kiosk.android.application` (ADR-0005), `androidResources.localeFilters += "en"`, version bump. *Verify:* `assembleRelease` and `checkReleaseApk` pass, `releaseLocal` installs as `com.hitachi.kiosk.local`.
+- [x] **DEV-116** R8 check: `missing_rules.txt` is empty and the minified app ran the whole journey on the emulator with no crash (full list in [`test-reports/0.6.5.md`](test-reports/0.6.5.md)): Setup, Idle, both order types, Menu, Item (size, meal, customize, extras), Combos, Your order and the Upsell strip, Budget Plan (keypad, children, sides, desserts, over budget, swap, Add plan, Edit plan), QRIS and card Checkout with Approve, Decline, cancel, expiry and retry, Complete, offline gating, the inactivity overlay, the staff placeholders, Developer options with the serial diagnostics, and the real Retrofit and serialization path against the Prism mock (E1, E2, E5, E6, E7, E8, E9, E10, E14).
+- [x] **DEV-117** Gaps the run found in the run variant and the fakes, all fixed: plain HTTP to the mock host was refused on `releaseLocal` (`BuildConfig.ALLOW_CLEARTEXT` replaces `BuildConfig.DEBUG` in `BackendModule`); the debug manifest declares `ACCESS_LOCAL_NETWORK` (Android 17 blocks `10.0.2.2` without it); `releaseLocal` logs to logcat (`BuildConfig.LOGCAT`); R8 `-keepnames` rules keep `PaymentUiState`, `RecoveryOutcome` and `BudgetPlanEvent` readable in logs (they were logged as `state=do2`); `FakeBackendApi` gives sample and scripted payments and statuses the total of the order, so Complete and Checkout show what was ordered (TC in `FakeBackendApiTest`).
+- *Open:* a frame-time run on the iMin device (`todo.md`). The Prism mock cannot reach `PAID` (its status example is `EXPIRED`), so the paid path through the real DTOs is covered by the fakes only.
+
+### Acceptance criteria
+`./gradlew verify` is green, `release` still contains no debug class, and `releaseLocal` runs the first screens of the journey.
+
+---
+
 ## Version 0.7.0 — Staff settings & kiosk lockdown
 
 ### Objective

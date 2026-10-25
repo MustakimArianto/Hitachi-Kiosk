@@ -41,8 +41,9 @@ class KioskApp :
 
     override fun onCreate() {
         super.onCreate()
+        val verboseLogs = BuildConfig.DEBUG || BuildConfig.LOGCAT
+        if (verboseLogs) Timber.plant(Timber.DebugTree())
         if (BuildConfig.DEBUG) {
-            Timber.plant(Timber.DebugTree())
             StrictMode.setThreadPolicy(
                 StrictMode.ThreadPolicy
                     .Builder()
@@ -58,7 +59,7 @@ class KioskApp :
                     .build(),
             )
         }
-        KioskLog.install(TimberLogSink(minLevel = if (BuildConfig.DEBUG) LogLevel.DEBUG else LogLevel.INFO))
+        KioskLog.install(TimberLogSink(minLevel = if (verboseLogs) LogLevel.DEBUG else LogLevel.INFO))
         KioskLog.i("app_start", "version" to BuildConfig.VERSION_NAME, "env" to BuildConfig.KIOSK_ENV)
         catalogSync.start()
         orderRecovery.start()

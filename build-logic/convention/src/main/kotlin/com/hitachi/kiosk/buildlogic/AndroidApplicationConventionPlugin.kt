@@ -41,9 +41,13 @@ class AndroidApplicationConventionPlugin : Plugin<Project> {
                     getByName("debug") {
                         environmentFields(debugEnv).forEach { (name, value) -> buildConfigField("String", name, value) }
                         buildConfigField("String", "MOCK_BASE_URL", quoted(requiredProperty("kiosk.baseUrl.mock")))
+                        buildConfigField("boolean", "ALLOW_CLEARTEXT", "true")
+                        buildConfigField("boolean", "LOGCAT", "true")
                     }
                     getByName("release") {
                         environmentFields(releaseEnv).forEach { (name, value) -> buildConfigField("String", name, value) }
+                        buildConfigField("boolean", "ALLOW_CLEARTEXT", "false")
+                        buildConfigField("boolean", "LOGCAT", "false")
                         isMinifyEnabled = true
                         isShrinkResources = true
                         isDebuggable = false
@@ -60,6 +64,31 @@ class AndroidApplicationConventionPlugin : Plugin<Project> {
                             }
                         }
                     }
+                    // Local run variant (technical-design §2.5): the release R8 and shrink settings with the debug
+                    // source set (fakes, Developer options, demo images), signed with the debug key. Never shipped.
+                    create("releaseLocal") {
+                        initWith(getByName("release"))
+                        matchingFallbacks += "release"
+                        applicationIdSuffix = ".local"
+                        versionNameSuffix = "-local"
+                        isMinifyEnabled = true
+                        isShrinkResources = true
+                        isDebuggable = false
+                        environmentFields(debugEnv).forEach { (name, value) -> buildConfigField("String", name, value) }
+                        buildConfigField("String", "MOCK_BASE_URL", quoted(requiredProperty("kiosk.baseUrl.mock")))
+                        // Not debuggable, so BuildConfig.DEBUG is false, but the Prism mock host needs plain HTTP.
+                        buildConfigField("boolean", "ALLOW_CLEARTEXT", "true")
+                        buildConfigField("boolean", "LOGCAT", "true")
+                        signingConfig = signingConfigs.getByName("debug")
+                    }
+                }
+                // English only (D-29): drop the locales that libraries bring.
+                androidResources.localeFilters += "en"
+                sourceSets.getByName("releaseLocal") {
+                    kotlin.directories += "src/debug/kotlin"
+                    res.directories += "src/debug/res"
+                    assets.directories += "src/debug/assets"
+                    manifest.srcFile("src/debug/AndroidManifest.xml")
                 }
             }
 

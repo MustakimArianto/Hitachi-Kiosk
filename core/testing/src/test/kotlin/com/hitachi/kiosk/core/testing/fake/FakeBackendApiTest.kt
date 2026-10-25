@@ -10,6 +10,7 @@ import com.hitachi.kiosk.core.domain.model.Conditional
 import com.hitachi.kiosk.core.domain.model.HealthStatus
 import com.hitachi.kiosk.core.domain.model.PaymentMethod
 import com.hitachi.kiosk.core.domain.model.PaymentStatus
+import com.hitachi.kiosk.core.domain.model.Rupiah
 import com.hitachi.kiosk.core.domain.model.StartedPayment
 import com.hitachi.kiosk.core.testing.fixture.SampleData
 import kotlinx.coroutines.test.currentTime
@@ -237,4 +238,19 @@ class FakeBackendApiTest {
         (paymentStatus(SampleData.ORDER_ID, SampleData.QRIS_PAYMENT_ID) as Outcome.Success).value.status
 
     private inline fun <reified E : DomainError> Outcome<*>.errorIs(): Boolean = (this as? Outcome.Failure)?.error is E
+
+    @Test
+    fun `scripted payments and statuses carry the total of the order, not the sample total`() =
+        runTest {
+            val totals = SampleData.orderRequest.clientTotals.copy(total = Rupiah(41_800))
+            val request = SampleData.orderRequest.copy(clientTotals = totals)
+            val order = (api.createOrder(request, key) as Outcome.Success).value
+            api.paymentStatus.always(Outcome.Success(SampleData.paymentPaid))
+
+            val started = api.startPayment(order.orderId, PaymentMethod.QRIS, 300, key)
+            val status = api.paymentStatus(order.orderId, SampleData.QRIS_PAYMENT_ID)
+
+            assertThat((started as Outcome.Success).value.amount).isEqualTo(Rupiah(41_800))
+            assertThat((status as Outcome.Success).value.amount).isEqualTo(Rupiah(41_800))
+        }
 }

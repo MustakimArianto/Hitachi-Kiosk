@@ -136,7 +136,8 @@ class FakeBackendApi(
     override suspend fun paymentStatus(
         orderId: String,
         paymentId: String,
-    ): Outcome<PaymentState> = answer(Endpoint.E10, listOf(orderId, paymentId), null, paymentStatus)
+    ): Outcome<PaymentState> =
+        answer(Endpoint.E10, listOf(orderId, paymentId), null, paymentStatus).withOrderTotal(orderId)
 
     override suspend fun cancelPayment(
         orderId: String,
@@ -189,16 +190,31 @@ class FakeBackendApi(
         return Outcome.Success(priced)
     }
 
-    /** The sample payments carry the total of their order, like the real backend's E9; a scripted one is left alone. */
+    /**
+     * The sample payments, scripted scenarios built from them included, carry the total of their order like the real
+     * backend's E9 and E10, so a demo never shows or pays an amount the customer did not order. A payment scripted with
+     * a different amount is left alone: the tests of the kiosk's amount guard rely on that.
+     */
     private fun Outcome<StartedPayment>.withOrderTotal(orderId: String): Outcome<StartedPayment> {
         val payment = (this as? Outcome.Success)?.value ?: return this
-        val total = synchronized(orderTotals) { orderTotals[orderId] } ?: return this
-        return when {
-            payment === SampleData.qrisPayment -> Outcome.Success(SampleData.qrisPayment.copy(amount = total))
-            payment === SampleData.cardPayment -> Outcome.Success(SampleData.cardPayment.copy(amount = total))
-            else -> this
-        }
+        val total = orderTotal(orderId) ?: return this
+        if (payment.amount != SampleData.qrisPayment.amount) return this
+        return Outcome.Success(
+            when (payment) {
+                is StartedPayment.Qris -> payment.copy(amount = total)
+                is StartedPayment.Card -> payment.copy(amount = total)
+            },
+        )
     }
+
+    @JvmName("paymentStateWithOrderTotal")
+    private fun Outcome<PaymentState>.withOrderTotal(orderId: String): Outcome<PaymentState> {
+        val state = (this as? Outcome.Success)?.value ?: return this
+        val total = orderTotal(orderId) ?: return this
+        return if (state.amount == SampleData.paymentPaid.amount) Outcome.Success(state.copy(amount = total)) else this
+    }
+
+    private fun orderTotal(orderId: String): Rupiah? = synchronized(orderTotals) { orderTotals[orderId] }
 
     private fun Outcome<StartedPayment>.withExpiryFromClock(qrExpirySeconds: Int?): Outcome<StartedPayment> {
         val now = clock?.now() ?: return this

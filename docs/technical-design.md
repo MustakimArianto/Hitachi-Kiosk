@@ -77,6 +77,8 @@ Architecture §7 requires a flavor-less `dev | staging | prod` environment. It i
 
 ### 2.5 Release build (TR-SEC-07, TR-DST-01)
 - `isMinifyEnabled = true`, `isShrinkResources = true`, R8 full mode (the AGP 9 default), `isDebuggable = false`.
+- `androidResources.localeFilters += "en"` (English only, D-29): library locales are not packaged.
+- `releaseLocal` (ADR-0005, 0.6.5): `release` plus the debug source set, `.local` id suffix, debug-key signing, `dev` environment. Run it with `./gradlew :app:installReleaseLocal` to check the R8 build with the fakes. Never distributed, outside `checkReleaseApk`. `BuildConfig.ALLOW_CLEARTEXT` (true in `debug` and `releaseLocal`, false in `release`) allows plain HTTP to the Prism mock; `BuildConfig.LOGCAT` sends `DEBUG` logs to logcat in the same two build types. The debug manifest declares `ACCESS_LOCAL_NETWORK` so the mock host `10.0.2.2` is reachable on Android 17 (grant it with `adb shell pm grant <id> android.permission.ACCESS_LOCAL_NETWORK`). `proguard-rules.pro` keeps the names of `PaymentUiState`, `RecoveryOutcome` and `BudgetPlanEvent`, which diagnostics log by `simpleName`.
 - Signing from the environment variables `KIOSK_KEYSTORE_PATH`, `KIOSK_KEYSTORE_PASSWORD`, `KIOSK_KEY_ALIAS`, `KIOSK_KEY_PASSWORD`, with a fallback to `local.properties`. v2 and v3 signing on, v1 off (`minSdk 30` does not need it).
 - Keep rules: kotlinx.serialization (generated serializers for DTOs and routes), Retrofit interfaces, Tink (shipped consumer rules), iMin SDK (per ADR-0004), and `@Keep` on the `DeviceAdminReceiver`.
 - `scripts/check-release-apk.sh <apk-dir> <r8-mapping> <sdk-dir> <build-tools-version> <stamp>` (run by `:app:checkReleaseApk`) uses the build-tools `dexdump` and `aapt2` to check:
