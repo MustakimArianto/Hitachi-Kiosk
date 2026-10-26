@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
@@ -19,7 +20,8 @@ import com.hitachi.kiosk.core.designsystem.theme.ProvideScaledTokens
  * to 10:16 range by [designFrameSize], centred, with the rest filled with `bg` (letterbox or pillarbox). Inside,
  * [LocalDesignScale] is `frameWidthDp / 1080`, so [dpx] and [spx] reproduce the 1080 × 1920 design at any
  * density, and the theme's type, shapes and spacing are rebuilt for that scale. Use it once, directly inside
- * [KioskTheme].
+ * [KioskTheme]. The frame sits above the navigation bar (the iMin panel keeps it visible), so bottom docks and
+ * buttons are never covered.
  */
 @Composable
 fun DesignFrame(
@@ -30,7 +32,8 @@ fun DesignFrame(
         modifier =
             modifier
                 .fillMaxSize()
-                .background(KioskTheme.colors.bg),
+                .background(KioskTheme.colors.bg)
+                .navigationBarsPadding(),
         contentAlignment = Alignment.Center,
     ) {
         val frame = designFrameSize(maxWidth.value, maxHeight.value)

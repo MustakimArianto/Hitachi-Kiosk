@@ -51,11 +51,9 @@ import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.em
 import com.hitachi.kiosk.R
-import com.hitachi.kiosk.core.designsystem.component.BrandMarkTile
 import com.hitachi.kiosk.core.designsystem.component.KioskIcon
 import com.hitachi.kiosk.core.designsystem.component.KioskIcons
 import com.hitachi.kiosk.core.designsystem.component.KioskText
@@ -63,7 +61,6 @@ import com.hitachi.kiosk.core.designsystem.motion.KioskEasing
 import com.hitachi.kiosk.core.designsystem.motion.KioskMotion.Idle
 import com.hitachi.kiosk.core.designsystem.motion.LocalReduceMotion
 import com.hitachi.kiosk.core.designsystem.motion.animateEntrance
-import com.hitachi.kiosk.core.designsystem.motion.fadeIn
 import com.hitachi.kiosk.core.designsystem.motion.fadeUp
 import com.hitachi.kiosk.core.designsystem.motion.riseIn
 import com.hitachi.kiosk.core.designsystem.theme.KioskShadow
@@ -72,7 +69,6 @@ import com.hitachi.kiosk.core.designsystem.theme.kioskShadow
 import com.hitachi.kiosk.core.designsystem.unit.DesignFrame
 import com.hitachi.kiosk.core.designsystem.unit.dpx
 import com.hitachi.kiosk.core.designsystem.unit.spx
-import com.hitachi.kiosk.ui.MerchantLogoImage
 
 /** Test tag of the Idle root. */
 const val IDLE_SCREEN_TAG = "screen:SCR-04"
@@ -90,7 +86,6 @@ const val IDLE_ISSUE_DOT_TAG = "idle-issue-dot"
 const val STAFF_HOLD_MILLIS: Long = 2_000L
 
 // Motion of `Idle.dc.html` that KioskMotion.Idle does not name yet.
-private const val HEADER_FADE_MILLIS = 700
 private const val SUBTITLE_RISE_DELAY_MILLIS = 360
 private const val CTA_UP_MILLIS = 900
 private const val CTA_UP_DELAY_MILLIS = 450
@@ -119,8 +114,7 @@ private const val TIGHT_EM = -0.02f
 private const val CTA_LINE_HEIGHT_EM = 1.15f
 
 /**
- * SCR-04 Idle (`Idle.dc.html`, `S_Idle_issues`, FR-006, DEV-024): the promo slideshow under the merchant chip and
- * progress dots, the "Hungry?" sheet with the pulsing "Tap to order" button, and the hidden staff corner. A tap
+ * SCR-04 Idle (`Idle.dc.html`, `S_Idle_issues`, FR-006, DEV-024): the full-screen promo slideshow, the compact "Hungry?" sheet with the pulsing "Tap to order" button, and the hidden staff corner. A tap
  * anywhere except the corner starts an order; holding the corner for 2 s opens staff settings.
  */
 @Composable
@@ -140,9 +134,6 @@ fun IdleScreen(
         IdleSlides(slides = state.slides, index = show.index)
         // The design's full-screen link: the header and sheet above it take no touches, so they fall through.
         TapLayer(onTap = { onEvent(IdleEvent.TapToOrder) })
-        IdleHeader(brandName = state.brandName) {
-            SlideProgress(count = state.slides.size, index = show.index, period = show.period)
-        }
         IdleSheet(Modifier.align(Alignment.BottomCenter))
         if (state.showIssueDot) {
             IssueDot(
@@ -172,64 +163,6 @@ private fun TapLayer(onTap: () -> Unit) {
 }
 
 @Composable
-private fun IdleHeader(
-    brandName: String?,
-    progress: @Composable () -> Unit,
-) {
-    val fade = animateEntrance(HEADER_FADE_MILLIS, easing = KioskEasing.Ease)
-    Row(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .padding(start = 72.dpx, end = 72.dpx, top = 48.dpx)
-                .fadeIn(fade),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween,
-    ) {
-        if (brandName != null) {
-            BrandChip(name = brandName, modifier = Modifier.weight(1f, fill = false))
-        } else {
-            Spacer(Modifier.weight(1f))
-        }
-        progress()
-    }
-}
-
-/** The white merchant chip: the brand tile (the merchant logo, else the ink tile with the accent dot) and the name (34/700). */
-@Composable
-private fun BrandChip(
-    name: String,
-    modifier: Modifier = Modifier,
-) {
-    val colors = KioskTheme.colors
-    val pill = KioskTheme.shapes.pill
-    Row(
-        modifier =
-            modifier
-                .padding(end = 24.dpx)
-                .height(112.dpx)
-                .kioskShadow(pill, KioskTheme.elevation.floating)
-                .background(colors.surface, pill)
-                .padding(start = 16.dpx, end = 40.dpx),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(18.dpx),
-    ) {
-        BrandMarkTile(
-            modifier = Modifier.size(80.dpx),
-            shape = KioskTheme.shapes.small,
-            dotSize = 26.dpx,
-            logo = { MerchantLogoImage() },
-        )
-        KioskText(
-            text = name,
-            style = KioskTheme.typography.button,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
-    }
-}
-
-@Composable
 private fun IdleSheet(modifier: Modifier = Modifier) {
     val colors = KioskTheme.colors
     val typography = KioskTheme.typography
@@ -242,7 +175,7 @@ private fun IdleSheet(modifier: Modifier = Modifier) {
         modifier =
             modifier
                 .fillMaxWidth()
-                .height(620.dpx)
+                .height(460.dpx)
                 .graphicsLayer { translationY = size.height * (1f - sheet.value) }
                 .kioskShadow(
                     shape,
@@ -252,12 +185,12 @@ private fun IdleSheet(modifier: Modifier = Modifier) {
                         color = colors.ink.copy(alpha = SHEET_SHADOW_ALPHA),
                     ),
                 ).background(colors.bg, shape)
-                .padding(start = 72.dpx, end = 72.dpx, top = 64.dpx, bottom = 48.dpx),
+                .padding(start = 72.dpx, end = 72.dpx, top = 44.dpx, bottom = 40.dpx),
     ) {
         Box(Modifier.clipToBounds()) {
             KioskText(
                 text = stringResource(R.string.idle_title),
-                style = typography.display.copy(lineHeight = 1.em),
+                style = typography.display.copy(fontSize = 84.spx, lineHeight = 1.2.em),
                 modifier = Modifier.riseIn(title),
                 cssLineBox = true,
             )
@@ -269,7 +202,7 @@ private fun IdleSheet(modifier: Modifier = Modifier) {
         ) {
             KioskText(
                 text = stringResource(R.string.idle_subtitle),
-                style = typography.body.copy(fontSize = 34.spx, fontWeight = FontWeight.W500),
+                style = typography.body.copy(fontSize = 30.spx, fontWeight = FontWeight.W500),
                 color = colors.muted,
                 modifier = Modifier.riseIn(subtitle),
             )
@@ -302,7 +235,7 @@ private fun TapToOrderButton(modifier: Modifier = Modifier) {
         modifier =
             modifier
                 .fillMaxWidth()
-                .height(168.dpx)
+                .height(136.dpx)
                 .clearAndSetSemantics {},
     ) {
         if (!reduce) CtaRing(Modifier.matchParentSize())
@@ -326,7 +259,7 @@ private fun TapToOrderButton(modifier: Modifier = Modifier) {
                 text = stringResource(R.string.idle_tap_to_order),
                 style =
                     KioskTheme.typography.title.copy(
-                        fontSize = 52.spx,
+                        fontSize = 46.spx,
                         letterSpacing = TIGHT_EM.em,
                         lineHeight = CTA_LINE_HEIGHT_EM.em,
                     ),
@@ -372,7 +305,7 @@ private fun TapIcon() {
         tint = KioskTheme.colors.surface,
         modifier =
             Modifier
-                .size(60.dpx)
+                .size(52.dpx)
                 .graphicsLayer {
                     val p = press.value
                     translationY = drop.toPx() * p

@@ -158,6 +158,5 @@ class IdleScreenTest {
         show()
 
         composeRule.onNodeWithTag(IDLE_ISSUE_DOT_TAG).assertDoesNotExist()
-        composeRule.onNodeWithText("Urban Grill").assertExists()
     }
 }
