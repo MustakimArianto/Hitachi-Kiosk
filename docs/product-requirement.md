@@ -448,7 +448,7 @@ Priority: **MVP** = required for 1.0.0. **Post-1.0** = specified for later, not 
 - **Description:** Deterministic computation of order totals on the kiosk from backend config, re-validated by the backend [D-19].
 - **Rules:**
   - All amounts are integer Rupiah (IDR). No floating point anywhere in money math.
-  - `subtotal` = Σ line totals.
+  - `subtotal` = Σ line totalxs.
   - `discount` = the best applicable promo from config. 1.0 supports the **threshold discount** type: if subtotal ≥ threshold, subtract a fixed amount (design: Rp 10.000 off when subtotal ≥ Rp 100.000 [V]). Only one promo applies per order [A-12].
   - `tax` = round_half_up((subtotal − discount) × taxRate), with taxRate from config (design: PB1 10 % [V]). Tax is exclusive (added on top) [V: "added at checkout"].
   - `total` = subtotal − discount + tax, then rounded **up** to the configured rounding step (None / Rp 100 / Rp 500 [V]) [A-13]. Any rounding adjustment is shown as its own line "Rounding" when non-zero [A-13].
